@@ -8,8 +8,8 @@ defmodule SafeCracking do
 
   defp parse_line(line) do
     line
-      |> String.split(" ")
-      |> Enum.map(&parse_elem/1)
+    |> String.split(" ")
+    |> Enum.map(&parse_elem/1)
   end
 
   defp parse_elem(value), do: parse_elem(value, Integer.parse(value))
@@ -32,12 +32,6 @@ defmodule SafeCracking do
   defp execute([:cpy, value, elem], list, pointer, info) do
     value = parse_value(info, value)
     info = set(info, elem, value)
-    {list, pointer + 1, info}
-  end
-  defp execute([:inc, value1, value2, elem], list, pointer, info) do
-    value1 = parse_value(info, value1)
-    value2 = parse_value(info, value2)
-    info = set(info, elem, get(info, elem) + value1 * value2)
     {list, pointer + 1, info}
   end
   defp execute([:inc, elem], list, pointer, info) do
@@ -81,7 +75,7 @@ defmodule SafeCracking do
   defp parse_value(info, value), do: get(info, value)
 
   defp init do
-    [a: 12, b: 0, c: 0, d: 0]
+    [a: 7, b: 0, c: 0, d: 0]
   end
 
   defp calculate(input) do
