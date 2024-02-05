@@ -1,0 +1,41 @@
+
+use std::fs;
+
+fn main() {
+    let data = fs::read_to_string("input.txt").expect("Error reading file");
+    let lines: Vec<&str> = data.split("\n").collect();
+    let player1_start: i32 = lines[0][28..].trim().parse().unwrap();
+    let player2_start: i32 = lines[1][28..].trim().parse().unwrap();
+    let mut player1_pos = player1_start;
+    let mut player2_pos = player2_start;
+    let mut player1_score = 0;
+    let mut player2_score = 0;
+    let mut die_roll = 1;
+    let mut roll_count = 0;
+
+    loop {
+        // Player 1
+        let rolls = die_roll % 100 + (die_roll + 1) % 100 + (die_roll + 2) % 100;
+        roll_count += 3;
+        die_roll += 3;
+        player1_pos = (player1_pos + rolls - 1) % 10 + 1;
+        player1_score += player1_pos;
+
+        if player1_score >= 1000 {
+            println!("Result: {}", player2_score * roll_count);
+            break;
+        }
+
+        // Player 2
+        let rolls = die_roll % 100 + (die_roll + 1) % 100 + (die_roll + 2) % 100;
+        roll_count += 3;
+        die_roll += 3;
+        player2_pos = (player2_pos + rolls - 1) % 10 + 1;
+        player2_score += player2_pos;
+
+        if player2_score >= 1000 {
+            println!("{}", player1_score * roll_count);
+            break;
+        }
+    }
+}
