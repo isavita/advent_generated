@@ -27,7 +27,7 @@ func main() {
 		return
 	}
 
-	polymer := string(content)
+	polymer := strings.TrimSpace(string(content))
 
 	minLength := len(polymer)
 	for unit := 'a'; unit <= 'z'; unit++ {
@@ -39,5 +39,5 @@ func main() {
 		}
 	}
 
-	fmt.Println(minLength - 1)
+	fmt.Println(minLength)
 }

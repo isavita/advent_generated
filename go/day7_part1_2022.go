@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -92,5 +93,5 @@ func main() {
 	}
 	calculateSizes(root)
 
-	println(sumSizes)
+	fmt.Println(sumSizes)
 }

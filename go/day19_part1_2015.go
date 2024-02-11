@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -36,5 +37,5 @@ func main() {
 		}
 	}
 
-	println(len(molecules))
+	fmt.Println(len(molecules))
 }

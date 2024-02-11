@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -69,5 +70,5 @@ func main() {
 	}
 
 	dfs("start", map[string]bool{"start": true})
-	println(count)
+	fmt.Println(count)
 }

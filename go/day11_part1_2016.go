@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/os"
+	"os"
 	"path"
 	"runtime"
 	"sort"
@@ -10,21 +10,12 @@ import (
 )
 
 func main() {
-	ans := rtgHellDay(readFile("./input.txt"), 1)
+	ans := rtgHellDay(readFile("./input.txt"))
 	fmt.Println(ans)
 }
 
-func rtgHellDay(input string, part int) int {
+func rtgHellDay(input string) int {
 	currentState := newInitialState(input)
-
-	if part == 2 {
-		currentState.floors[0] = append(currentState.floors[0],
-			halves{isChip: false, material: "elerium"},
-			halves{isChip: true, material: "elerium"},
-			halves{isChip: false, material: "dilithium"},
-			halves{isChip: true, material: "dilithium"},
-		)
-	}
 
 	queue := []state{currentState}
 	prevStates := map[string]bool{}

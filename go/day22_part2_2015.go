@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -117,5 +118,5 @@ func main() {
 	bossDamage, _ := strconv.Atoi(strings.Split(scanner.Text(), ": ")[1])
 
 	initialState := GameState{bossHP: bossHP, bossDamage: bossDamage}
-	println(minManaToWin(initialState))
+	fmt.Println(minManaToWin(initialState))
 }

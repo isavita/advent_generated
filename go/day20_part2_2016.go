@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/os"
+	"os"
 	"math"
 	"path"
 	"runtime"

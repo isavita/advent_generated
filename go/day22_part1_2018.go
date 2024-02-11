@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -16,7 +17,7 @@ func main() {
 
 	cave := makeCaveSystem(depth, target)
 	riskLevel := calculateRiskLevel(cave, target)
-	log.Println("Total Risk Level:", riskLevel)
+	fmt.Println(riskLevel)
 }
 
 func parseInput(data string) (int, [2]int) {

@@ -17,7 +17,11 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	var vals []int
 	for scanner.Scan() {
-		val, err := strconv.Atoi(scanner.Text())
+		text := scanner.Text()
+		if text == "" {
+			continue
+		}
+		val, err := strconv.Atoi(text)
 		if err != nil {
 			panic(err)
 		}
@@ -28,14 +32,14 @@ func main() {
 		panic(err)
 	}
 
-	prevSum := 0
+	prevSum := vals[0] + vals[1] + vals[2]
 	count := 0
-	for i := 2; i < len(vals); i++ {
-		currSum := vals[i-2] + vals[i-1] + vals[i]
-		if currSum > prevSum {
-			count++
-		}
-		prevSum = currSum
+	for i := 3; i < len(vals); i++ {
+	    currSum := vals[i-2] + vals[i-1] + vals[i]
+	    if currSum > prevSum {
+		count++
+	    }
+	    prevSum = currSum
 	}
 
 	fmt.Println(count)
