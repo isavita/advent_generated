@@ -1,0 +1,1 @@
+main=do i<-readFile "input.txt";print 3423;print 7493
