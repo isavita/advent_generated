@@ -1,0 +1,22 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let target = int_of_string (input_line ic) in
+  close_in ic;
+
+  let side_length = int_of_float (ceil (sqrt (float_of_int target))) in
+  let side_length = if side_length mod 2 = 0 then side_length + 1 else side_length in
+
+  let max_value = side_length * side_length in
+  let steps_from_edge = (side_length - 1) / 2 in
+  let distance_to_middle = ref max_int in
+
+  for i = 0 to 3 do
+    let middle_point = max_value - steps_from_edge - (side_length - 1) * i in
+    let distance = abs (target - middle_point) in
+    distance_to_middle := min !distance_to_middle distance
+  done;
+
+  let manhattan_distance = steps_from_edge + !distance_to_middle in
+  print_int manhattan_distance;
+  print_newline ()

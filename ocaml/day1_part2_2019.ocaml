@@ -1,0 +1,29 @@
+
+let rec calc_fuel_mass mass =
+  let fuel = float_of_int (mass) /. 3.0 -. 2.0 in
+  if fuel <= 0.0 then 0
+  else int_of_float fuel + calc_fuel_mass (int_of_float fuel)
+
+let rec get_total masses =
+  match masses with
+  | [] -> 0
+  | hd::tl -> calc_fuel_mass hd + get_total tl
+
+let process_line line =
+  int_of_string (String.trim line)
+
+let () =
+  let file = open_in "input.txt" in
+  let rec read_lines accum =
+    try
+      let line = input_line file in
+      let n = process_line line in
+      read_lines (n :: accum)
+    with End_of_file ->
+      close_in file;
+      List.rev accum
+  in
+  let masses = read_lines [] in
+  let total = get_total masses in
+  print_int total;
+  print_newline ()

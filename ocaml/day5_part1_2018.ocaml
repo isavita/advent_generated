@@ -1,0 +1,24 @@
+
+let rec react polymer =
+  match String.length polymer with
+  | 0 -> polymer
+  | _ -> 
+    let rec helper i =
+      if i < String.length polymer - 1 then
+        if polymer.[i] <> polymer.[i+1] &&
+          (Char.code polymer.[i] + 32 = Char.code polymer.[i+1] ||
+            Char.code polymer.[i] - 32 = Char.code polymer.[i+1]) then
+          react (String.sub polymer 0 i ^ String.sub polymer (i+2) (String.length polymer - i - 2))
+        else
+          helper (i+1)
+      else
+        polymer
+    in
+    helper 0
+
+let () =
+  let file = open_in "input.txt" in
+  let polymer = input_line file in
+  let result = react polymer in
+  print_int (String.length result);
+  close_in file

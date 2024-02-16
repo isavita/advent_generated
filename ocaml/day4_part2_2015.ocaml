@@ -1,0 +1,18 @@
+
+open Digest
+open Printf
+
+let () =
+  let ic = open_in "input.txt" in
+  let secret_key = input_line ic in
+  close_in ic;
+
+  let rec find_number number =
+    let hash = Digest.to_hex (Digest.string (secret_key ^ string_of_int number)) in
+    if String.sub hash 0 6 = "000000" then
+      printf "%d\n" number
+    else
+      find_number (number + 1)
+  in
+
+  find_number 0

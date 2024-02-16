@@ -1,0 +1,37 @@
+
+type claim = { id : int; left : int; top : int; width : int; height : int }
+
+let parse_claim s =
+  Scanf.sscanf s "#%d @ %d,%d: %dx%d" (fun id left top width height -> { id; left; top; width; height })
+
+let read_claims filename =
+  let file = open_in filename in
+  let rec read_claims_helper acc =
+    try
+      let line = input_line file in
+      let claim = parse_claim line in
+      read_claims_helper (claim :: acc)
+    with End_of_file ->
+      close_in file;
+      List.rev acc
+  in
+  read_claims_helper []
+
+let count_overlapping_inches claims =
+  let fabric = Hashtbl.create 1000 in
+  List.iter (fun claim ->
+    for i = claim.left to claim.left + claim.width - 1 do
+      for j = claim.top to claim.top + claim.height - 1 do
+        let coord = string_of_int i ^ "," ^ string_of_int j in
+        let count = try Hashtbl.find fabric coord with Not_found -> 0 in
+        Hashtbl.replace fabric coord (count + 1)
+      done
+    done
+  ) claims;
+  Hashtbl.fold (fun _ count acc -> if count > 1 then acc + 1 else acc) fabric 0
+
+let () =
+  let claims = read_claims "input.txt" in
+  let overlapping = count_overlapping_inches claims in
+  print_int overlapping;
+  print_newline ()

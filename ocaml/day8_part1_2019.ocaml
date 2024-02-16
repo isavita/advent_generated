@@ -1,0 +1,32 @@
+
+let min a b = if a < b then a else b
+
+let () =
+  let data = open_in "input.txt" in
+  let image_data = input_line data |> String.trim in
+  let width, height = 25, 6 in
+  let layer_size = width * height in
+  let min_zeros = ref (layer_size + 1) in
+  let result = ref 0 in
+
+  for i = 0 to String.length image_data - 1 do
+    if i mod layer_size = 0 then
+      let layer = String.sub image_data i (min layer_size (String.length image_data - i)) in
+      let zero_count, one_count, two_count = ref 0, ref 0, ref 0 in
+
+      String.iter (fun pixel ->
+        match pixel with
+        | '0' -> zero_count := !zero_count + 1
+        | '1' -> one_count := !one_count + 1
+        | '2' -> two_count := !two_count + 1
+        | _ -> ()
+      ) layer;
+
+      if !zero_count < !min_zeros then (
+        min_zeros := !zero_count;
+        result := !one_count * !two_count
+      )
+  done;
+
+  print_int !result;
+  print_newline ()

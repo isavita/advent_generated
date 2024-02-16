@@ -1,0 +1,47 @@
+
+let execute_instructions instructions registers =
+  let rec get_value s registers =
+    try int_of_string s
+    with _ -> registers.(Char.code s.[0] - Char.code 'a')
+  in
+  let rec loop i =
+    if i >= Array.length instructions then ()
+    else
+      let parts = String.split_on_char ' ' instructions.(i) in
+      match List.hd parts with
+      | "cpy" ->
+          let value = get_value (List.nth parts 1) registers in
+          registers.(Char.code (List.nth parts 2).[0] - Char.code 'a') <- value;
+          loop (i + 1)
+      | "inc" ->
+          let reg = Char.code (List.nth parts 1).[0] - Char.code 'a' in
+          registers.(reg) <- registers.(reg) + 1;
+          loop (i + 1)
+      | "dec" ->
+          let reg = Char.code (List.nth parts 1).[0] - Char.code 'a' in
+          registers.(reg) <- registers.(reg) - 1;
+          loop (i + 1)
+      | "jnz" ->
+          let value = get_value (List.nth parts 1) registers in
+          if value <> 0 then
+            let jump = int_of_string (List.nth parts 2) in
+            loop (i + jump)
+          else
+            loop (i + 1)
+      | _ -> failwith "Invalid instruction"
+  in
+  loop 0
+
+let () =
+  let file = open_in "input.txt" in
+  let instructions = ref [] in
+  try
+    while true do
+      instructions := input_line file :: !instructions
+    done
+  with End_of_file ->
+    close_in file;
+    let registers = Array.make 4 0 in
+    execute_instructions (Array.of_list (List.rev !instructions)) registers;
+    print_int registers.(0);
+    print_newline ()

@@ -1,0 +1,74 @@
+
+#load "str.cma";;
+
+let screen_width = 50;;
+let screen_height = 6;;
+
+let rec rect screen a b =
+  for y = 0 to b - 1 do
+    for x = 0 to a - 1 do
+      screen.(y).(x) <- true
+    done;
+  done;;
+
+let rotate_row screen row shift =
+  let temp = Array.make screen_width false in
+  for i = 0 to screen_width - 1 do
+    temp.((i + shift) mod screen_width) <- screen.(row).(i)
+  done;
+  Array.blit temp 0 screen.(row) 0 screen_width;;
+
+let rotate_column screen col shift =
+  let temp = Array.make screen_height false in
+  for i = 0 to screen_height - 1 do
+    temp.((i + shift) mod screen_height) <- screen.(i).(col)
+  done;
+  for i = 0 to screen_height - 1 do
+    screen.(i).(col) <- temp.(i)
+  done;;
+
+let count_lit_pixels screen =
+  let count = ref 0 in
+  for y = 0 to screen_height - 1 do
+    for x = 0 to screen_width - 1 do
+      if screen.(y).(x) then count := !count + 1
+    done;
+  done;
+  !count;;
+
+let display_screen screen =
+  for y = 0 to screen_height - 1 do
+    for x = 0 to screen_width - 1 do
+      if screen.(y).(x) then print_string "#"
+      else print_string "."
+    done;
+    print_newline ()
+  done;;
+
+let main () =
+  let file = open_in "input.txt" in
+  let screen = Array.make_matrix screen_height screen_width false in
+  try
+    while true do
+      let instruction = input_line file in
+      match instruction with
+      | instruction when Str.string_match (Str.regexp "rect \\([0-9]+\\)x\\([0-9]+\\)") instruction 0 ->
+          let a = int_of_string (Str.matched_group 1 instruction) in
+          let b = int_of_string (Str.matched_group 2 instruction) in
+          rect screen a b
+      | instruction when Str.string_match (Str.regexp "rotate row y=\\([0-9]+\\) by \\([0-9]+\\)") instruction 0 ->
+          let row = int_of_string (Str.matched_group 1 instruction) in
+          let shift = int_of_string (Str.matched_group 2 instruction) in
+          rotate_row screen row shift
+      | instruction when Str.string_match (Str.regexp "rotate column x=\\([0-9]+\\) by \\([0-9]+\\)") instruction 0 ->
+          let col = int_of_string (Str.matched_group 1 instruction) in
+          let shift = int_of_string (Str.matched_group 2 instruction) in
+          rotate_column screen col shift
+      | _ -> ()
+    done;
+  with End_of_file ->
+    close_in file;
+    display_screen screen;
+    Printf.printf "Number of lit pixels: %d\n" (count_lit_pixels screen);;
+
+main ();;

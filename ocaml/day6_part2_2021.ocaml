@@ -1,0 +1,30 @@
+
+let sum numbers =
+  Array.fold_left (+) 0 numbers
+
+let () =
+  let file = open_in "input.txt" in
+  let lantern_fish_counts = Array.make 9 0 in
+  try
+    while true do
+      let line = input_line file in
+      let fish_ages = String.split_on_char ',' line in
+      List.iter (fun age ->
+        let age_count = int_of_string age in
+        lantern_fish_counts.(age_count) <- lantern_fish_counts.(age_count) + 1
+      ) fish_ages
+    done;
+  with End_of_file ->
+    close_in file;
+
+  for i = 0 to 255 do
+    let new_lantern_fish = lantern_fish_counts.(0) in
+    for j = 0 to 7 do
+      lantern_fish_counts.(j) <- lantern_fish_counts.(j+1)
+    done;
+    lantern_fish_counts.(6) <- lantern_fish_counts.(6) + new_lantern_fish;
+    lantern_fish_counts.(8) <- new_lantern_fish
+  done;
+
+  print_int (sum lantern_fish_counts);
+  print_newline ()

@@ -1,0 +1,72 @@
+
+let read_instructions filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let execute_instructions instructions registers =
+  let rec get_value s =
+    try int_of_string s
+    with Failure _ -> registers.(Char.code s.[0] - Char.code 'a')
+  in
+  let rec toggle_instruction instr =
+    let parts = String.split_on_char ' ' instr in
+    match List.hd parts with
+    | "inc" -> "dec " ^ (String.concat " " (List.tl parts))
+    | "dec" | "tgl" -> "inc " ^ (String.concat " " (List.tl parts))
+    | "jnz" -> "cpy " ^ (String.concat " " (List.tl parts))
+    | "cpy" -> "jnz " ^ (String.concat " " (List.tl parts))
+    | _ -> instr
+  in
+  let rec get_instruction_value s = 
+    if s.[0] >= 'a' && s.[0] <= 'z' then registers.(Char.code s.[0] - Char.code 'a')
+    else int_of_string s
+  in
+  let rec execute pc =
+    if pc >= Array.length instructions then ()
+    else
+      let fields = String.split_on_char ' ' instructions.(pc) in
+      match List.hd fields with
+      | "cpy" ->
+        let x = get_instruction_value (List.nth fields 1) in
+        let y = Char.code (List.nth fields 2).[0] - Char.code 'a' in
+        registers.(y) <- x;
+        execute (pc + 1)
+      | "inc" ->
+        let x = Char.code (List.hd (List.tl fields)).[0] - Char.code 'a' in
+        registers.(x) <- registers.(x) + 1;
+        execute (pc + 1)
+      | "dec" ->
+        let x = Char.code (List.hd (List.tl fields)).[0] - Char.code 'a' in
+        registers.(x) <- registers.(x) - 1;
+        execute (pc + 1)
+      | "jnz" ->
+        let x = get_instruction_value (List.nth fields 1) in
+        let y = get_instruction_value (List.nth fields 2) in
+        if x <> 0 then execute (pc + y)
+        else execute (pc + 1)
+      | "tgl" ->
+        let x = get_instruction_value (List.nth fields 1) in
+        let tgt = pc + x in
+        if tgt >= 0 && tgt < Array.length instructions then
+          instructions.(tgt) <- toggle_instruction instructions.(tgt);
+        execute (pc + 1)
+      | _ -> ()
+  in
+  execute 0;
+  registers.(0)
+
+let () =
+  let instructions = read_instructions "input.txt" in
+  let registers = Array.make 4 0 in
+  registers.(0) <- 7;
+  let result = execute_instructions (Array.of_list instructions) registers in
+  print_int result;
+  print_newline ()

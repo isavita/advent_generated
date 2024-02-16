@@ -1,0 +1,29 @@
+
+let rec take n lst =
+  if n <= 0 then []
+  else match lst with
+       | [] -> []
+       | hd :: tl -> hd :: take (n-1) tl
+
+let () =
+  let file = open_in "input.txt" in
+  let calories_list = ref [] in
+  let current_calories = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      if line = "" then (
+        calories_list := !current_calories :: !calories_list;
+        current_calories := 0
+      ) else (
+        current_calories := !current_calories + int_of_string line
+      )
+    done
+  with End_of_file ->
+    close_in file;
+    calories_list := !current_calories :: !calories_list;
+    let sorted_calories_list = List.sort (fun a b -> b - a) !calories_list in
+    let top_three_sum = List.fold_left (+) 0 (take 3 sorted_calories_list) in
+    print_int top_three_sum;
+    print_newline ()

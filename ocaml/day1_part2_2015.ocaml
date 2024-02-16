@@ -1,0 +1,30 @@
+(* Function to read the content of the file *)
+let read_file filename =
+  let ch = open_in filename in
+  let s = really_input_string ch (in_channel_length ch) in
+  close_in ch;
+  s
+
+(* Function to find the position of the first character that causes Santa to enter the basement *)
+let find_first_basement_entry instructions =
+  let rec aux i floor =
+    if i >= String.length instructions then
+      None (* This case occurs if Santa never reaches the basement *)
+    else if instructions.[i] = '(' then
+      aux (i + 1) (floor + 1)
+    else if instructions.[i] = ')' then
+      if floor - 1 = -1 then
+        Some (i + 1) (* We found the basement; adjust position to be 1-indexed *)
+      else
+        aux (i + 1) (floor - 1)
+    else
+      aux (i + 1) floor (* Ignore any characters that are not '(' or ')' *)
+  in
+  aux 0 0
+
+(* Main function *)
+let () =
+  let instructions = read_file "input.txt" in
+  match find_first_basement_entry instructions with
+  | Some position -> print_endline (string_of_int position)
+  | None -> print_endline "Santa never enters the basement."

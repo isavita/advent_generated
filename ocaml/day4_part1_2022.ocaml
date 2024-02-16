@@ -1,0 +1,21 @@
+
+let parse_range r =
+  let parts = String.split_on_char '-' r in
+  (int_of_string (List.nth parts 0), int_of_string (List.nth parts 1))
+
+let () =
+  let file = open_in "input.txt" in
+  let rec loop count =
+    try
+      let line = input_line file in
+      let ranges = String.split_on_char ',' line in
+      if List.length ranges <> 2 then loop count
+      else
+        let start1, end1 = parse_range (List.nth ranges 0) in
+        let start2, end2 = parse_range (List.nth ranges 1) in
+        if (start1 <= start2 && end1 >= end2) || (start2 <= start1 && end2 >= end1) then loop (count + 1)
+        else loop count
+    with End_of_file -> close_in file; count
+  in
+  let result = loop 0 in
+  print_int result; print_newline ()

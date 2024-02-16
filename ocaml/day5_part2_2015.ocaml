@@ -1,0 +1,42 @@
+
+let passes_rule1 line =
+  let rec check_match i =
+    if i >= String.length line - 2 then false
+    else
+      let to_match = String.sub line i 2 in
+      let rec find_match j =
+        if j >= String.length line - 1 then false
+        else if String.sub line j 2 = to_match then true
+        else find_match (j + 1)
+      in
+      if find_match (i + 2) then true
+      else check_match (i + 1)
+  in
+  check_match 0
+
+let () =
+  let input = 
+    let ic = open_in "input.txt" in
+    let input = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    input
+  in
+
+  let nice = ref 0 in
+
+  String.split_on_char '\n' input
+  |> List.iter (fun line ->
+    let rule1 = passes_rule1 line in
+    let rule2 = 
+      let rec check_repeat i =
+        if i >= String.length line - 2 then false
+        else if line.[i] = line.[i + 2] then true
+        else check_repeat (i + 1)
+      in
+      check_repeat 0
+    in
+    if rule1 && rule2 then nice := !nice + 1
+  );
+
+  print_int !nice;
+  print_newline ()

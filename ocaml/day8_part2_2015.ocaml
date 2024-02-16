@@ -1,0 +1,25 @@
+
+let calculate_encoded_length s =
+  let encoded = ref "\"" in
+  String.iter (fun ch ->
+    if ch = '\\' || ch = '"' then
+      encoded := !encoded ^ "\\";
+    encoded := !encoded ^ (String.make 1 ch)
+  ) s;
+  encoded := !encoded ^ "\"";
+  String.length !encoded
+
+let () =
+  let file = open_in "input.txt" in
+  let total_diff = ref 0 in
+  try
+    while true do
+      let line = input_line file in
+      let original_length = String.length line in
+      let encoded_length = calculate_encoded_length line in
+      total_diff := !total_diff + (encoded_length - original_length)
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !total_diff;
+    print_newline ()

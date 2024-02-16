@@ -1,0 +1,33 @@
+
+open Printf
+
+let repeat_input input times =
+  let digits = Array.make (String.length input * times) 0 in
+  for t = 0 to times - 1 do
+    for i = 0 to String.length input - 1 do
+      digits.(t * String.length input + i) <- int_of_string (String.sub input i 1)
+    done
+  done;
+  digits
+
+let () =
+  let file = open_in "input.txt" in
+  let input = input_line file in
+  close_in file;
+
+  let repeated_input = repeat_input input 10000 in
+
+  let offset = int_of_string (String.sub input 0 7) in
+
+  for phase = 0 to 99 do
+    let sum = ref 0 in
+    for i = Array.length repeated_input - 1 downto offset do
+      sum := !sum + repeated_input.(i);
+      repeated_input.(i) <- !sum mod 10
+    done
+  done;
+
+  for i = offset to offset + 7 do
+    printf "%d" repeated_input.(i)
+  done;
+  printf "\n"

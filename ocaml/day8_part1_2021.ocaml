@@ -1,0 +1,21 @@
+
+let count = ref 0;;
+
+let () =
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      let parts = String.split_on_char '|' line in
+      let output = List.nth parts 1 in
+      let digits = String.split_on_char ' ' output in
+      List.iter (fun digit ->
+        match String.length digit with
+        | 2 | 4 | 3 | 7 -> count := !count + 1
+        | _ -> ()
+      ) digits
+    done
+  with End_of_file ->
+    close_in ic;
+    print_int !count;
+    print_newline ()

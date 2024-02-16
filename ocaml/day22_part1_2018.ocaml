@@ -1,0 +1,45 @@
+
+let parse_input data =
+  let lines = String.split_on_char '\n' data in
+  let depth = int_of_string (List.nth (String.split_on_char ' ' (List.nth lines 0)) 1) in
+  let coords = List.nth (String.split_on_char ' ' (List.nth lines 1)) 1 in
+  let parts = String.split_on_char ',' coords in
+  let x = int_of_string (List.nth parts 0) in
+  let y = int_of_string (List.nth parts 1) in
+  depth, (x, y)
+
+let make_cave_system depth target =
+  let cave = Array.make_matrix (snd target + 1) (fst target + 1) 0 in
+  for y = 0 to snd target do
+    for x = 0 to fst target do
+      let geologic_index =
+        if (x = 0 && y = 0) || (x = fst target && y = snd target) then 0
+        else if y = 0 then x * 16807
+        else if x = 0 then y * 48271
+        else cave.(y).(x - 1) * cave.(y - 1).(x) in
+      cave.(y).(x) <- (geologic_index + depth) mod 20183
+    done;
+  done;
+  cave
+
+let calculate_risk_level cave target =
+  let risk_level = ref 0 in
+  for y = 0 to snd target do
+    for x = 0 to fst target do
+      risk_level := !risk_level + cave.(y).(x) mod 3
+    done;
+  done;
+  !risk_level
+
+let () =
+  let data = try
+    let ic = open_in "input.txt" in
+    let data = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    data
+  with e -> raise e in
+  let depth, target = parse_input data in
+  let cave = make_cave_system depth target in
+  let risk_level = calculate_risk_level cave target in
+  print_int risk_level;
+  print_newline ()

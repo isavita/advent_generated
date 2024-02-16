@@ -1,0 +1,49 @@
+
+let apply_insertion polymer rules =
+  let new_polymer = ref "" in
+  for i = 0 to String.length polymer - 2 do
+    new_polymer := !new_polymer ^ (String.make 1 polymer.[i]);
+    if Hashtbl.mem rules (String.sub polymer i 2) then
+      new_polymer := !new_polymer ^ (Hashtbl.find rules (String.sub polymer i 2))
+  done;
+  new_polymer := !new_polymer ^ (String.make 1 polymer.[String.length polymer - 1]);
+  !new_polymer
+
+let count_elements polymer =
+  let counts = Hashtbl.create 10 in
+  String.iter (fun c -> 
+    let count = match Hashtbl.find_opt counts c with
+      | Some x -> x + 1
+      | None -> 1 in
+    Hashtbl.replace counts c count) polymer;
+  counts
+
+let min_max counts =
+  let min = ref max_int in
+  let max = ref min_int in
+  Hashtbl.iter (fun _ count ->
+    if count < !min then min := count;
+    if count > !max then max := count) counts;
+  !min, !max
+
+let () =
+  let ic = open_in "input.txt" in
+  let polymer = input_line ic in
+  let rules = Hashtbl.create 10 in
+  try
+    while true do
+      let line = input_line ic in
+      if line <> "" then
+        let parts = String.split_on_char ' ' line in
+        Hashtbl.add rules (List.nth parts 0) (List.nth parts 2)
+    done
+  with End_of_file ->
+    close_in ic;
+    let rec apply_steps polymer rules step =
+      if step = 0 then polymer
+      else apply_steps (apply_insertion polymer rules) rules (step - 1) in
+    let final_polymer = apply_steps polymer rules 10 in
+    let counts = count_elements final_polymer in
+    let min, max = min_max counts in
+    print_int (max - min);
+    print_newline ()

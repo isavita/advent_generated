@@ -1,0 +1,25 @@
+
+let validate_password policy password =
+  let min, max, char = Scanf.sscanf policy "%d-%d %c" (fun x y z -> x, y, z) in
+  let count = ref 0 in
+  String.iter (fun c -> if c = char then count := !count + 1) password;
+  !count >= min && !count <= max
+
+let () =
+  let valid_count = ref 0 in
+  let file = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line file in
+      match String.index_opt line ':' with
+      | Some i ->
+          let policy = String.sub line 0 i in
+          let password = String.sub line (i + 2) (String.length line - i - 2) in
+          if validate_password policy password then
+            valid_count := !valid_count + 1
+      | None -> ()
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !valid_count;
+    print_newline ()

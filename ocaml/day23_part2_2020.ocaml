@@ -1,0 +1,49 @@
+
+let total_cups = 1000000
+let total_moves = 10000000
+
+let () =
+  let file = open_in "input.txt" in
+  let input = input_line file in
+  close_in file;
+
+  let cups = Array.make (total_cups + 1) 0 in
+  let last_cup = ref 0 in
+
+  String.iteri (fun i char ->
+    let cup = int_of_string (String.make 1 char) in
+    if i > 0 then cups.(!last_cup) <- cup;
+    last_cup := cup
+  ) input;
+
+  for i = String.length input + 1 to total_cups do
+    cups.(!last_cup) <- i;
+    last_cup := i
+  done;
+  cups.(!last_cup) <- int_of_string (String.sub input 0 1);
+
+  let current_cup = ref (int_of_string (String.sub input 0 1)) in
+  for _ = 0 to total_moves - 1 do
+    let pickup1 = cups.(!current_cup) in
+    let pickup2 = cups.(pickup1) in
+    let pickup3 = cups.(pickup2) in
+
+    cups.(!current_cup) <- cups.(pickup3);
+
+    let destination_cup = ref (!current_cup - 1) in
+    if !destination_cup = 0 then destination_cup := total_cups;
+    while !destination_cup = pickup1 || !destination_cup = pickup2 || !destination_cup = pickup3 do
+      destination_cup := (!destination_cup - 1) mod (total_cups + 1);
+      if !destination_cup = 0 then destination_cup := total_cups
+    done;
+
+    cups.(pickup3) <- cups.(!destination_cup);
+    cups.(!destination_cup) <- pickup1;
+
+    current_cup := cups.(!current_cup)
+  done;
+
+  let cup1 = cups.(1) in
+  let cup2 = cups.(cup1) in
+  print_int (cup1 * cup2);
+  print_newline ()

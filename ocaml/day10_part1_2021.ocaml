@@ -1,0 +1,31 @@
+
+let check_line line =
+  let pairings = [(')', '('); (']', '['); ('}', '{'); ('>', '<')] in
+  let scores = [(')', 3); (']', 57); ('}', 1197); ('>', 25137)] in
+  let rec check stack = function
+    | [] -> (0, false)
+    | char :: rest ->
+      match char with
+      | '(' | '[' | '{' | '<' -> check (char :: stack) rest
+      | ')' | ']' | '}' | '>' ->
+        match stack with
+        | [] -> (List.assoc char scores, true)
+        | top :: new_stack when top = List.assoc char pairings -> check new_stack rest
+        | _ -> (List.assoc char scores, true)
+  in
+  check [] (List.of_seq (String.to_seq line))
+
+let () =
+  let file = open_in "input.txt" in
+  let rec read_lines total_score =
+    try
+      let line = input_line file in
+      let score, corrupted = check_line line in
+      let new_total = if corrupted then total_score + score else total_score in
+      read_lines new_total
+    with End_of_file ->
+      close_in file;
+      print_int total_score;
+      print_newline ()
+  in
+  read_lines 0

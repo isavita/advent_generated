@@ -1,0 +1,19 @@
+let read_input filename =
+  let file = open_in filename in
+  let total_elves = int_of_string (input_line file) in
+  close_in file;
+  total_elves
+
+let find_winning_elf total_elves =
+  let rec find_highest_power_of_two power =
+    if power * 2 > total_elves then power
+    else find_highest_power_of_two (power * 2)
+  in
+  let highest_power_of_two = find_highest_power_of_two 1 in
+  (total_elves - highest_power_of_two) * 2 + 1
+
+let () =
+  let total_elves = read_input "input.txt" in
+  let winner = find_winning_elf total_elves in
+  print_int winner;
+  print_newline ()

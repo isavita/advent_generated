@@ -1,0 +1,44 @@
+
+let produces_clock_signal a instructions =
+  let registers = Hashtbl.create 4 in
+  Hashtbl.add registers "a" a;
+  Hashtbl.add registers "b" 0;
+  Hashtbl.add registers "c" 0;
+  Hashtbl.add registers "d" 0;
+  let rec get_value s =
+    try int_of_string s
+    with Failure _ -> Hashtbl.find registers s
+  in
+  let rec loop i last_output output_count =
+    if output_count > 50 then true
+    else
+      match String.split_on_char ' ' instructions.(i) with
+      | ["cpy"; src; dest] -> Hashtbl.replace registers dest (get_value src); loop (i+1) last_output output_count
+      | ["inc"; reg] -> Hashtbl.replace registers reg (Hashtbl.find registers reg + 1); loop (i+1) last_output output_count
+      | ["dec"; reg] -> Hashtbl.replace registers reg (Hashtbl.find registers reg - 1); loop (i+1) last_output output_count
+      | ["jnz"; src; jump] -> if get_value src <> 0 then loop (i + int_of_string jump) last_output output_count else loop (i+1) last_output output_count
+      | ["out"; src] -> let value = get_value src in
+                        if value <> 0 && value <> 1 then false
+                        else if output_count > 0 && value = last_output then false
+                        else loop (i+1) value (output_count + 1)
+      | _ -> false
+  in
+  loop 0 0 0
+
+let () =
+  let file = open_in "input.txt" in
+  let instructions = ref [] in
+  try
+    while true do
+      instructions := input_line file :: !instructions
+    done
+  with End_of_file ->
+    close_in file;
+    let instructions_arr = Array.of_list (List.rev !instructions) in
+    let rec find_clock_signal a =
+      if produces_clock_signal a instructions_arr then
+        print_int a
+      else
+        find_clock_signal (a + 1)
+    in
+    find_clock_signal 1

@@ -1,0 +1,35 @@
+
+let rec take n lst =
+  if n <= 0 then []
+  else match lst with
+       | [] -> []
+       | hd :: tl -> hd :: take (n - 1) tl
+
+let rec drop n lst =
+  if n <= 0 then lst
+  else match lst with
+       | [] -> []
+       | _ :: tl -> drop (n - 1) tl
+
+let () =
+  let data = open_in "input.txt" in
+  let steps = int_of_string (input_line data) in
+  let buffer = ref [0] in
+  let currentPos = ref 0 in
+
+  for i = 1 to 2017 do
+    currentPos := (!currentPos + steps) mod (List.length !buffer);
+    buffer := List.concat [take (!currentPos + 1) !buffer; [i]; drop (!currentPos + 1) !buffer];
+    currentPos := !currentPos + 1
+  done;
+
+  let rec find_next_val lst target =
+    match lst with
+    | hd :: tl when hd = target -> List.hd tl
+    | _ :: tl -> find_next_val tl target
+    | _ -> failwith "Value not found"
+  in
+
+  let result = find_next_val !buffer 2017 in
+  print_int result;
+  print_newline ()

@@ -1,0 +1,45 @@
+
+let get_original_message messages =
+  let message_length = String.length (List.hd messages) in
+  let count = Array.init message_length (fun _ -> Hashtbl.create 26) in
+  
+  List.iter (fun message ->
+    String.iteri (fun j char ->
+      let char_count = Hashtbl.find_opt (Array.get count j) char in
+      match char_count with
+      | Some x -> Hashtbl.replace (Array.get count j) char (x + 1)
+      | None -> Hashtbl.add (Array.get count j) char 1
+    ) message
+  ) messages;
+  
+  let original_message = ref "" in
+  Array.iter (fun char_count ->
+    let min_char = ref 'a' in
+    let min_count = ref max_int in
+    Hashtbl.iter (fun char cnt ->
+      if cnt < !min_count then (
+        min_char := char;
+        min_count := cnt
+      )
+    ) char_count;
+    original_message := !original_message ^ (String.make 1 !min_char)
+  ) count;
+  
+  !original_message
+
+let () =
+  let file = open_in "input.txt" in
+  try
+    let messages = ref [] in
+    try
+      while true do
+        let message = input_line file in
+        messages := message :: !messages
+      done
+    with End_of_file ->
+      close_in file;
+      let original_message = get_original_message (List.rev !messages) in
+      print_endline original_message
+  with e ->
+    close_in file;
+    raise e

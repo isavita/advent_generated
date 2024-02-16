@@ -1,0 +1,42 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let serial = int_of_string (input_line ic) in
+  close_in ic;
+
+  let grid_size = 300 in
+  let grid = Array.make_matrix grid_size grid_size 0 in
+
+  for y = 0 to grid_size - 1 do
+    for x = 0 to grid_size - 1 do
+      let rack_id = x + 11 in
+      let power_level = rack_id * (y + 1) in
+      let power_level = power_level + serial in
+      let power_level = power_level * rack_id in
+      let power_level = (power_level / 100) mod 10 in
+      let power_level = power_level - 5 in
+      grid.(y).(x) <- power_level
+    done
+  done;
+
+  let max_power = ref min_int in
+  let max_x = ref 0 in
+  let max_y = ref 0 in
+
+  for y = 0 to grid_size - 3 do
+    for x = 0 to grid_size - 3 do
+      let total_power = ref 0 in
+      for dy = 0 to 2 do
+        for dx = 0 to 2 do
+          total_power := !total_power + grid.(y + dy).(x + dx)
+        done
+      done;
+      if !total_power > !max_power then begin
+        max_power := !total_power;
+        max_x := x + 1;
+        max_y := y + 1
+      end
+    done
+  done;
+
+  Printf.printf "%d,%d\n" !max_x !max_y

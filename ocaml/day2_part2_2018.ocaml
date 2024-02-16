@@ -1,0 +1,37 @@
+
+let read_lines filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true do
+      lines := input_line chan :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let _ =
+  let lines = read_lines "input.txt" in
+  let rec find_common lines =
+    match lines with
+    | [] -> ""
+    | x :: xs -> 
+      let rec find_diffs str1 str2 diff =
+        match str1, str2 with
+        | "", _ | _, "" -> diff
+        | s1, s2 ->
+          if s1.[0] <> s2.[0] then find_diffs (String.sub s1 1 (String.length s1 - 1)) (String.sub s2 1 (String.length s2 - 1)) (diff + 1)
+          else find_diffs (String.sub s1 1 (String.length s1 - 1)) (String.sub s2 1 (String.length s2 - 1)) diff
+      in
+      match List.find_opt (fun y -> find_diffs x y 0 = 1) xs with
+      | Some y -> 
+        let common = ref "" in
+        for i = 0 to String.length x - 1 do
+          if x.[i] = y.[i] then common := !common ^ String.make 1 x.[i]
+        done;
+        print_endline !common;
+        !common (* Return the common string *)
+      | None -> find_common xs
+  in
+  let _ = find_common lines in ()

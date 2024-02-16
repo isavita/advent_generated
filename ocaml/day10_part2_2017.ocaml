@@ -1,0 +1,41 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let input = input_line file in
+  close_in file;
+
+  let lengths = List.init (String.length input) (fun i -> int_of_char input.[i]) @ [17; 31; 73; 47; 23] in
+  let list = Array.init 256 (fun i -> i) in
+  let currentPosition = ref 0 in
+  let skipSize = ref 0 in
+
+  for round = 0 to 63 do
+    List.iter (fun length ->
+      for i = 0 to (length / 2) - 1 do
+        let start = (!currentPosition + i) mod 256 in
+        let end' = (!currentPosition + length - 1 - i) mod 256 in
+        let temp = list.(start) in
+        list.(start) <- list.(end');
+        list.(end') <- temp
+      done;
+      currentPosition := (!currentPosition + length + !skipSize) mod 256;
+      skipSize := !skipSize + 1
+    ) lengths
+  done;
+
+  let denseHash = Array.make 16 0 in
+  for i = 0 to 15 do
+    let xor = ref 0 in
+    for j = 0 to 15 do
+      xor := !xor lxor list.(i * 16 + j)
+    done;
+    denseHash.(i) <- !xor
+  done;
+
+  let hexHash = Bytes.create 32 in
+  for i = 0 to 15 do
+    let hex = Printf.sprintf "%02x" denseHash.(i) in
+    Bytes.blit (Bytes.of_string hex) 0 hexHash (i * 2) 2
+  done;
+
+  print_endline (Bytes.to_string hexHash)

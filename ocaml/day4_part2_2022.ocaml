@@ -1,0 +1,24 @@
+
+let parse_range s =
+  let split = String.split_on_char '-' s in
+  let start = int_of_string (List.nth split 0) in
+  let end_ = int_of_string (List.nth split 1) in
+  (start, end_)
+
+let () =
+  let file = open_in "input.txt" in
+  let rec read_lines count =
+    try
+      let line = input_line file in
+      let pair = String.split_on_char ',' line in
+      let left = parse_range (List.nth pair 0) in
+      let right = parse_range (List.nth pair 1) in
+      if fst left <= snd right && snd left >= fst right then
+        read_lines (count + 1)
+      else
+        read_lines count
+    with End_of_file ->
+      close_in file;
+      print_int count
+  in
+  read_lines 0

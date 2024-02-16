@@ -1,0 +1,42 @@
+
+let spin programs x =
+  let n = Array.length programs in
+  let temp = Array.copy programs in
+  for i = 0 to n - 1 do
+    programs.((i + x) mod n) <- temp.(i)
+  done
+
+let exchange programs a b =
+  let temp = programs.(a) in
+  programs.(a) <- programs.(b);
+  programs.(b) <- temp
+
+let partner programs a b =
+  let index_a = ref 0 in
+  let index_b = ref 0 in
+  Array.iteri (fun i p ->
+    if p = a then index_a := i;
+    if p = b then index_b := i
+  ) programs;
+  exchange programs !index_a !index_b
+
+let () =
+  let file = open_in "input.txt" in
+  let moves = String.split_on_char ',' (input_line file) in
+  let programs = Array.init 16 (fun i -> Char.chr (i + int_of_char 'a')) in
+
+  List.iter (fun move ->
+    match move.[0] with
+    | 's' -> spin programs (int_of_string (String.sub move 1 (String.length move - 1)))
+    | 'x' ->
+        let positions = String.split_on_char '/' (String.sub move 1 (String.length move - 1)) in
+        exchange programs (int_of_string (List.nth positions 0)) (int_of_string (List.nth positions 1))
+    | 'p' ->
+        let positions = String.split_on_char '/' (String.sub move 1 (String.length move - 1)) in
+        partner programs (List.nth positions 0).[0] (List.nth positions 1).[0]
+    | _ -> ()
+  ) moves;
+
+  close_in file;
+  Array.iter (fun c -> print_char c) programs;
+  print_newline ()

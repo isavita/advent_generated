@@ -1,0 +1,49 @@
+
+let size = 10007
+
+let deal_into_new_stack deck =
+  let new_deck = Array.make size 0 in
+  for i = 0 to size / 2 - 1 do
+    new_deck.(i) <- deck.(size - i - 1);
+    new_deck.(size - i - 1) <- deck.(i)
+  done;
+  new_deck
+
+let cut_n deck n =
+  if n >= 0 then Array.append (Array.sub deck n (size - n)) (Array.sub deck 0 n)
+  else Array.append (Array.sub deck (size + n) (-n)) (Array.sub deck 0 (size + n))
+
+let deal_with_increment deck n =
+  let new_deck = Array.make size 0 in
+  for i = 0 to size - 1 do
+    new_deck.((i * n) mod size) <- deck.(i)
+  done;
+  new_deck
+
+let find_2019 deck =
+  let rec find_index deck index =
+    match deck with
+    | [] -> -1
+    | hd :: tl -> if hd = 2019 then index else find_index tl (index + 1)
+  in
+  find_index (Array.to_list deck) 0
+
+let () =
+  let deck = Array.init size (fun i -> i) in
+  let input_lines = ref [] in
+  let input_channel = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line input_channel in
+      input_lines := line :: !input_lines
+    done
+  with End_of_file ->
+    close_in input_channel;
+    let final_deck = List.fold_left (fun d line ->
+      match line with
+      | "deal into new stack" -> deal_into_new_stack d
+      | _ when String.sub line 0 3 = "cut" -> cut_n d (int_of_string (String.sub line 4 (String.length line - 4)))
+      | _ -> deal_with_increment d (int_of_string (String.sub line 20 (String.length line - 20)))
+    ) deck (List.rev !input_lines) in
+    print_int (find_2019 final_deck);
+    print_newline ()

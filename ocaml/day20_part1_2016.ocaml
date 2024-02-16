@@ -1,0 +1,32 @@
+
+type ip_range = {start: int; finish: int}
+
+let read_ip_ranges filename =
+  let file = open_in filename in
+  let rec read_ranges acc =
+    try
+      let line = input_line file in
+      let parts = String.split_on_char '-' line in
+      let start = int_of_string (List.nth parts 0) in
+      let finish = int_of_string (List.nth parts 1) in
+      read_ranges ({start=start; finish=finish} :: acc)
+    with End_of_file -> close_in file; List.rev acc
+  in
+  read_ranges []
+
+let find_unblocked_ip ranges =
+  let sorted_ranges = List.sort (fun a b -> compare a.start b.start) ranges in
+  let rec find_ip current_ip = function
+    | [] -> current_ip
+    | hd :: tl ->
+        if hd.start > current_ip then current_ip
+        else if hd.finish >= current_ip then find_ip (hd.finish + 1) tl
+        else find_ip current_ip tl
+  in
+  find_ip 0 sorted_ranges
+
+let () =
+  let ip_ranges = read_ip_ranges "input.txt" in
+  let unblocked_ip = find_unblocked_ip ip_ranges in
+  print_int unblocked_ip;
+  print_newline ()

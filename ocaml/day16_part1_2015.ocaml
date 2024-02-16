@@ -1,0 +1,32 @@
+
+let () =
+  let mfcsam = [("children", 3); ("cats", 7); ("samoyeds", 2); ("pomeranians", 3);
+                ("akitas", 0); ("vizslas", 0); ("goldfish", 5); ("trees", 3);
+                ("cars", 2); ("perfumes", 1)] in
+
+  let file = open_in "input.txt" in
+  try
+    let rec find_sue () =
+      let line = input_line file in
+      let parts = String.split_on_char ' ' line in
+      let sueNumber = String.sub (List.nth parts 1) 0 ((String.length (List.nth parts 1)) - 1) in
+
+      let rec check_matches index =
+        if index >= List.length parts then true
+        else
+          let item = String.sub (List.nth parts index) 0 ((String.length (List.nth parts index)) - 1) in
+          let count_str = String.sub (List.nth parts (index + 1)) 0 ((String.length (List.nth parts (index + 1))) - 1) in
+          let count =
+            try
+              int_of_string count_str
+            with _ -> 0
+          in
+          if List.assoc item mfcsam <> count then false
+          else check_matches (index + 2)
+      in
+
+      if check_matches 2 then print_endline sueNumber
+      else find_sue ()
+    in
+    find_sue ()
+  with End_of_file -> close_in file

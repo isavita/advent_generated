@@ -1,0 +1,36 @@
+
+let max_strength = ref 0
+
+type component = { a : int; b : int }
+
+let rec find_strongest_bridge components used port strength =
+  if strength > !max_strength then
+    max_strength := strength;
+
+  List.iteri (fun i c ->
+    if not used.(i) then
+      if c.a = port || c.b = port then (
+        used.(i) <- true;
+        let next_port = if c.a = port then c.b else c.a in
+        find_strongest_bridge components used next_port (strength + c.a + c.b);
+        used.(i) <- false
+      )
+  ) components
+
+let () =
+  let file = open_in "input.txt" in
+  let components = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      let ports = String.split_on_char '/' line in
+      let a = int_of_string (List.nth ports 0) in
+      let b = int_of_string (List.nth ports 1) in
+      components := { a; b } :: !components
+    done
+  with End_of_file ->
+    close_in file;
+    let used = Array.make (List.length !components) false in
+    find_strongest_bridge !components used 0 0;
+    print_int !max_strength;
+    print_newline ()

@@ -1,0 +1,23 @@
+
+let read_input () =
+  let lines = ref [] in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+
+let parse_change change =
+  let sign = if change.[0] = '-' then -1 else 1 in
+  let num = int_of_string (String.sub change (if sign = -1 then 1 else 0) (String.length change - (if sign = -1 then 1 else 0))) in
+  sign * num
+
+let () =
+  let freq_changes = read_input () in
+  let freq = List.fold_left (fun acc change -> acc + parse_change change) 0 freq_changes in
+  print_int freq;
+  print_newline ()

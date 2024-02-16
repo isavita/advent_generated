@@ -1,0 +1,60 @@
+
+let read_file filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done;
+    List.rev !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+type coordinate = { x: int; y: int; z: int }
+
+let rec simulate_cycle active_cubes =
+  let new_active_cubes = Hashtbl.create 10 in
+  let neighbor_counts = Hashtbl.create 10 in
+
+  let update_neighbor_count coord =
+    for dz = -1 to 1 do
+      for dy = -1 to 1 do
+        for dx = -1 to 1 do
+          if dz = 0 && dy = 0 && dx = 0 then ()
+          else
+            let neighbor = { x = coord.x + dx; y = coord.y + dy; z = coord.z + dz } in
+            let count = try Hashtbl.find neighbor_counts neighbor with Not_found -> 0 in
+            Hashtbl.replace neighbor_counts neighbor (count + 1)
+        done
+      done
+    done
+  in
+
+  Hashtbl.iter (fun coord _ -> update_neighbor_count coord) active_cubes;
+
+  Hashtbl.iter (fun coord count ->
+    if count = 3 || (count = 2 && Hashtbl.mem active_cubes coord) then
+      Hashtbl.replace new_active_cubes coord true
+  ) neighbor_counts;
+
+  new_active_cubes
+
+let () =
+  let input = read_file "input.txt" in
+  let initial_state = List.map String.trim input in
+  let active_cubes = Hashtbl.create 10 in
+
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      if char = '#' then Hashtbl.replace active_cubes { x; y; z = 0 } true
+    ) line
+  ) initial_state;
+
+  let rec run_cycles n active_cubes =
+    if n = 0 then active_cubes
+    else run_cycles (n - 1) (simulate_cycle active_cubes)
+  in
+
+  let final_active_cubes = run_cycles 6 active_cubes in
+  Printf.printf "%d\n" (Hashtbl.length final_active_cubes)

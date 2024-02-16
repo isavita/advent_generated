@@ -1,0 +1,25 @@
+
+let input = open_in "input.txt" in
+let rec read_input () =
+  try let line = input_line input in
+      line :: read_input ()
+  with End_of_file -> [] in
+
+let rec deliver_presents str (x, y) visited =
+  if String.length str = 0 then visited
+  else
+    let new_visited = (x, y) :: visited in
+    match str.[0] with
+    | '^' -> deliver_presents (String.sub str 1 ((String.length str) - 1)) (x, y + 1) new_visited
+    | 'v' -> deliver_presents (String.sub str 1 ((String.length str) - 1)) (x, y - 1) new_visited
+    | '>' -> deliver_presents (String.sub str 1 ((String.length str) - 1)) (x + 1, y) new_visited
+    | '<' -> deliver_presents (String.sub str 1 ((String.length str) - 1)) (x - 1, y) new_visited
+    | _ -> deliver_presents (String.sub str 1 ((String.length str) - 1)) (x, y) new_visited in
+
+let input_list = read_input () in
+let santa_path = List.hd input_list in
+let visited_houses = deliver_presents santa_path (0, 0) [] in
+let unique_houses = List.sort_uniq compare visited_houses in
+print_int (List.length unique_houses); flush stdout;
+
+close_in input;;

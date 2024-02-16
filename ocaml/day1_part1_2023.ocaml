@@ -1,0 +1,22 @@
+
+let sum = ref 0 in
+let ic = open_in "input.txt" in
+try
+  while true do
+    let line = input_line ic in
+    let first_digit = ref (-1) in
+    let last_digit = ref (-1) in
+    String.iter (fun c ->
+      if Char.code c >= Char.code '0' && Char.code c <= Char.code '9' then (
+        if !first_digit = -1 then
+          first_digit := Char.code c - Char.code '0';
+        last_digit := Char.code c - Char.code '0'
+      )
+    ) line;
+    if !first_digit <> -1 && !last_digit <> -1 then
+      sum := !sum + (!first_digit * 10 + !last_digit)
+  done
+with End_of_file ->
+  close_in ic;
+  print_int !sum;
+  print_newline ()

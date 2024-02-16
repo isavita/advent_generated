@@ -1,0 +1,26 @@
+
+open Printf
+open Digest
+
+let read_file filename =
+  let ic = open_in filename in
+  let content = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  content
+
+let find_password door_id =
+  let rec find_password_helper i password =
+    if String.length password = 8 then password
+    else
+      let hash = Digest.to_hex (Digest.string (door_id ^ string_of_int i)) in
+      if String.sub hash 0 5 = "00000" then
+        find_password_helper (i + 1) (password ^ String.sub hash 5 1)
+      else
+        find_password_helper (i + 1) password
+  in
+  find_password_helper 0 ""
+
+let () =
+  let door_id = String.trim (read_file "input.txt") in
+  let password = find_password door_id in
+  print_endline password

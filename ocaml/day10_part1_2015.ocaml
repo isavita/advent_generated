@@ -1,0 +1,33 @@
+
+let read_input filename =
+  let channel = open_in filename in
+  let input = input_line channel in
+  close_in channel;
+  input
+
+let rec look_and_say sequence iterations =
+  if iterations = 0 then sequence
+  else look_and_say (next_sequence sequence) (iterations - 1)
+
+and next_sequence sequence =
+  let rec count_digits count digit = function
+    | [] -> (count, digit), []
+    | hd :: tl when hd = digit -> count_digits (count + 1) digit tl
+    | tl -> (count, digit), tl in
+  let rec build_sequence acc = function
+    | [] -> acc
+    | hd :: tl ->
+      let (count, digit), rest = count_digits 1 hd tl in
+      build_sequence (acc ^ (string_of_int count) ^ (String.make 1 digit)) rest in
+  build_sequence "" (list_of_string sequence)
+
+and list_of_string s =
+  let rec aux acc i =
+    if i < 0 then acc
+    else aux (s.[i] :: acc) (i - 1) in
+  aux [] (String.length s - 1)
+
+let _ =
+  let initial_sequence = read_input "input.txt" in
+  let result = look_and_say initial_sequence 40 in
+  print_endline (string_of_int (String.length result))

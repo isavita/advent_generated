@@ -1,0 +1,26 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let total_score = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      let opponent = line.[0] in
+      let your_move = line.[2] in
+
+      let score = match your_move with
+        | 'X' -> 1
+        | 'Y' -> 2
+        | 'Z' -> 3
+        | _ -> 0 in
+
+      match (opponent, your_move) with
+      | ('A', 'Y') | ('B', 'Z') | ('C', 'X') -> total_score := !total_score + score + 6
+      | ('A', 'X') | ('B', 'Y') | ('C', 'Z') -> total_score := !total_score + score + 3
+      | _ -> total_score := !total_score + score
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !total_score;
+    print_newline ()

@@ -1,0 +1,41 @@
+
+let get_most_common_char count =
+  let max_char = ref ' ' in
+  let max_count = ref 0 in
+  count |> List.iter (fun (char, cnt) ->
+    if cnt > !max_count then (
+      max_count := cnt;
+      max_char := char
+    )
+  );
+  !max_char
+
+let get_corrected_message messages =
+  let message_length = String.length (List.hd messages) in
+  let count = Array.make message_length [] in
+  List.iter (fun message ->
+    String.iteri (fun j char ->
+      let char_count = List.assoc_opt char count.(j) |> Option.value ~default:0 in
+      count.(j) <- (char, char_count + 1) :: List.remove_assoc char count.(j)
+    ) message
+  ) messages;
+  Array.to_list count
+  |> List.map get_most_common_char
+  |> List.map (String.make 1)
+  |> String.concat ""
+
+let () =
+  let file = open_in "input.txt" in
+  try
+    let messages = ref [] in
+    try
+      while true do
+        messages := input_line file :: !messages
+      done
+    with End_of_file ->
+      close_in file;
+      let corrected_message = get_corrected_message !messages in
+      print_endline corrected_message
+  with e ->
+    close_in file;
+    raise e

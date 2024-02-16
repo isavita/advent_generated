@@ -1,0 +1,18 @@
+
+let main () =
+  let file = open_in "input.txt" in
+  let rec read_file prev count =
+    try
+      let current = int_of_string (input_line file) in
+      if prev <> 0 && current > prev then
+        read_file current (count + 1)
+      else
+        read_file current count
+    with End_of_file -> count
+  in
+  let count = read_file 0 0 in
+  close_in file;
+  print_int count;
+  print_newline ()
+
+let () = main ()

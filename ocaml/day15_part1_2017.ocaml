@@ -1,0 +1,22 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let gen_a_start = int_of_string (input_line file) in
+  let gen_b_start = int_of_string (input_line file) in
+  let gen_a_factor = 16807 in
+  let gen_b_factor = 48271 in
+  let modulus = 2147483647 in
+  let gen_a = ref gen_a_start in
+  let gen_b = ref gen_b_start in
+  let matches = ref 0 in
+
+  for i = 0 to 39999999 do
+    gen_a := (!gen_a * gen_a_factor) mod modulus;
+    gen_b := (!gen_b * gen_b_factor) mod modulus;
+
+    if (!gen_a land 0xFFFF) = (!gen_b land 0xFFFF) then
+      matches := !matches + 1
+  done;
+
+  print_int !matches;
+  print_newline ()

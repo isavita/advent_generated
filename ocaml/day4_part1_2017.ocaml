@@ -1,0 +1,26 @@
+
+open String
+
+let is_valid_passphrase line =
+  let words = String.split_on_char ' ' line in
+  let unique_words = List.sort_uniq String.compare words in
+  List.length words = List.length unique_words
+
+let count_valid_passphrases filename =
+  let ic = open_in filename in
+  let rec count_lines acc =
+    try
+      let line = input_line ic in
+      if is_valid_passphrase line then count_lines (acc + 1)
+      else count_lines acc
+    with End_of_file -> acc
+  in
+  let count = count_lines 0 in
+  close_in ic;
+  count
+
+let () =
+  let filename = "input.txt" in
+  let count = count_valid_passphrases filename in
+  print_int count;
+  print_newline ()

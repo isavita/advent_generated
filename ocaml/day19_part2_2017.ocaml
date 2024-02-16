@@ -1,0 +1,41 @@
+
+let read_lines file =
+  let ic = open_in file in
+  let try_read () =
+    try Some (input_line ic) with End_of_file -> None in
+  let rec loop acc =
+    match try_read () with
+    | Some line -> loop (line :: acc)
+    | None -> close_in ic; List.rev acc in
+  loop []
+
+let () =
+  let lines = read_lines "input.txt" in
+  let grid = Array.of_list (List.map (fun line -> Array.init (String.length line) (String.get line)) lines) in
+
+  let rec find_start_x x =
+    if grid.(0).(x) = '|' then x else find_start_x (x + 1) in
+
+  let x = find_start_x 0 in
+  let y = 0 in
+
+  let rec traverse x y dx dy steps =
+    if x < 0 || x >= Array.length grid.(0) || y < 0 || y >= Array.length grid then steps
+    else
+      let cell = grid.(y).(x) in
+      if cell = ' ' then steps
+      else
+        let new_dx, new_dy =
+          if cell = '+' then
+            if dx = 0 then
+              if x > 0 && (grid.(y).(x-1) = '-' || (grid.(y).(x-1) >= 'A' && grid.(y).(x-1) <= 'Z')) then (-1, 0)
+              else (1, 0)
+            else
+              if y > 0 && (grid.(y-1).(x) = '|' || (grid.(y-1).(x) >= 'A' && grid.(y-1).(x) <= 'Z')) then (0, -1)
+              else (0, 1)
+          else (dx, dy) in
+        traverse (x + new_dx) (y + new_dy) new_dx new_dy (steps + 1) in
+
+  let steps = traverse x y 0 1 0 in
+  print_int steps;
+  print_newline ()

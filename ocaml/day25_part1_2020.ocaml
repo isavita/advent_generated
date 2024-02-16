@@ -1,0 +1,26 @@
+
+let transform subjectNumber loopSize =
+  let rec loop value i =
+    if i = loopSize then value
+    else loop ((value * subjectNumber) mod 20201227) (i + 1)
+  in
+  loop 1 0
+
+let findLoopSize publicKey =
+  let rec loop value loopSize =
+    if value = publicKey then loopSize
+    else loop ((value * 7) mod 20201227) (loopSize + 1)
+  in
+  loop 1 0
+
+let () =
+  let file = open_in "input.txt" in
+  let cardPublicKey = int_of_string (input_line file) in
+  let doorPublicKey = int_of_string (input_line file) in
+  close_in file;
+
+  let cardLoopSize = findLoopSize cardPublicKey in
+  let encryptionKey = transform doorPublicKey cardLoopSize in
+
+  print_int encryptionKey;
+  print_newline ()

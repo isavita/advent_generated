@@ -1,0 +1,56 @@
+
+let side = 5
+let square = side * side
+
+let parse () =
+  let file = open_in "input.txt" in
+  let res = Array.make square false in
+  try
+    for row = 0 to side - 1 do
+      let line = input_line file in
+      for col = 0 to side - 1 do
+        if line.[col] = '#' then
+          res.(row * side + col) <- true
+      done;
+    done;
+    close_in file;
+    res
+  with e ->
+    close_in file;
+    raise e
+
+let next1 grid =
+  let new_grid = Array.make square false in
+  for i = 0 to square - 1 do
+    let row, col = i / side, i mod side in
+    let neighbours = ref 0 in
+    if row > 0 && grid.(i - side) then incr neighbours;
+    if row < side - 1 && grid.(i + side) then incr neighbours;
+    if col > 0 && grid.(i - 1) then incr neighbours;
+    if col < side - 1 && grid.(i + 1) then incr neighbours;
+    if grid.(i) && !neighbours != 1 then new_grid.(i) <- false
+    else if not grid.(i) && (!neighbours = 1 || !neighbours = 2) then new_grid.(i) <- true
+    else new_grid.(i) <- grid.(i)
+  done;
+  new_grid
+
+let biodiversity grid =
+  let rec pow2 n acc = if n = 0 then acc else pow2 (n - 1) (acc lsl 1) in
+  let rec calc_bio i bio =
+    if i = square then bio
+    else calc_bio (i + 1) (if grid.(i) then bio + pow2 i 1 else bio) in
+  calc_bio 0 0
+
+let () =
+  let appeared = Hashtbl.create 10 in
+  let grid = parse () in
+  Hashtbl.add appeared grid true;
+  let rec loop grid =
+    let next_grid = next1 grid in
+    if Hashtbl.mem appeared next_grid then
+      print_int (biodiversity next_grid)
+    else (
+      Hashtbl.add appeared next_grid true;
+      loop next_grid
+    ) in
+  loop grid

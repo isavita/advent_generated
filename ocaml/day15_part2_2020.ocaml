@@ -1,0 +1,36 @@
+
+let read_file filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done;
+    List.rev !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let () =
+  let starting_numbers = read_file "input.txt" |> List.hd |> String.split_on_char ',' |> List.map int_of_string in
+  let spoken = Hashtbl.create 0 in
+  let last_spoken = ref 0 in
+  List.iteri (fun i n ->
+    if i = List.length starting_numbers - 1 then
+      last_spoken := n
+    else
+      Hashtbl.add spoken n (i + 1)
+  ) starting_numbers;
+
+  for turn = List.length starting_numbers + 1 to 30000000 do
+    let next_number =
+      match Hashtbl.find_opt spoken !last_spoken with
+      | Some last_turn -> turn - 1 - last_turn
+      | None -> 0
+    in
+    Hashtbl.replace spoken !last_spoken (turn - 1);
+    last_spoken := next_number
+  done;
+
+  print_int !last_spoken;
+  print_newline ()

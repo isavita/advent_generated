@@ -1,0 +1,42 @@
+
+let item_priority item =
+  if Char.code item >= Char.code 'a' && Char.code item <= Char.code 'z' then
+    Char.code item - Char.code 'a' + 1
+  else
+    Char.code item - Char.code 'A' + 27
+
+let () =
+  let file = open_in "input.txt" in
+  let sum = ref 0 in
+  let group_line_counter = ref 0 in
+  let group_items = Array.make 3 (Hashtbl.create 10) in
+
+  try
+    while true do
+      let line = input_line file in
+      let items_map = Hashtbl.create 10 in
+      String.iter (fun item ->
+        let count = match Hashtbl.find_opt items_map item with
+          | Some x -> x
+          | None -> 0 in
+        Hashtbl.replace items_map item (count + 1)
+      ) line;
+      group_items.(!group_line_counter) <- items_map;
+      group_line_counter := !group_line_counter + 1;
+
+      if !group_line_counter = 3 then
+        let common_items = Hashtbl.create 10 in
+        Hashtbl.iter (fun item _ ->
+          if (Hashtbl.find_opt group_items.(1) item |> function Some x -> x | None -> 0) > 0 &&
+             (Hashtbl.find_opt group_items.(2) item |> function Some x -> x | None -> 0) > 0 then
+            Hashtbl.replace common_items item 1
+        ) group_items.(0);
+        Hashtbl.iter (fun item _ ->
+          sum := !sum + item_priority item
+        ) common_items;
+        group_line_counter := 0
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !sum;
+    print_newline ()

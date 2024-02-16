@@ -1,0 +1,29 @@
+
+let abs x = if x < 0 then -x else x
+
+let () =
+  let file = open_in "input.txt" in
+  let instructions = input_line file |> String.split_on_char ',' |> List.map String.trim in
+  close_in file;
+
+  let pos = ref 0 in
+  let directions = [|(0, 1); (1, 0); (0, -1); (-1, 0)|] in
+  let x = ref 0 in
+  let y = ref 0 in
+
+  List.iter (fun instruction ->
+    let turn = String.sub instruction 0 1 in
+    let blocks = int_of_string (String.sub instruction 1 (String.length instruction - 1)) in
+
+    if turn = "R" then
+      pos := (!pos + 1) mod 4
+    else
+      pos := (!pos - 1 + 4) mod 4;
+
+    let dx, dy = directions.(!pos) in
+    x := !x + dx * blocks;
+    y := !y + dy * blocks;
+  ) instructions;
+
+  print_int (abs !x + abs !y);
+  print_newline ()

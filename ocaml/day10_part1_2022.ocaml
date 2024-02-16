@@ -1,0 +1,20 @@
+
+let read_all path = 
+  let ic = open_in path in
+  let try_read () = try Some (input_line ic) with End_of_file -> None in
+  let rec loop acc = match try_read () with None -> close_in ic; acc | Some s -> loop (s :: acc) in
+  String.concat "\n" (List.rev (loop []))
+
+let abs x = if x < 0 then -x else x
+
+let () =
+  let lines = read_all "input.txt" |> String.split_on_char '\n' in
+  let rec solve x = function
+    | [] -> x
+    | "noop" :: tl -> solve (x @ [List.hd (List.rev x)]) tl
+    | line :: tl ->
+      let n = int_of_string (String.sub line 5 (String.length line - 5)) in
+      solve (x @ [List.hd (List.rev x); List.hd (List.rev x) + n]) tl in
+  let x = solve [1] lines in
+  let sum = List.fold_left (fun acc i -> if (i - 19) mod 40 = 0 then acc + (i + 1) * List.nth x i else acc) 0 (List.mapi (fun i _ -> i) x) in
+  print_int sum; print_newline ()

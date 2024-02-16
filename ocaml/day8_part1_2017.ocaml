@@ -1,0 +1,43 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let registers = Hashtbl.create 10 in
+
+  let rec process_instruction () =
+    try
+      let line = input_line file in
+      let parts = String.split_on_char ' ' line in
+      let reg = List.nth parts 0 in
+      let op = List.nth parts 1 in
+      let amount = int_of_string (List.nth parts 2) in
+      let condReg = List.nth parts 4 in
+      let condOp = List.nth parts 5 in
+      let condVal = int_of_string (List.nth parts 6) in
+
+      let cond =
+        match condOp with
+        | ">" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 > condVal
+        | ">=" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 >= condVal
+        | "<" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 < condVal
+        | "<=" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 <= condVal
+        | "==" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 = condVal
+        | "!=" -> Hashtbl.find_opt registers condReg |> Option.value ~default:0 <> condVal
+        | _ -> false in
+
+      if cond then
+        match op with
+        | "inc" -> let v = (Hashtbl.find_opt registers reg |> Option.value ~default:0) + amount in Hashtbl.replace registers reg v
+        | "dec" -> let v = (Hashtbl.find_opt registers reg |> Option.value ~default:0) - amount in Hashtbl.replace registers reg v
+        | _ -> ()
+      else ();
+
+      process_instruction ()
+    with End_of_file -> () in
+
+  process_instruction ();
+
+  let max_value = ref 0 in
+  Hashtbl.iter (fun _ v -> if v > !max_value then max_value := v) registers;
+
+  print_int !max_value;
+  print_newline ()

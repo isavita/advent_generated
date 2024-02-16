@@ -1,0 +1,37 @@
+
+let parse_coordinates input =
+  input
+  |> String.trim
+  |> String.split_on_char '\n'
+  |> List.map (fun line ->
+      Scanf.sscanf line "%d, %d" (fun x y -> (x, y))
+    )
+
+let find_region_size coordinates max_distance =
+  let min_x, min_y, max_x, max_y =
+    List.fold_left (fun (min_x, min_y, max_x, max_y) (x, y) ->
+      (min min_x x, min min_y y, max max_x x, max max_y y)
+    ) (max_int, max_int, min_int, min_int) coordinates
+  in
+  let rec loop x y region_size =
+    if x > max_x then region_size
+    else if y > max_y then loop (x + 1) min_y region_size
+    else
+      let total_distance =
+        List.fold_left (fun acc (cx, cy) ->
+          acc + abs (x - cx) + abs (y - cy)
+        ) 0 coordinates
+      in
+      if total_distance < max_distance then loop x (y + 1) (region_size + 1)
+      else loop x (y + 1) region_size
+  in
+  loop min_x min_y 0
+
+let () =
+  let input = open_in "input.txt" in
+  let content = really_input_string input (in_channel_length input) in
+  close_in input;
+  let coordinates = parse_coordinates content in
+  let region_size = find_region_size coordinates 10000 in
+  print_int region_size;
+  print_newline ()

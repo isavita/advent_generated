@@ -1,0 +1,25 @@
+
+let calculate_fuel current_position new_position = abs (current_position - new_position)
+
+let abs n = if n < 0 then -n else n
+
+let () =
+  let file = open_in "input.txt" in
+  let positions = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      let numbers = String.split_on_char ',' line in
+      List.iter (fun num_str -> positions := !positions @ [int_of_string num_str]) numbers
+    done
+  with End_of_file ->
+    close_in file;
+    let sorted_positions = List.sort compare !positions in
+    let min_fuel = ref max_int in
+    for i = List.hd sorted_positions to List.hd (List.rev sorted_positions) do
+      let fuel = ref 0 in
+      List.iter (fun pos -> fuel := !fuel + calculate_fuel pos i) sorted_positions;
+      if !fuel < !min_fuel then min_fuel := !fuel
+    done;
+    print_int !min_fuel;
+    print_newline ()

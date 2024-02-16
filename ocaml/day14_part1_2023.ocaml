@@ -1,0 +1,98 @@
+
+type coord = { x : int; y : int }
+
+let add c1 c2 = { x = c1.x + c2.x; y = c1.y + c2.y }
+
+type grid = { width : int; height : int; data : (coord, char) Hashtbl.t }
+
+let is_in_bounds coord grid = 0 <= coord.x && coord.x < grid.width && 0 <= coord.y && coord.y < grid.height
+
+let build_grid input =
+  let width = String.length (List.hd input) in
+  let height = List.length input in
+  let data = Hashtbl.create (width * height) in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      if char != '.' then Hashtbl.add data { x; y } char
+    ) line
+  ) input;
+  { width; height; data }
+
+let to_string grid =
+  let result = ref "" in
+  for y = 0 to grid.height - 1 do
+    for x = 0 to grid.width - 1 do
+      let coord = { x; y } in
+      if Hashtbl.mem grid.data coord then
+        result := !result ^ (Char.escaped (Hashtbl.find grid.data coord))
+      else
+        result := !result ^ ".";
+    done;
+    result := !result ^ "\n";
+  done;
+  !result
+
+let shift_single_rock grid coord dir =
+  let shift_rock current before =
+    if Hashtbl.find grid.data current = 'O' then (
+      Hashtbl.add grid.data before 'O';
+      Hashtbl.remove grid.data current;
+    )
+  in
+  let rec loop current before =
+    if not (Hashtbl.mem grid.data before) && is_in_bounds before grid then (
+      shift_rock current before;
+      loop before (add before dir)
+    )
+  in
+  if Hashtbl.mem grid.data coord && Hashtbl.find grid.data coord = 'O' then
+    loop coord (add coord dir)
+
+let shift_rocks grid dir =
+  match dir with
+  | { x = 0; y = -1 } | { x = -1; y = 0 } ->
+    for x = 0 to grid.width - 1 do
+      for y = 0 to grid.height - 1 do
+        shift_single_rock grid { x; y } dir
+      done
+    done
+  | { x = 0; y = 1 } | { x = 1; y = 0 } ->
+    for x = grid.width - 1 downto 0 do
+      for y = grid.height - 1 downto 0 do
+        shift_single_rock grid { x; y } dir
+      done
+    done
+  | _ -> ()
+
+let calculate_load grid =
+  let load = ref 0 in
+  for x = 0 to grid.width - 1 do
+    for y = 0 to grid.height - 1 do
+      let coord = { x; y } in
+      if Hashtbl.mem grid.data coord && Hashtbl.find grid.data coord = 'O' then
+        load := !load + (grid.height - y)
+    done
+  done;
+  !load
+
+let solve input =
+  let grid = build_grid input in
+  shift_rocks grid { x = 0; y = -1 };
+  calculate_load grid
+
+let read_file file_name =
+  let file = open_in file_name in
+  let input = ref [] in
+  try
+    while true do
+      input := !input @ [input_line file]
+    done;
+    !input
+  with End_of_file ->
+    close_in file;
+    !input
+
+let () =
+  let input = read_file "input.txt" in
+  print_int (solve input);
+  print_newline ()

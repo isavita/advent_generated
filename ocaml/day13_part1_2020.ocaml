@@ -1,0 +1,25 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let earliest_departure = int_of_string (input_line file) in
+  let bus_ids = String.split_on_char ',' (input_line file) in
+  close_in file;
+
+  let rec find_earliest_bus bus_ids earliest_departure earliest_bus_id min_wait_time =
+    match bus_ids with
+    | [] -> earliest_bus_id * min_wait_time
+    | id :: tl ->
+      if id = "x" then
+        find_earliest_bus tl earliest_departure earliest_bus_id min_wait_time
+      else
+        let bus_id = int_of_string id in
+        let wait_time = bus_id - (earliest_departure mod bus_id) in
+        if wait_time < min_wait_time then
+          find_earliest_bus tl earliest_departure bus_id wait_time
+        else
+          find_earliest_bus tl earliest_departure earliest_bus_id min_wait_time
+  in
+
+  let result = find_earliest_bus bus_ids earliest_departure 0 earliest_departure in
+  print_int result;
+  print_newline ()

@@ -1,0 +1,24 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let max_calories = ref 0 in
+  let current_calories = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      if line = "" then (
+        if !current_calories > !max_calories then
+          max_calories := !current_calories;
+        current_calories := 0
+      ) else (
+        current_calories := !current_calories + int_of_string line
+      )
+    done
+  with End_of_file ->
+    if !current_calories > !max_calories then
+      max_calories := !current_calories;
+
+    close_in file;
+    print_int !max_calories;
+    print_newline ()

@@ -1,0 +1,30 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let score = ref 0 in
+  let depth = ref 0 in
+  let inGarbage = ref false in
+  let cancelNext = ref false in
+  let garbageCount = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      String.iter (fun ch ->
+        if !cancelNext then cancelNext := false
+        else if !inGarbage then
+          if ch = '!' then cancelNext := true
+          else if ch = '>' then inGarbage := false
+          else garbageCount := !garbageCount + 1
+        else
+          match ch with
+          | '{' -> depth := !depth + 1
+          | '}' -> score := !score + !depth; depth := !depth - 1
+          | '<' -> inGarbage := true
+          | _ -> ()
+      ) line
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !garbageCount;
+    print_newline ()

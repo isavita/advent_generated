@@ -1,0 +1,25 @@
+let read_lines filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done; List.rev !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let () =
+  let expenses = List.map int_of_string (read_lines "input.txt") in
+  let rec find_solution = function
+    | [] -> ()
+    | x :: xs ->
+      List.iter (fun y ->
+        List.iter (fun z ->
+          if x + y + z = 2020 then
+            Printf.printf "%d\n" (x * y * z)
+        ) xs
+      ) xs;
+      find_solution xs
+  in
+  find_solution expenses;

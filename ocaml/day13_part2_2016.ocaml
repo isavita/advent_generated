@@ -1,0 +1,42 @@
+
+let favorite_number = 1362
+
+type point = { x: int; y: int }
+
+let is_wall x y =
+  let num = x * x + 3 * x + 2 * x * y + y + y * y + favorite_number in
+  let rec count_bits n acc =
+    if n = 0 then acc
+    else count_bits (n lsr 1) (acc + (n land 1))
+  in
+  count_bits num 0 mod 2 <> 0
+
+let bfs_max_steps start max_steps =
+  let visited = Hashtbl.create 1000 in
+  let queue = Queue.create () in
+  let () = Hashtbl.add visited start true in
+  let rec bfs steps =
+    if Queue.is_empty queue || steps >= max_steps then Hashtbl.length visited
+    else
+      let size = Queue.length queue in
+      for _ = 1 to size do
+        let point = Queue.pop queue in
+        let deltas = [{x = 1; y = 0}; {x = -1; y = 0}; {x = 0; y = 1}; {x = 0; y = -1}] in
+        List.iter (fun delta ->
+          let next = {x = point.x + delta.x; y = point.y + delta.y} in
+          if next.x >= 0 && next.y >= 0 && not (is_wall next.x next.y) && not (Hashtbl.mem visited next) then (
+            Hashtbl.add visited next true;
+            Queue.push next queue
+          )
+        ) deltas
+      done;
+      bfs (steps + 1)
+  in
+  Queue.push start queue;
+  bfs 0
+
+let () =
+  let start = {x = 1; y = 1} in
+  let reachable_locations = bfs_max_steps start 50 in
+  print_int reachable_locations;
+  print_newline ()

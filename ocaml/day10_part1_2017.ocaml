@@ -1,0 +1,27 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let lengthsStr = String.split_on_char ',' (input_line file) in
+  let lengths = List.map int_of_string lengthsStr in
+  close_in file;
+
+  let list = Array.init 256 (fun i -> i) in
+  let currentPosition = ref 0 in
+  let skipSize = ref 0 in
+
+  List.iter (fun length ->
+    for i = 0 to (length / 2) - 1 do
+      let start = (!currentPosition + i) mod 256 in
+      let end' = (!currentPosition + length - 1 - i) mod 256 in
+      let tmp = list.(start) in
+      list.(start) <- list.(end');
+      list.(end') <- tmp
+    done;
+
+    currentPosition := (!currentPosition + length + !skipSize) mod 256;
+    skipSize := !skipSize + 1
+  ) lengths;
+
+  let result = list.(0) * list.(1) in
+  print_int result;
+  print_newline ()

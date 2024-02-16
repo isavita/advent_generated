@@ -1,0 +1,61 @@
+
+open Printf
+open Scanf
+open Hashtbl
+
+let min a b = if a < b then a else b
+
+let djikstra grid end_point =
+  let neighbors4 = [|(-1,0);(1,0);(0,-1);(0,1)|] in
+  let pq = Queue.create () in
+  let dist = Hashtbl.create 10 in
+  Queue.add (end_point, 0) pq;
+  Hashtbl.add dist end_point 0;
+  while not (Queue.is_empty pq) do
+    let (curr, _) = Queue.pop pq in
+    Array.iter (fun (dx, dy) ->
+      let next = (fst curr + dx, snd curr + dy) in
+      if not (Hashtbl.mem grid next) then ()
+      else if (Char.code (Hashtbl.find grid curr)) - (Char.code (Hashtbl.find grid next)) > 1 then ()
+      else
+        let nextdist = Hashtbl.find dist curr + 1 in
+        if not (Hashtbl.mem dist next) || nextdist < Hashtbl.find dist next then begin
+          Hashtbl.replace dist next nextdist;
+          Queue.add (next, nextdist) pq
+        end
+    ) neighbors4
+  done;
+  dist
+
+let () =
+  let grid = Hashtbl.create 10 in
+  let as_points = ref [] in
+  let start = ref (0, 0) in
+  let end_point = ref (0, 0) in
+  let y = ref 0 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      try
+        let line = input_line ic in
+        String.iteri (fun x c ->
+          let p = (x, !y) in
+          Hashtbl.add grid p c;
+          if c = 'S' then start := p
+          else if c = 'E' then end_point := p
+          else if c = 'a' then as_points := p :: !as_points
+        ) line;
+        incr y
+      with End_of_file -> raise Exit
+    done
+  with Exit ->
+    close_in ic;
+    Hashtbl.replace grid !start 'a';
+    Hashtbl.replace grid !end_point 'z';
+    let dists = djikstra grid !end_point in
+    let l = ref (Hashtbl.find dists !start) in
+    List.iter (fun a ->
+      if Hashtbl.mem dists a then
+        l := min !l (Hashtbl.find dists a)
+    ) !as_points;
+    printf "%d\n" !l

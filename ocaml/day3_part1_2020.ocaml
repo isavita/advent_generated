@@ -1,0 +1,24 @@
+
+let count_trees forest right down =
+  let rec count_trees_helper trees x y =
+    if y >= Array.length forest then trees
+    else
+      let width = String.length forest.(0) in
+      let new_trees = if forest.(y).[x mod width] = '#' then trees + 1 else trees in
+      count_trees_helper new_trees (x + right) (y + down)
+  in
+  count_trees_helper 0 0 0
+
+let () =
+  let file = open_in "input.txt" in
+  let forest = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      forest := line :: !forest
+    done
+  with End_of_file ->
+    close_in file;
+    let trees = count_trees (Array.of_list (List.rev !forest)) 3 1 in
+    print_int trees;
+    print_newline ()

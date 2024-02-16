@@ -1,0 +1,59 @@
+
+let parse_input input =
+  List.map (fun line -> 
+    List.map int_of_string (String.split_on_char ' ' line)
+  ) input
+
+let all_zeros nums =
+  List.for_all (fun num -> num = 0) nums
+
+let calculate_extrapolation history =
+  let rec calc_extrap acc = function
+    | x :: y :: xs -> calc_extrap ((y - x) :: acc) (y :: xs)
+    | _ -> List.rev acc
+  in
+  calc_extrap [] history
+
+let calculate_extrapolations history =
+  let rec calc_extraps acc = function
+    | x :: xs ->
+      let extrap = calculate_extrapolation x in
+      if all_zeros extrap then List.rev acc
+      else calc_extraps (extrap :: acc) (extrap :: x :: xs)
+    | _ -> List.rev acc
+  in
+  calc_extraps [history] [history]
+
+let solve input =
+  let histories = parse_input input in
+  let rec solve' acc = function
+    | [] -> acc
+    | x :: xs ->
+      let extrapolations_series = calculate_extrapolations x in
+      let rec calc_past_prediction past_pred = function
+        | [] -> past_pred
+        | y :: ys ->
+          let past_pred' = (List.hd y) - past_pred in
+          calc_past_prediction past_pred' ys
+      in
+      let past_prediction = calc_past_prediction 0 (List.rev extrapolations_series) in
+      solve' (acc + past_prediction) xs
+  in
+  solve' 0 histories
+
+let read_file file_name =
+  let ic = open_in file_name in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+
+let () =
+  let input = read_file "input.txt" in
+  print_int (solve input);
+  print_newline ()

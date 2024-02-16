@@ -1,0 +1,27 @@
+
+let min a b = if a < b then a else b
+
+let () =
+  let file = open_in "input.txt" in
+  let total = ref 0 in
+  try
+    while true do
+      let line = input_line file in
+      let dimensions = String.split_on_char 'x' line in
+      if List.length dimensions <> 3 then failwith "Invalid input format";
+
+      let l = int_of_string (List.nth dimensions 0) in
+      let w = int_of_string (List.nth dimensions 1) in
+      let h = int_of_string (List.nth dimensions 2) in
+
+      let side1 = l * w in
+      let side2 = w * h in
+      let side3 = h * l in
+
+      let smallest = min (min side1 side2) side3 in
+      total := !total + 2*side1 + 2*side2 + 2*side3 + smallest
+    done
+  with End_of_file ->
+    close_in file;
+    print_int !total;
+    print_newline ()

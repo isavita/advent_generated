@@ -1,0 +1,32 @@
+
+let read_input filename =
+  let channel = open_in filename in
+  let line = input_line channel in
+  close_in channel;
+  line
+
+let rec look_and_say sequence iterations =
+  if iterations = 0 then sequence
+  else look_and_say (next_sequence sequence) (iterations - 1)
+
+and next_sequence sequence =
+  let result = Buffer.create 16 in
+  let rec next_seq_helper i =
+    if i < String.length sequence then
+      let count, digit = ref 1, sequence.[i] in
+      let j = ref (i + 1) in
+      while !j < String.length sequence && sequence.[!j] = digit do
+        count := !count + 1;
+        j := !j + 1
+      done;
+      Buffer.add_string result (string_of_int !count);
+      Buffer.add_char result digit;
+      next_seq_helper !j
+  in
+  next_seq_helper 0;
+  Buffer.contents result
+
+let () =
+  let initial_sequence = read_input "input.txt" in
+  let result = look_and_say initial_sequence 50 in
+  print_endline (string_of_int (String.length result))

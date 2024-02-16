@@ -1,0 +1,20 @@
+
+let rec count_combinations containers target index =
+  if target = 0 then 1
+  else if target < 0 || index >= List.length containers then 0
+  else count_combinations containers (target - List.nth containers index) (index + 1) +
+       count_combinations containers target (index + 1)
+
+let () =
+  let file = open_in "input.txt" in
+  let containers = ref [] in
+  try
+    while true do
+      let size = int_of_string (input_line file) in
+      containers := size :: !containers
+    done
+  with End_of_file ->
+    close_in file;
+    let result = count_combinations (List.rev !containers) 150 0 in
+    print_int result;
+    print_newline ()

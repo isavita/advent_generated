@@ -1,0 +1,37 @@
+
+let has_double_and_increasing_digits s =
+  let rec loop i has_double =
+    if i >= String.length s - 1 then
+      has_double
+    else if s.[i] = s.[i + 1] then
+      loop (i + 1) true
+    else if s.[i] > s.[i + 1] then
+      false
+    else
+      loop (i + 1) has_double
+  in
+  loop 0 false
+
+let () =
+  let file = open_in "input.txt" in
+  let range_str = input_line file in
+  close_in file;
+
+  let parts = String.split_on_char '-' range_str in
+  let start = int_of_string (List.nth parts 0) in
+  let end_ = int_of_string (List.nth parts 1) in
+
+  let rec count_valid_passwords current count =
+    if current > end_ then
+      count
+    else
+      let s = string_of_int current in
+      if has_double_and_increasing_digits s then
+        count_valid_passwords (current + 1) (count + 1)
+      else
+        count_valid_passwords (current + 1) count
+  in
+
+  let count = count_valid_passwords start 0 in
+  print_int count;
+  print_newline ()

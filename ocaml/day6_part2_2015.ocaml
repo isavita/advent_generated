@@ -1,0 +1,32 @@
+
+let grid_size = 1000
+
+let process_instruction instruction grid =
+  let parts = String.split_on_char ' ' instruction in
+  let start_x, start_y = Scanf.sscanf (List.nth parts (List.length parts - 3)) "%d,%d" (fun x y -> x, y) in
+  let end_x, end_y = Scanf.sscanf (List.nth parts (List.length parts - 1)) "%d,%d" (fun x y -> x, y) in
+  for x = start_x to end_x do
+    for y = start_y to end_y do
+      match instruction with
+      | _ when String.sub instruction 0 7 = "turn on" -> grid.(x).(y) <- grid.(x).(y) + 1
+      | _ when String.sub instruction 0 8 = "turn off" -> if grid.(x).(y) > 0 then grid.(x).(y) <- grid.(x).(y) - 1
+      | _ when String.sub instruction 0 6 = "toggle" -> grid.(x).(y) <- grid.(x).(y) + 2
+      | _ -> ()
+    done
+  done
+
+let total_brightness grid =
+  Array.fold_left (fun acc row -> Array.fold_left (fun acc' light -> acc' + light) acc row) 0 grid
+
+let () =
+  let file = open_in "input.txt" in
+  let grid = Array.make_matrix grid_size grid_size 0 in
+  try
+    while true do
+      let instruction = input_line file in
+      process_instruction instruction grid
+    done
+  with End_of_file ->
+    close_in file;
+    print_int (total_brightness grid);
+    print_newline ()

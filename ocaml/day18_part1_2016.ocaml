@@ -1,0 +1,60 @@
+
+let read_first_row filename =
+  let channel = open_in filename in
+  let line = input_line channel in
+  close_in channel;
+  line
+
+let count_safe_tiles first_row total_rows =
+  let rec is_trap left center right row =
+    let l = safe_if_out_of_bounds left row in
+    let c = row.[center] in
+    let r = safe_if_out_of_bounds right row in
+    (l = '^' && c = '^' && r = '.') ||
+    (c = '^' && r = '^' && l = '.') ||
+    (l = '^' && c = '.' && r = '.') ||
+    (r = '^' && c = '.' && l = '.')
+
+  and safe_if_out_of_bounds index row =
+    if index < 0 || index >= String.length row then
+      '.'
+    else
+      row.[index]
+
+  and count_char str char =
+    let rec count_char_helper str char acc =
+      match str with
+      | "" -> acc
+      | s -> count_char_helper (String.sub s 1 (String.length s - 1)) char (acc + if s.[0] = char then 1 else 0)
+    in
+    count_char_helper str char 0
+  in
+
+  let rec count_safe_tiles_helper current_row safe_count remaining_rows =
+    match remaining_rows with
+    | 0 -> !safe_count
+    | _ ->
+      let rec build_next_row current_row next_row index =
+        if index = String.length current_row then
+          next_row
+        else
+          let next_tile =
+            if is_trap (index - 1) index (index + 1) current_row then
+              '^'
+            else
+              (safe_count := !safe_count + 1; '.')
+          in
+          build_next_row current_row (next_row ^ (String.make 1 next_tile)) (index + 1)
+      in
+      let next_row = build_next_row current_row "" 0 in
+      count_safe_tiles_helper next_row safe_count (remaining_rows - 1)
+  in
+
+  let safe_count = ref (count_char first_row '.') in
+  count_safe_tiles_helper first_row safe_count (total_rows - 1)
+
+let () =
+  let first_row = read_first_row "input.txt" in
+  let safe_tiles_count = count_safe_tiles first_row 40 in
+  print_int safe_tiles_count;
+  print_newline ()

@@ -1,0 +1,29 @@
+
+let react polymer =
+  let rec react_loop polymer =
+    let rec react_inner polymer i =
+      if i >= String.length polymer - 1 then polymer
+      else if Char.uppercase_ascii polymer.[i] = Char.uppercase_ascii polymer.[i+1] && polymer.[i] <> polymer.[i+1] then
+        let new_polymer = String.sub polymer 0 i ^ String.sub polymer (i+2) (String.length polymer - i - 2) in
+        react_inner new_polymer (max (i-1) 0)
+      else
+        react_inner polymer (i+1)
+    in
+    let new_polymer = react_inner polymer 0 in
+    if new_polymer = polymer then polymer else react_loop new_polymer
+  in
+  react_loop polymer
+
+let () =
+  let input = try Stdlib.(open_in "input.txt" |> input_line)
+              with Sys_error _ -> failwith "Error reading file" in
+  let polymer = String.trim input in
+  let min_length = ref (String.length polymer) in
+  for unit = Char.code 'a' to Char.code 'z' do
+    let unit_char = Char.chr unit in
+    let temp_polymer = String.map (fun c -> if Char.lowercase_ascii c = unit_char || Char.uppercase_ascii c = unit_char then ' ' else c) polymer in
+    let temp_polymer = String.trim (String.concat "" (String.split_on_char ' ' temp_polymer)) in
+    let reacted_polymer = react temp_polymer in
+    min_length := min !min_length (String.length reacted_polymer)
+  done;
+  print_int !min_length; print_newline ()

@@ -1,0 +1,74 @@
+
+let gridSize = 100
+let steps = 100
+
+let count_on_neighbors grid x y =
+  let rec count_on_neighbors_helper dx dy acc =
+    if dx > 1 then acc
+    else if dy > 1 then count_on_neighbors_helper (dx + 1) (-1) acc
+    else
+      let nx = x + dx in
+      let ny = y + dy in
+      if (dx <> 0 || dy <> 0) && nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && grid.(nx).(ny) then
+        count_on_neighbors_helper dx (dy + 1) (acc + 1)
+      else
+        count_on_neighbors_helper dx (dy + 1) acc
+  in
+  count_on_neighbors_helper (-1) (-1) 0
+
+let step grid =
+  let new_grid = Array.make_matrix gridSize gridSize false in
+  for x = 0 to gridSize - 1 do
+    for y = 0 to gridSize - 1 do
+      let on_neighbors = count_on_neighbors grid x y in
+      if grid.(x).(y) then
+        new_grid.(x).(y) <- on_neighbors = 2 || on_neighbors = 3
+      else
+        new_grid.(x).(y) <- on_neighbors = 3
+    done
+  done;
+  
+  new_grid.(0).(0) <- true;
+  new_grid.(0).(gridSize - 1) <- true;
+  new_grid.(gridSize - 1).(0) <- true;
+  new_grid.(gridSize - 1).(gridSize - 1) <- true;
+  
+  new_grid
+
+let rec simulate_steps grid steps_remaining =
+  if steps_remaining = 0 then grid
+  else
+    let new_grid = step grid in
+    simulate_steps new_grid (steps_remaining - 1)
+
+let () =
+  let file = open_in "input.txt" in
+  let grid = Array.make_matrix gridSize gridSize false in
+  let rec read_input y =
+    try
+      let line = input_line file in
+      for x = 0 to String.length line - 1 do
+        grid.(x).(y) <- line.[x] = '#'
+      done;
+      read_input (y + 1)
+    with End_of_file -> ()
+  in
+  read_input 0;
+  
+  grid.(0).(0) <- true;
+  grid.(0).(gridSize - 1) <- true;
+  grid.(gridSize - 1).(0) <- true;
+  grid.(gridSize - 1).(gridSize - 1) <- true;
+  
+  let final_grid = simulate_steps grid steps in
+  
+  let on_count = ref 0 in
+  for x = 0 to gridSize - 1 do
+    for y = 0 to gridSize - 1 do
+      if final_grid.(x).(y) then
+        incr on_count
+    done
+  done;
+  
+  print_int !on_count;
+  print_newline ()

@@ -1,0 +1,33 @@
+open Printf
+
+let execute_boot_code instructions =
+  let rec execute acc visited current_instruction =
+    if visited.(current_instruction) then (acc, true)
+    else if current_instruction >= Array.length instructions then (acc, false)
+    else
+      let visited = Array.copy visited in
+      visited.(current_instruction) <- true;
+      let parts = String.split_on_char ' ' instructions.(current_instruction) in
+      let op = List.nth parts 0 in
+      let arg = int_of_string (List.nth parts 1) in
+      match op with
+      | "acc" -> execute (acc + arg) visited (current_instruction + 1)
+      | "jmp" -> execute acc visited (current_instruction + arg)
+      | "nop" -> execute acc visited (current_instruction + 1)
+  in
+  let visited = Array.make (Array.length instructions) false in
+  execute 0 visited 0
+
+let () =
+  let file = open_in "input.txt" in
+  let instructions = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      instructions := line :: !instructions
+    done
+  with End_of_file ->
+    close_in file;
+    let instructions = Array.of_list (List.rev !instructions) in
+    let accumulator, _ = execute_boot_code instructions in
+    printf "%d\n" accumulator; flush stdout

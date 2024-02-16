@@ -1,0 +1,52 @@
+
+let count_on_neighbors grid x y =
+  let on = ref 0 in
+  for dx = -1 to 1 do
+    for dy = -1 to 1 do
+      if dx <> 0 || dy <> 0 then
+        let nx, ny = x + dx, y + dy in
+        if nx >= 0 && nx < 100 && ny >= 0 && ny < 100 && grid.(nx).(ny) then
+          incr on
+    done;
+  done;
+  !on
+
+let step grid =
+  let new_grid = Array.make_matrix 100 100 false in
+  for x = 0 to 99 do
+    for y = 0 to 99 do
+      let on_neighbors = count_on_neighbors grid x y in
+      if grid.(x).(y) then
+        new_grid.(x).(y) <- on_neighbors = 2 || on_neighbors = 3
+      else
+        new_grid.(x).(y) <- on_neighbors = 3
+    done;
+  done;
+  new_grid
+
+let () =
+  let file = open_in "input.txt" in
+  let grid = Array.make_matrix 100 100 false in
+  let y = ref 0 in
+  try
+    while true do
+      let line = input_line file in
+      String.iteri (fun x c -> grid.(x).(!y) <- c = '#') line;
+      incr y
+    done
+  with End_of_file ->
+    close_in file;
+    let steps = 100 in
+    let rec apply_steps n grid =
+      if n = 0 then grid
+      else apply_steps (n - 1) (step grid) in
+    let final_grid = apply_steps steps grid in
+    let on_count = ref 0 in
+    for x = 0 to 99 do
+      for y = 0 to 99 do
+        if final_grid.(x).(y) then
+          incr on_count
+      done;
+    done;
+    print_int !on_count;
+    print_newline ()

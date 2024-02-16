@@ -1,0 +1,59 @@
+
+let parse_instruction instruction =
+  let parts = String.split_on_char ' ' instruction in
+  let op = List.hd parts in
+  let arg = int_of_string (List.nth parts 1) in
+  (op, arg)
+
+let execute_boot_code instructions =
+  let accumulator = ref 0 in
+  let visited = Hashtbl.create (List.length instructions) in
+  let current_instruction = ref 0 in
+
+  let rec loop () =
+    if Hashtbl.mem visited !current_instruction then
+      (!accumulator, false)
+    else if !current_instruction >= List.length instructions then
+      (!accumulator, true)
+    else begin
+      Hashtbl.add visited !current_instruction ();
+      let (op, arg) = parse_instruction (List.nth instructions !current_instruction) in
+      match op with
+      | "acc" -> accumulator := !accumulator + arg; current_instruction := !current_instruction + 1; loop ()
+      | "jmp" -> current_instruction := !current_instruction + arg; loop ()
+      | "nop" -> current_instruction := !current_instruction + 1; loop ()
+      | _ -> failwith "Invalid operation"
+    end
+  in
+
+  loop ()
+
+let () =
+  let file = open_in "input.txt" in
+  let instructions = ref [] in
+
+  try
+    while true do
+      let line = input_line file in
+      instructions := line :: !instructions
+    done
+  with End_of_file ->
+    close_in file;
+
+  let instructions = List.rev !instructions in
+
+  for i = 0 to List.length instructions - 1 do
+    let modified_instructions = Array.copy (Array.of_list instructions) in
+    let (op, arg) = parse_instruction modified_instructions.(i) in
+    if op = "acc" then
+      ()
+    else begin
+      modified_instructions.(i) <- (if op = "jmp" then "nop" else "jmp") ^ " " ^ string_of_int arg;
+      let (accumulator, terminated) = execute_boot_code (Array.to_list modified_instructions) in
+      if terminated then begin
+        print_int accumulator;
+        print_newline ();
+        exit 0
+      end
+    end
+  done

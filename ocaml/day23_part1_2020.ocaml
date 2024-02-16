@@ -1,0 +1,46 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let input = input_line file in
+  close_in file;
+
+  let cups = Array.make (String.length input + 1) 0 in
+  let currentCup = ref 0 in
+  for i = 0 to String.length input - 1 do
+    let cup = int_of_string (String.make 1 input.[i]) in
+    if i = 0 then currentCup := cup;
+    if i < String.length input - 1 then
+      cups.(cup) <- int_of_string (String.make 1 input.[i + 1])
+  done;
+  let firstCup = int_of_string (String.make 1 input.[0]) in
+  let lastCup = int_of_string (String.make 1 input.[String.length input - 1]) in
+  cups.(lastCup) <- firstCup;
+
+  for _ = 0 to 99 do
+    let pickup1 = cups.(!currentCup) in
+    let pickup2 = cups.(pickup1) in
+    let pickup3 = cups.(pickup2) in
+
+    cups.(!currentCup) <- cups.(pickup3);
+
+    let destinationCup = ref (!currentCup - 1) in
+    if !destinationCup < 1 then destinationCup := String.length input;
+    while !destinationCup = pickup1 || !destinationCup = pickup2 || !destinationCup = pickup3 do
+      destinationCup := !destinationCup - 1;
+      if !destinationCup < 1 then destinationCup := String.length input;
+    done;
+
+    cups.(pickup3) <- cups.(!destinationCup);
+    cups.(!destinationCup) <- pickup1;
+
+    currentCup := cups.(!currentCup)
+  done;
+
+  let rec print_cups cup =
+    if cup <> 1 then begin
+      print_int cup;
+      print_cups cups.(cup)
+    end in
+
+  print_cups cups.(1);
+  print_newline ()

@@ -1,0 +1,27 @@
+
+let first_n_unique s n =
+  let rec set_of b =
+    let m = Hashtbl.create (String.length b) in
+    String.iter (fun c -> Hashtbl.replace m c ()) b;
+    let b' = ref [] in
+    Hashtbl.iter (fun k _ -> b' := k :: !b') m;
+    !b'
+  in
+  let rec loop i =
+    if i >= String.length s then -1
+    else
+      let b = String.sub s (i - n) n in
+      if String.length b = List.length (set_of b) then i
+      else loop (i + 1)
+  in
+  loop n
+
+let read_all path =
+  let ic = open_in path in
+  let s = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  String.trim s
+
+let () =
+  let s = read_all "input.txt" in
+  Printf.printf "%d\n" (first_n_unique s 4)

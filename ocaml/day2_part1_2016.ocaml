@@ -1,0 +1,37 @@
+
+let get_bathroom_code instructions =
+  let keypad = [| [|1; 2; 3|]; [|4; 5; 6|]; [|7; 8; 9|] |] in
+  let x = ref 1 in
+  let y = ref 1 in
+  let code = ref "" in
+
+  let update_code move =
+    match move with
+    | 'U' -> if !x > 0 then x := !x - 1
+    | 'D' -> if !x < 2 then x := !x + 1
+    | 'L' -> if !y > 0 then y := !y - 1
+    | 'R' -> if !y < 2 then y := !y + 1
+    | _ -> ()
+  in
+
+  List.iter (fun instruction ->
+    String.iter (fun move ->
+      update_code move
+    ) instruction;
+    code := !code ^ string_of_int keypad.(!x).(!y)
+  ) instructions;
+
+  !code
+;;
+
+let file = open_in "input.txt" in
+let instructions = ref [] in
+try
+  while true do
+    let line = input_line file in
+    instructions := line :: !instructions
+  done
+with End_of_file ->
+  close_in file;
+  let code = get_bathroom_code (List.rev !instructions) in
+  print_endline code

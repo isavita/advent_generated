@@ -1,0 +1,23 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let numbers = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      if line <> "" then
+        numbers := int_of_string line :: !numbers
+    done
+  with End_of_file ->
+    close_in file;
+    let rec find_pair = function
+      | [] -> failwith "No pair found"
+      | x :: xs ->
+          if List.exists (fun y -> x + y = 2020) xs then
+            x * List.find (fun y -> x + y = 2020) xs
+          else
+            find_pair xs
+    in
+    let result = find_pair !numbers in
+    print_int result;
+    print_newline ()

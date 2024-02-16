@@ -1,0 +1,30 @@
+
+let count_chars id =
+  let char_count = Hashtbl.create 26 in
+  String.iter (fun c -> 
+    let count = match Hashtbl.find_opt char_count c with
+      | Some n -> n + 1
+      | None -> 1 in
+    Hashtbl.replace char_count c count) id;
+  let counts = List.of_seq (Hashtbl.to_seq_values char_count) in
+  let has_twos, has_threes = List.fold_left (fun (twos, threes) count ->
+    if count = 2 then (true, threes)
+    else if count = 3 then (twos, true)
+    else (twos, threes)) (false, false) counts in
+  has_twos, has_threes
+
+let () =
+  let ic = open_in "input.txt" in
+  let two_count, three_count = ref 0, ref 0 in
+  try
+    while true do
+      let line = input_line ic in
+      let has_twos, has_threes = count_chars line in
+      if has_twos then two_count := !two_count + 1;
+      if has_threes then three_count := !three_count + 1;
+    done
+  with End_of_file ->
+    close_in ic;
+    let checksum = !two_count * !three_count in
+    print_int checksum;
+    print_newline ()

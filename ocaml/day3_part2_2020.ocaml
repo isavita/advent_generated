@@ -1,0 +1,32 @@
+
+let rec read_file file =
+  try 
+    let line = input_line file in
+    line :: read_file file
+  with End_of_file -> []
+
+let get_char_at_pos lines x y =
+  let line = List.nth lines y in
+  let len = String.length line in
+  let new_x = x mod len in
+  String.get line new_x
+
+let rec count_trees lines x y dx dy acc =
+  if y >= List.length lines then
+    acc
+  else
+    let new_acc = if get_char_at_pos lines x y = '#' then acc + 1 else acc in
+    count_trees lines (x + dx) (y + dy) dx dy new_acc
+
+let solve input =
+  let lines = read_file (open_in input) in
+  let result1 = count_trees lines 0 0 3 1 0 in
+  let result2 = 
+    let slopes = [(1,1); (3,1); (5,1); (7,1); (1,2)] in
+    List.fold_left (fun acc (dx, dy) -> count_trees lines 0 0 dx dy 0 * acc) 1 slopes in
+  (result1, result2)
+
+let _ =
+  let result1, result2 = solve "input.txt" in
+  print_int result1; print_newline ();
+  print_int result2; print_newline ()

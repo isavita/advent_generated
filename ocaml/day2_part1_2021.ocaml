@@ -1,0 +1,24 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let horizontal_position = ref 0 in
+  let depth = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      let command = String.split_on_char ' ' line in
+      let direction = List.nth command 0 in
+      let units = int_of_string (List.nth command 1) in
+
+      match direction with
+      | "forward" -> horizontal_position := !horizontal_position + units
+      | "down" -> depth := !depth + units
+      | "up" -> depth := !depth - units
+      | _ -> ()
+    done
+  with End_of_file ->
+    close_in file;
+    let product = !horizontal_position * !depth in
+    print_int product;
+    print_newline ()

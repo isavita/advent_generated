@@ -1,0 +1,26 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let total_ribbon = ref 0 in
+  try
+    while true do
+      let line = input_line file in
+      let dimensions = String.split_on_char 'x' line in
+      if List.length dimensions <> 3 then
+        failwith "Invalid input format";
+
+      let l = int_of_string (List.nth dimensions 0) in
+      let w = int_of_string (List.nth dimensions 1) in
+      let h = int_of_string (List.nth dimensions 2) in
+
+      let bow = l * w * h in
+
+      let sides = List.sort compare [l; w; h] in
+      let wrap = 2 * (List.nth sides 0) + 2 * (List.nth sides 1) in
+
+      total_ribbon := !total_ribbon + bow + wrap
+    done;
+  with End_of_file ->
+    close_in file;
+    print_int !total_ribbon;
+    print_newline ()

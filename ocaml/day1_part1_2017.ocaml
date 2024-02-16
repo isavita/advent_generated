@@ -1,0 +1,19 @@
+
+let () =
+  let input = 
+    let ic = open_in "input.txt" in
+    let len = in_channel_length ic in
+    let input = really_input_string ic len in
+    close_in ic;
+    String.trim input in
+
+  let sum = ref 0 in
+
+  for i = 0 to String.length input - 1 do
+    let next = (i + 1) mod (String.length input) in
+    if input.[i] = input.[next] then
+      sum := !sum + (int_of_char input.[i] - int_of_char '0')
+  done;
+
+  print_int !sum;
+  print_newline ()

@@ -1,0 +1,34 @@
+
+let execute memory =
+  let rec execute_helper i =
+    match memory.(i) with
+    | 1 ->
+        memory.(memory.(i + 3)) <- memory.(memory.(i + 1)) + memory.(memory.(i + 2));
+        execute_helper (i + 4)
+    | 2 ->
+        memory.(memory.(i + 3)) <- memory.(memory.(i + 1)) * memory.(memory.(i + 2));
+        execute_helper (i + 4)
+    | 99 -> memory.(0)
+    | _ -> failwith "Invalid opcode"
+  in
+  execute_helper 0
+
+let () =
+  let input = open_in "input.txt" in
+  let data = input_line input in
+  close_in input;
+  let strs = String.split_on_char ',' (String.trim data) in
+  let original = Array.of_list (List.map int_of_string strs) in
+  let result =
+    let memory = Array.copy original in
+    for noun = 0 to 99 do
+      for verb = 0 to 99 do
+        let memory = Array.copy original in
+        memory.(1) <- noun;
+        memory.(2) <- verb;
+        if execute memory = 19690720 then
+          100 * noun + verb |> print_int |> print_newline
+      done
+    done
+  in
+  ()

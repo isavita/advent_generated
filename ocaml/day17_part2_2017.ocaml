@@ -1,0 +1,18 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let steps = int_of_string (input_line ic) in
+  close_in ic;
+
+  let current_pos = ref 0 in
+  let value_after_zero = ref 0 in
+
+  for i = 1 to 50000000 do
+    current_pos := (!current_pos + steps) mod i;
+    if !current_pos = 0 then
+      value_after_zero := i;
+    current_pos := !current_pos + 1
+  done;
+
+  print_int !value_after_zero;
+  print_newline ()

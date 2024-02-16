@@ -1,0 +1,33 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let total_count = ref 0 in
+  let group_answers = Hashtbl.create 10 in
+  let group_size = ref 0 in
+
+  try
+    while true do
+      let line = input_line file in
+      if line = "" then (
+        Hashtbl.iter (fun _ count ->
+          if count = !group_size then
+            incr total_count
+        ) group_answers;
+        Hashtbl.clear group_answers;
+        group_size := 0
+      ) else (
+        incr group_size;
+        String.iter (fun question ->
+          let count = try Hashtbl.find group_answers question with Not_found -> 0 in
+          Hashtbl.replace group_answers question (count + 1)
+        ) line
+      )
+    done
+  with End_of_file ->
+    close_in file;
+    Hashtbl.iter (fun _ count ->
+      if count = !group_size then
+        incr total_count
+    ) group_answers;
+    print_int !total_count;
+    print_newline ()

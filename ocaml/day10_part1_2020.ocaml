@@ -1,0 +1,23 @@
+
+let () =
+  let file = open_in "input.txt" in
+  let adapters = ref [] in
+  try
+    while true do
+      let joltage = int_of_string (input_line file) in
+      adapters := joltage :: !adapters
+    done
+  with End_of_file ->
+    close_in file;
+    let adapters = List.sort compare !adapters in
+    let joltDifferences = ref [3] in
+    let previousJoltage = ref 0 in
+    List.iter (fun adapter ->
+      let diff = adapter - !previousJoltage in
+      joltDifferences := diff :: !joltDifferences;
+      previousJoltage := adapter
+    ) adapters;
+    let ones = List.filter (fun x -> x = 1) !joltDifferences |> List.length in
+    let threes = List.filter (fun x -> x = 3) !joltDifferences |> List.length in
+    let product = ones * threes in
+    Printf.printf "%d\n" product

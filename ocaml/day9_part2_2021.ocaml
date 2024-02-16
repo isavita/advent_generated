@@ -1,0 +1,51 @@
+
+let rec is_low_point heightmap x y =
+  let height = List.nth (List.nth heightmap y) x in
+  let check_x = if x > 0 then List.nth (List.nth heightmap y) (x-1) <= height else true in
+  let check_x' = if x < (List.length (List.nth heightmap y)) - 1 then List.nth (List.nth heightmap y) (x+1) <= height else true in
+  let check_y = if y > 0 then List.nth (List.nth heightmap (y-1)) x <= height else true in
+  let check_y' = if y < (List.length heightmap) - 1 then List.nth (List.nth heightmap (y+1)) x <= height else true in
+  check_x && check_x' && check_y && check_y'
+
+let rec explore_basin heightmap x y visited =
+  if Hashtbl.mem visited (x, y) || List.nth (List.nth heightmap y) x = 9 then 0
+  else begin
+    Hashtbl.add visited (x, y) true;
+    let size = ref 1 in
+    let directions = [[0; -1]; [-1; 0]; [0; 1]; [1; 0]] in
+    List.iter (fun dir ->
+      let new_x = x + (List.nth dir 0) in
+      let new_y = y + (List.nth dir 1) in
+      if new_x >= 0 && new_x < List.length (List.hd heightmap) && new_y >= 0 && new_y < List.length heightmap then
+        size := !size + (explore_basin heightmap new_x new_y visited)
+    ) directions;
+    !size
+  end
+
+let () =
+  let file = open_in "input.txt" in
+  let heightmap = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      let row = Array.make (String.length line) 0 in
+      String.iteri (fun i char ->
+        row.(i) <- int_of_string (String.make 1 char)
+      ) line;
+      heightmap := !heightmap @ [Array.to_list row]
+    done
+  with End_of_file ->
+    close_in file;
+    let basin_sizes = ref [] in
+    let visited = Hashtbl.create 100 in
+    List.iteri (fun y row ->
+      List.iteri (fun x _ ->
+        if is_low_point !heightmap x y then
+          let size = explore_basin !heightmap x y visited in
+          basin_sizes := !basin_sizes @ [size]
+      ) row
+    ) !heightmap;
+    let sorted_basin_sizes = List.sort (fun a b -> compare b a) !basin_sizes in
+    let result = (List.nth sorted_basin_sizes 0) * (List.nth sorted_basin_sizes 1) * (List.nth sorted_basin_sizes 2) in
+    print_int result;
+    print_newline ()

@@ -1,0 +1,49 @@
+
+type reindeer = { speed : int; fly_time : int; rest_time : int; mutable distance : int; mutable flying : bool; mutable time_in_mode : int }
+
+let read_reindeer_details filename =
+  let file = open_in filename in
+  let reindeers = ref [] in
+  try
+    while true do
+      let line = input_line file in
+      let parts = String.split_on_char ' ' line in
+      let speed = int_of_string (List.nth parts 3) in
+      let fly_time = int_of_string (List.nth parts 6) in
+      let rest_time = int_of_string (List.nth parts 13) in
+      reindeers := { speed; fly_time; rest_time; distance = 0; flying = true; time_in_mode = 0 } :: !reindeers
+    done;
+    !reindeers
+  with End_of_file ->
+    close_in file;
+    List.rev !reindeers
+
+let simulate_race reindeers total_seconds =
+  for _ = 1 to total_seconds do
+    List.iter (fun reindeer ->
+      if reindeer.flying then (
+        reindeer.distance <- reindeer.distance + reindeer.speed;
+        reindeer.time_in_mode <- reindeer.time_in_mode + 1;
+        if reindeer.time_in_mode = reindeer.fly_time then (
+          reindeer.flying <- false;
+          reindeer.time_in_mode <- 0
+        )
+      ) else (
+        reindeer.time_in_mode <- reindeer.time_in_mode + 1;
+        if reindeer.time_in_mode = reindeer.rest_time then (
+          reindeer.flying <- true;
+          reindeer.time_in_mode <- 0
+        )
+      )
+    ) reindeers
+  done
+
+let find_max_distance reindeers =
+  List.fold_left (fun acc reindeer -> max acc reindeer.distance) 0 reindeers
+
+let () =
+  let reindeers = read_reindeer_details "input.txt" in
+  simulate_race reindeers 2503;
+  let max_distance = find_max_distance reindeers in
+  print_int max_distance;
+  print_newline ()

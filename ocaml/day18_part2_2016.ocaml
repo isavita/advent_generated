@@ -1,0 +1,60 @@
+
+let read_first_row filename =
+  let channel = open_in filename in
+  let first_row = input_line channel in
+  close_in channel;
+  first_row
+
+let count_safe_tiles first_row total_rows =
+  let rec is_trap left center right row =
+    let l = safe_if_out_of_bounds left row in
+    let c = String.get row center in
+    let r = safe_if_out_of_bounds right row in
+    (l = '^' && c = '^' && r = '.') ||
+    (c = '^' && r = '^' && l = '.') ||
+    (l = '^' && c = '.' && r = '.') ||
+    (r = '^' && c = '.' && l = '.')
+
+  and safe_if_out_of_bounds index row =
+    if index < 0 || index >= String.length row then
+      '.'
+    else
+      String.get row index
+  in
+
+  let rec count_char str char =
+    let rec count_char_helper str char count index =
+      if index = String.length str then
+        count
+      else if String.get str index = char then
+        count_char_helper str char (count + 1) (index + 1)
+      else
+        count_char_helper str char count (index + 1)
+    in
+    count_char_helper str char 0 0
+  in
+
+  let rec count_safe_tiles_helper current_row safe_count row =
+    if row = total_rows then
+      safe_count
+    else
+      let next_row = ref "" in
+      let new_safe_count = ref safe_count in
+      for j = 0 to String.length current_row - 1 do
+        if is_trap (j - 1) j (j + 1) current_row then
+          next_row := !next_row ^ "^"
+        else begin
+          next_row := !next_row ^ ".";
+          incr new_safe_count
+        end
+      done;
+      count_safe_tiles_helper !next_row !new_safe_count (row + 1)
+  in
+
+  count_safe_tiles_helper first_row (count_char first_row '.') 1
+
+let () =
+  let first_row = read_first_row "input.txt" in
+  let safe_tiles_count = count_safe_tiles first_row 400000 in
+  print_int safe_tiles_count;
+  print_newline()

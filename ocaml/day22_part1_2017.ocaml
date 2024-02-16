@@ -1,0 +1,47 @@
+
+open Printf
+
+type position = { x : int; y : int }
+
+let () =
+  let file = open_in "input.txt" in
+  let grid = Hashtbl.create 1000 in
+  let start_x = ref 0 in
+  let start_y = ref 0 in
+  let rec read_input y =
+    try
+      let line = input_line file in
+      String.iteri (fun x c ->
+        if c = '#' then Hashtbl.add grid { x; y } true
+      ) line;
+      start_x := (String.length line) / 2;
+      start_y := y / 2;
+      read_input (y + 1)
+    with End_of_file -> ()
+  in
+  read_input 0;
+  close_in file;
+
+  let dx = [|0; 1; 0; -1|] in
+  let dy = [|-1; 0; 1; 0|] in
+
+  let x = ref !start_x in
+  let y = ref !start_y in
+  let dir = ref 0 in
+  let infected_count = ref 0 in
+
+  for _ = 1 to 10000 do
+    let pos = { x = !x; y = !y } in
+    if Hashtbl.mem grid pos then (
+      dir := (!dir + 1) mod 4;
+      Hashtbl.remove grid pos
+    ) else (
+      dir := (!dir - 1 + 4) mod 4;
+      Hashtbl.add grid pos true;
+      infected_count := !infected_count + 1
+    );
+    x := !x + dx.(!dir);
+    y := !y + dy.(!dir)
+  done;
+
+  printf "%d\n" !infected_count;
