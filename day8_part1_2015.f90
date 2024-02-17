@@ -12,7 +12,7 @@ program day08
         read(99, '(A)', iostat=ios) code
         if (ios /= 0) exit
         code_len = len_trim(code)
-        total = total + len_trim(encode(code)) - code_len
+        total = total + code_len - count_string(code)
     end do
 
     close(99)
@@ -21,30 +21,28 @@ program day08
 
 contains
 
-    pure function encode(code) result(newcode)
+    pure function count_string(code) result(strlen)
+        integer :: strlen
         character(len=*), intent(in) :: code
-        character(len=80) :: newcode
-        integer :: i, j
+        integer :: i
 
-        newcode = '"'
-        j = 2
+        i = 2; strlen = 0
 
-        do i = 1, len_trim(code)
+        do 
             select case (code(i:i))
             case ('\')
-                newcode(j:j+1) = '\\'
-                j = j + 2
+                select case (code(i+1:i+1))
+                case ('x')
+                    i = i + 3
+                case default
+                    i = i + 1
+                end select
             case ('"')
-                newcode(j:j+1) = '\"'
-                j = j + 2
-            case default
-                newcode(j:j) = code(i:i)
-                j = j + 1
+                exit
             end select
+            strlen = strlen + 1
+            i = i + 1
         end do
-
-        newcode(j:j) = '"'
-    end function encode
-
+    end function count_string
 
 end program day08
