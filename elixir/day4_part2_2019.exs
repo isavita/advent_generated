@@ -1,30 +1,28 @@
-
 defmodule Day4 do
-  def call do
-    input = File.read!("input.txt") |> String.split("\n") |> List.first |> String.split("-") |> Enum.map(&String.to_integer/1)
-    Range.new(input |> List.first, input |> List.last)
-    |> Enum.filter(&valid_password/1)
-    |> Enum.count()
+  def read_input do
+    File.read!("input.txt")
+    |> String.trim()
+    |> String.split("-")
+    |> Enum.map(&String.to_integer/1)
   end
 
-  defp valid_password(password) do
+  def valid_password?(password) do
     digits = Integer.digits(password)
-    has_adjacent_digits(digits) && never_decreases(digits) && has_exact_double(digits)
+    has_double = Enum.chunk_by(digits, & &1) |> Enum.any?(fn group -> Enum.count(group) == 2 end)
+    never_decreases = digits |> Enum.chunk_every(2, 1, :discard) |> Enum.all?(fn [a, b] -> a <= b end)
+    has_double and never_decreases
   end
 
-  defp has_adjacent_digits([a, b | _]) when a == b, do: true
-  defp has_adjacent_digits([_ | rest]), do: has_adjacent_digits(rest)
-  defp has_adjacent_digits(_), do: false
+  def count_valid_passwords(range) do
+    Enum.count(range, &valid_password?/1)
+  end
 
-  defp never_decreases([a, b | rest]) when a > b, do: false
-  defp never_decreases([_ | rest]), do: never_decreases(rest)
-  defp never_decreases(_), do: true
-
-  defp has_exact_double(digits) do
-    Enum.reduce(digits, %{}, fn digit, acc ->
-      Map.update(acc, digit, 1, &(&1 + 1))
-    end)
-    |> Map.values()
-    |> Enum.any?(&(&1 == 2))
+  def call do
+    [start_range, end_range] = read_input()
+    range = start_range..end_range
+    valid_passwords_count = count_valid_passwords(range)
+    IO.puts(valid_passwords_count)
   end
 end
+
+Day4.call()
