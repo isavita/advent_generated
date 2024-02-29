@@ -1,0 +1,1 @@
+awk '{print $0}' input.txt | tr -d '\n'

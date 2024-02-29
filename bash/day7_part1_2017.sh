@@ -1,0 +1,1 @@
+awk '{print $1}' input.txt
