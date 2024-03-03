@@ -1,0 +1,182 @@
+# Prepare training set for OpenAI
+
+```elixir
+Mix.install([
+  :req,
+  :jason
+])
+```
+
+## Fetch Advent of Code dataset from huggingface
+
+```elixir
+dataset_url = "https://huggingface.co/datasets/isavita/advent-of-code/resolve/main/train.json"
+dataset = Req.get!(dataset_url, receive_timeout: 600_000).body
+
+# get only go solutions, because go is the only language that the dataset has all challenges solved
+dataset =
+  Enum.filter(dataset, fn part ->
+    part["solution_lang"] == "go"
+  end)
+```
+
+## System Constants
+
+```elixir
+defmodule Constants do
+  def file_ext, do: ".erl"
+  def lang, do: "erlang"
+  def dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated|
+end
+```
+
+## Prompt Templates with the task, but no example solution
+
+````elixir
+sys_msg =
+  ~s|You are a highly experienced programmer with a PhD in computer science participating in a coding challenge.
+Write clean, efficient code without unnecessary comments, demonstrating your advanced skills by solving problems practically and concisely.
+Aim to produce optimal and concise solutions, leveraging your decade of industry experience.|
+
+user_part1_fn = fn task ->
+  ~s"""
+  Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
+  Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
+  The program structure should follow this template:
+  ```#{Constants.lang()}
+  -module(task).
+  -export([call/0]).
+
+  call() ->
+    % Read input and solve challenge
+    Result = ...,
+    
+    % Print result 
+    io:format("~p~n", [Result]).
+  ```
+
+  Aim to write clean, efficient #{Constants.lang()} code that demonstrates strong programming skills.
+
+  Coding challenge:
+  ```text
+  #{task}
+  ```
+  """
+end
+
+user_part2_fn = fn task ->
+  ~s"""
+  Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
+  Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
+  The program structure should follow this template:
+  ```#{Constants.lang()}
+  -module(task).
+  -export([call/0]).
+
+  call() ->
+    % Read input and solve Part 2
+    Result2 = ..., 
+    
+    % Print Part 2 result
+    io:format("~p~n", [Result2]).
+  ```
+
+  Focus on writing clean, efficient Erlang code that demonstrates your programming skills by concisely solving Part 2 of the challenge.
+
+  Coding challenge:
+  ```text
+  #{task}
+  ```
+  """
+end
+
+assistant_solution_fn = fn solution ->
+  ~s"""
+  Here is a solution of the challenge:
+  ```#{Constants.lang()}
+  #{solution}
+  ```
+  """
+end
+````
+
+## Training Data PreparationTraining Data Preparation
+
+```elixir
+solutions = File.ls!(Constants.dir())
+solved = Enum.filter(solutions, &String.contains?(&1, Constants.file_ext()))
+
+data =
+  Enum.reduce(dataset, [], fn day, acc ->
+    case Enum.find(solved, nil, fn s -> String.starts_with?(s, day["name"]) end) do
+      nil ->
+        acc
+
+      filename ->
+        solution = File.read!("#{Constants.dir()}/#{filename}") |> String.trim()
+        system_msg = %{"role" => "system", "content" => sys_msg}
+
+        user_content =
+          if String.contains?(day["name"], "part2_") do
+            # this task includes both parts; part 1 and part 2.
+            user_part2_fn.(day["task"])
+          else
+            user_part1_fn.(day["task"])
+          end
+
+        user_msg = %{"role" => "user", "content" => user_content}
+        assistant_msg = %{"role" => "assistant", "content" => assistant_solution_fn.(solution)}
+
+        messages = %{
+          "messages" => [
+            system_msg,
+            user_msg,
+            assistant_msg
+          ]
+        }
+
+        [messages | acc]
+    end
+  end)
+  |> Enum.reverse()
+```
+
+## Data export to JSONL format
+
+```elixir
+output_path =
+  "#{Constants.dir()}/training_data/#{Constants.lang()}_#{Enum.count(data)}_#{Date.utc_today()}.jsonl"
+
+file = File.open!(output_path, [:write])
+
+Enum.each(data, fn raw ->
+  json = Jason.encode!(raw)
+  IO.binwrite(file, json <> "\n")
+end)
+```
+
+## Upload the training file
+
+```elixir
+{resp, status} =
+  System.cmd("curl", [
+    "https://api.openai.com/v1/files",
+    "-H",
+    "Authorization: Bearer #{System.fetch_env!("LB_OPENAI_API_KEY")}",
+    "-F",
+    "purpose=fine-tune",
+    "-F",
+    "file=@#{output_path}"
+  ])
+```
+
+```elixir
+file_upload = Jason.decode!(resp) |> IO.inspect()
+file_id = file_upload["id"]
+```
+
+## Create a fine-tuned model
+
+### Create Training job from OpenAI UI [here](https://platform.openai.com/finetune)
+
+<!-- livebook:{"offset":4574,"stamp":{"token":"XCP.3n7N9_DZp-WKrcCjrRRDcYvWY1DAJawmUAQF8AxQpA2a0GxM4aVZDw7zzcXII8HM5psKsEJqQOjj_lkJZwIOVuqlvwesLdHJ2qhNiYsmvOob0kpquchIx_1C6AI5psrSU9G_6wOjmxQHqgA","version":2}} -->
