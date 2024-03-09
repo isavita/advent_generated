@@ -24,10 +24,25 @@ dataset =
 
 ```elixir
 defmodule Constants do
-  def file_ext, do: ".erl"
-  def lang, do: "erlang"
-  def dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated|
+  def file_ext, do: ".exs"
+  def lang, do: "elixir"
+  def output_dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated/training_data|
+  def input_dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated/elixir|
 end
+```
+
+```elixir
+defmodule Challenge do
+  def call do
+    # Read input and solve challenge
+    result = 42
+
+    # Print result
+    IO.puts(result)
+  end
+end
+
+Challenge.call()
 ```
 
 ## Prompt Templates with the task, but no example solution
@@ -44,15 +59,16 @@ user_part1_fn = fn task ->
   Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
   The program structure should follow this template:
   ```#{Constants.lang()}
-  -module(task).
-  -export([call/0]).
+  defmodule Challenge do
+    def call do
+      # Read input and solve challenge
+      result = ...
 
-  call() ->
-    % Read input and solve challenge
-    Result = ...,
-    
-    % Print result 
-    io:format("~p~n", [Result]).
+      # Print result
+      IO.puts(result)
+    end
+  end
+  Challenge.call()
   ```
 
   Aim to write clean, efficient #{Constants.lang()} code that demonstrates strong programming skills.
@@ -70,15 +86,16 @@ user_part2_fn = fn task ->
   Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
   The program structure should follow this template:
   ```#{Constants.lang()}
-  -module(task).
-  -export([call/0]).
+    defmodule Challenge do
+    def call do
+      # Read input and solve Part 2
+      result = ...
 
-  call() ->
-    % Read input and solve Part 2
-    Result2 = ..., 
-    
-    % Print Part 2 result
-    io:format("~p~n", [Result2]).
+      # Print Part 2 result
+      IO.puts(result)
+    end
+  end
+  Challenge.call()
   ```
 
   Focus on writing clean, efficient Erlang code that demonstrates your programming skills by concisely solving Part 2 of the challenge.
@@ -103,7 +120,7 @@ end
 ## Training Data PreparationTraining Data Preparation
 
 ```elixir
-solutions = File.ls!(Constants.dir())
+solutions = File.ls!(Constants.input_dir())
 solved = Enum.filter(solutions, &String.contains?(&1, Constants.file_ext()))
 
 data =
@@ -113,7 +130,7 @@ data =
         acc
 
       filename ->
-        solution = File.read!("#{Constants.dir()}/#{filename}") |> String.trim()
+        solution = File.read!("#{Constants.input_dir()}/#{filename}") |> String.trim()
         system_msg = %{"role" => "system", "content" => sys_msg}
 
         user_content =
@@ -145,9 +162,9 @@ data =
 
 ```elixir
 output_path =
-  "#{Constants.dir()}/training_data/#{Constants.lang()}_#{Enum.count(data)}_#{Date.utc_today()}.jsonl"
+  "#{Constants.output_dir()}/#{Constants.lang()}_#{Enum.count(data)}_#{Date.utc_today()}.jsonl"
 
-file = File.open!(output_path, [:write])
+file = File.open!(output_path, [:write, :create])
 
 Enum.each(data, fn raw ->
   json = Jason.encode!(raw)
@@ -179,4 +196,74 @@ file_id = file_upload["id"]
 
 ### Create Training job from OpenAI UI [here](https://platform.openai.com/finetune)
 
-<!-- livebook:{"offset":4574,"stamp":{"token":"XCP.3n7N9_DZp-WKrcCjrRRDcYvWY1DAJawmUAQF8AxQpA2a0GxM4aVZDw7zzcXII8HM5psKsEJqQOjj_lkJZwIOVuqlvwesLdHJ2qhNiYsmvOob0kpquchIx_1C6AI5psrSU9G_6wOjmxQHqgA","version":2}} -->
+## Erlang Prompts
+
+````elixir
+# sys_msg =
+#   ~s|You are a highly experienced programmer with a PhD in computer science participating in a coding challenge.
+# Write clean, efficient code without unnecessary comments, demonstrating your advanced skills by solving problems practically and concisely.
+# Aim to produce optimal and concise solutions, leveraging your decade of industry experience.|
+
+# user_part1_fn = fn task ->
+#   ~s"""
+#   Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
+#   Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
+#   The program structure should follow this template:
+#   ```#{Constants.lang()}
+#   -module(task).
+#   -export([call/0]).
+
+#   call() ->
+#     % Read input and solve challenge
+#     Result = ...,
+
+#     % Print result 
+#     io:format("~p~n", [Result]).
+#   ```
+
+#   Aim to write clean, efficient #{Constants.lang()} code that demonstrates strong programming skills.
+
+#   Coding challenge:
+#   ```text
+#   #{task}
+#   ```
+#   """
+# end
+
+# user_part2_fn = fn task ->
+#   ~s"""
+#   Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
+#   Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
+#   The program structure should follow this template:
+#   ```#{Constants.lang()}
+#   -module(task).
+#   -export([call/0]).
+
+#   call() ->
+#     % Read input and solve Part 2
+#     Result2 = ..., 
+
+#     % Print Part 2 result
+#     io:format("~p~n", [Result2]).
+#   ```
+
+#   Focus on writing clean, efficient Erlang code that demonstrates your programming skills by concisely solving Part 2 of the challenge.
+
+#   Coding challenge:
+#   ```text
+#   #{task}
+#   ```
+#   """
+# end
+
+# assistant_solution_fn = fn solution ->
+#   ~s"""
+#   Here is a solution of the challenge:
+#   ```#{Constants.lang()}
+#   #{solution}
+#   ```
+#   """
+# end
+````
+
+<!-- livebook:{"offset":6927,"stamp":{"token":"XCP.f38TXwN7VwbwlCPP3aZkX-HSSpAm6GKVqTIjo57KpZI3ENhgIFxMEj5FWbB8rfEdq8zQ7Z7b4JND3os7k54MiKCmYgEy9BohSuw-bH2axXSJjTqF023ZuQud8sl3zJlzEBGnEbd7L9Vtzw0","version":2}} -->
