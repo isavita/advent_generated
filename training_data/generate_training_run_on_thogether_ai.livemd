@@ -155,12 +155,12 @@ options:
 Create finetune job with all parameters
 
 ```shell
-together finetune create --model "teknium/OpenHermes-2p5-Mistral-7B" \
+together finetune create --estimate-price --model "teknium/OpenHermes-2p5-Mistral-7B" \
 --training-file "file-57ad61ef-ea44-41cc-b833-256a2d78b265" \
 --batch-size 16 \
 --n-epochs 3 \
 --learning-rate 0.00001 \
---suffix coder \
+--suffix Coder \
 --wandb-api-key <WANDB_API_KEY>
 ```
 
