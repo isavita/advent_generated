@@ -1,0 +1,169 @@
+# TogetherAI training
+
+```elixir
+Mix.install([
+  :req,
+  :jason
+])
+```
+
+## Create dataset for Ruby
+
+#### Fetch Advent of Code dataset from huggingface
+
+```elixir
+dataset_url = "https://huggingface.co/datasets/isavita/advent-of-code/resolve/main/train.json"
+dataset = Req.get!(dataset_url, receive_timeout: 600_000).body
+
+# get only go solutions, because go is the only language that the dataset has all challenges solved
+dataset = Enum.filter(dataset, fn challenge -> challenge["solution_lang"] == "ruby" end)
+```
+
+#### Format the dataset according to TogetherAI doc [here](https://docs.together.ai/docs/quickstart) for `teknium/OpenHermes-2p5-Mistral-7B`
+
+<!-- livebook:{"break_markdown":true} -->
+
+##### Install together cli
+
+```shell
+pip install together
+```
+
+##### Set env TOGETHER_API_KEY
+
+```shell
+export TOGETHER_API_KEY=...
+```
+
+##### Find formating for the model
+
+```shell
+together models info "teknium/OpenHermes-2p5-Mistral-7B"
+```
+
+##### For `teknium/OpenHermes-2p5-Mistral-7B` the format is
+
+```json
+{
+'stop': ['<|im_end|>',
+'<|im_start|>'],
+'prompt_format': '<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n', 'add_generation_prompt': True,
+'chat_template_name': 'default'
+}
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Define formatter function
+
+````elixir
+formatter_fn = fn challenge ->
+  ~s"""
+  <|im_start|>user
+  You are an expert programmer who writes simple, efficient and concise code.
+  Write a #{challenge["solution_lang"]} program that reads its input from a file named "input.txt" and solves the following task.
+  The program should print the answer when executed.
+
+  Coding challenge:
+  #{challenge["task"]}
+  <|im_end|>
+  <|im_start|>assistant
+  ```#{challenge["solution_lang"]}
+  #{challenge["solution"]}
+  ```<|im_end|>
+  """
+  |> String.trim()
+end
+````
+
+#### Format the dataset
+
+```elixir
+data =
+  Enum.map(dataset, fn challenge ->
+    %{"text" => formatter_fn.(challenge)}
+  end)
+```
+
+#### Save the data in `.jsonl` file
+
+```elixir
+output_path =
+  "#{File.cwd!()}/code/advent_generated/training_data/togetherai_ruby_#{Enum.count(data)}_#{Date.utc_today()}.jsonl"
+
+file = File.open!(output_path, [:write, :create])
+
+:ok =
+  Enum.each(data, fn raw ->
+    json = Jason.encode!(raw)
+    IO.binwrite(file, json <> "\n")
+  end)
+
+output_path
+```
+
+Check the data
+
+```shell
+together files check <output_path>
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+#### Upload the data
+
+```shell
+together files upload <output_path>
+```
+
+## Get the file_id from the previous command
+
+```elixir
+file_id = "file-57ad61ef-ea44-41cc-b833-256a2d78b265"
+```
+
+#### together finetune create options
+
+```text
+options:
+  -h, --help            show this help message and exit
+  --training-file FILE-ID, -t FILE-ID
+                        File-ID of an uploaded file that contains training data.
+  --estimate-price, -e  Estimate the price of the fine tune job
+  --model MODEL, -m MODEL
+                        The name of the base model to fine-tune. Default='togethercomputer/RedPajama-INCITE-7B-Chat'.
+  --n-epochs EPOCHS, -ne EPOCHS
+                        The number of epochs to train the model for. Default=4
+  --n-checkpoints CHECKPOINTS, -c CHECKPOINTS
+                        The number of checkpoints to save during training. Default=1 (a checkpoint is always saved on the last
+                        epoch for the trained model).
+  --batch-size BATCH_SIZE, -b BATCH_SIZE
+                        The batch size to use for training. Default=32
+  --learning-rate LEARNING_RATE, -lr LEARNING_RATE
+                        The learning rate multiplier to use for training. Default=0.00001
+  --suffix SUFFIX, -s SUFFIX
+                        Up to 40 characters that will be added to your fine-tuned model name.
+  --wandb-api-key WANDB_API_KEY, -wb WANDB_API_KEY
+                        Wandb API key to report metrics to wandb.ai. If not set WANDB_API_KEY environment variable is used.
+  --no-wandb-api-key, -nwb
+                        Do not report metrics to wandb.ai.
+  --quiet               Indicates whether to disable checking
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Create finetune job with all parameters
+
+```shell
+together finetune create --model "teknium/OpenHermes-2p5-Mistral-7B" \
+--training-file "file-57ad61ef-ea44-41cc-b833-256a2d78b265" \
+--batch-size 16 \
+--n-epochs 3 \
+--learning-rate 0.00001 \
+--suffix coder \
+--wandb-api-key <WANDB_API_KEY>
+```
+
+```elixir
+"ft-b23765c7-7875-4792-a482-8c37d135eb50"
+```
