@@ -24,10 +24,10 @@ dataset =
 
 ```elixir
 defmodule Constants do
-  def file_ext, do: ".exs"
-  def lang, do: "elixir"
+  def file_ext, do: ".zig"
+  def lang, do: "zig"
   def output_dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated/training_data|
-  def input_dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated/elixir|
+  def input_dir, do: ~s|#{System.get_env("HOME")}/code/advent_generated/zig|
 end
 ```
 
@@ -56,54 +56,20 @@ Aim to produce optimal and concise solutions, leveraging your decade of industry
 user_part1_fn = fn task ->
   ~s"""
   Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
-  Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
-  The program structure should follow this template:
-  ```#{Constants.lang()}
-  defmodule Challenge do
-    def call do
-      # Read input and solve challenge
-      result = ...
-
-      # Print result
-      IO.puts(result)
-    end
-  end
-  Challenge.call()
-  ```
-
-  Aim to write clean, efficient #{Constants.lang()} code that demonstrates strong programming skills.
+  Focus on writing clean, efficient code that demonstrates your programming skills by concisely solving the challenge.
 
   Coding challenge:
-  ```text
   #{task}
-  ```
   """
 end
 
 user_part2_fn = fn task ->
   ~s"""
   Write an #{Constants.lang()} program that reads input from a file called input.txt and prints the output to standard output.
-  Structure the program as a module named task, with a single exported function call/0 that takes no arguments.
-  The program structure should follow this template:
-  ```#{Constants.lang()}
-    defmodule Challenge do
-    def call do
-      # Read input and solve Part 2
-      result = ...
-
-      # Print Part 2 result
-      IO.puts(result)
-    end
-  end
-  Challenge.call()
-  ```
-
-  Focus on writing clean, efficient Erlang code that demonstrates your programming skills by concisely solving Part 2 of the challenge.
+  Focus on writing clean, efficient code that demonstrates your programming skills by concisely solving the challenge.
 
   Coding challenge:
-  ```text
   #{task}
-  ```
   """
 end
 
@@ -266,4 +232,4 @@ file_id = file_upload["id"]
 # end
 ````
 
-<!-- livebook:{"offset":6927,"stamp":{"token":"XCP.Kxib_49M_Sa8P3oQ0cLpbDlIk6LRzNFHecG9wzh97qb3vLlipzpC9dV5jq02_Plu8y6nWT2cz7enrL8Toe5CUf95gifbOK8CSgBD6gt0hMxcmrOOo-twT6upsapoVPtX2CgPDjv4C7G0oYM","version":2}} -->
+<!-- livebook:{"offset":6137,"stamp":{"token":"XCP.jN2yKivfDAE9bfAz5FVhCvAzoqLYf_GKz5IFJ_5W3LGimQKxZlbfgIvLENUcoeYRacs3TQyvgJyHtmBhCiRsMIxQrjL2HEPj_qb4lq713yveNEVB5tgFv34rU4VCwpMt7LTIxUyCkzUJwg4","version":2}} -->
