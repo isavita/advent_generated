@@ -1,30 +1,48 @@
 const std = @import("std");
 
+fn calculatePresents(house_number: usize) usize {
+    var presents: usize = 0;
+    var i: usize = 1;
+    while (i * i <= house_number) : (i += 1) {
+        if (house_number % i == 0) {
+            presents += i * 10;
+            if (i * i != house_number) {
+                presents += (house_number / i) * 10;
+            }
+        }
+    }
+    return presents;
+}
+
+fn findLowestHouseNumber(target_presents: usize) usize {
+    var house_number: usize = 1;
+    while (true) : (house_number += 1) {
+        const presents = calculatePresents(house_number);
+        if (presents >= target_presents) {
+            return house_number;
+        }
+    }
+}
+
 pub fn main() !void {
-    var file = try std.fs.cwd().openFile("input.txt", .{});
+    // Read input from file
+    const file = try std.fs.cwd().openFile("input.txt", .{});
     defer file.close();
 
-    var buf: [10]u8 = undefined;
-    const n = try file.reader().readAll(&buf);
-    const presents = try std.fmt.parseInt(usize, buf[0 .. n], 10);
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
 
-    var house: usize = 1;
-    while (true) {
-        var total: usize = 0;
-        var i: usize = 1;
-        while (i * i <= house) {
-            if (house % i == 0) {
-                total += i * 10;
-                if (i * i != house) {
-                    total += (house / i) * 10;
-                }
-            }
-            i += 1;
-        }
-        if (total >= presents) {
-            std.debug.print("{}\n", .{house});
-            return;
-        }
-        house += 1;
+    var buf: [20]u8 = undefined;
+    const input = try in_stream.readUntilDelimiterOrEof(&buf, '\n');
+    
+    if (input) |line| {
+        const target_presents = try std.fmt.parseInt(usize, line, 10);
+        
+        const lowest_house = findLowestHouseNumber(target_presents);
+
+        const stdout = std.io.getStdOut().writer();
+        try stdout.print("Lowest house number to get at least {} presents: {}\n", .{target_presents, lowest_house});
+    } else {
+        std.debug.print("Error: Input file is empty\n", .{});
     }
 }
