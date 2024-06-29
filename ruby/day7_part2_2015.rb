@@ -1,48 +1,43 @@
 
-input = File.read("input.txt").strip
-
 def some_assembly_required(input)
   wire_to_rule = {}
-
-  input.split("\n").each do |inst|
-    parts = inst.split(" -> ")
+  input.each_line do |line|
+    parts = line.strip.split(' -> ')
     wire_to_rule[parts[1]] = parts[0]
   end
 
-  a_signal = memo_dfs(wire_to_rule, "a", {})
-
-  wire_to_rule["b"] = a_signal.to_s
-  memo_dfs(wire_to_rule, "a", {})
+  a_signal = memo_dfs(wire_to_rule, 'a', {})
+  wire_to_rule['b'] = a_signal.to_s
+  memo_dfs(wire_to_rule, 'a', {})
 end
 
 def memo_dfs(graph, entry, memo)
   return memo[entry] if memo.key?(entry)
-
-  if entry.match?(/[0-9]/)
-    return entry.to_i
-  end
+  return entry.to_i if entry =~ /\A\d+\z/
 
   source_rule = graph[entry]
-  parts = source_rule.split(" ")
+  parts = source_rule.split
 
-  result = case
-           when parts.length == 1
-             memo_dfs(graph, parts[0], memo)
-           when parts[0] == "NOT"
-             start = memo_dfs(graph, parts[1], memo)
-             (0xFFFF ^ start)
-           when parts[1] == "AND"
-             memo_dfs(graph, parts[0], memo) & memo_dfs(graph, parts[2], memo)
-           when parts[1] == "OR"
-             memo_dfs(graph, parts[0], memo) | memo_dfs(graph, parts[2], memo)
-           when parts[1] == "LSHIFT"
-             memo_dfs(graph, parts[0], memo) << memo_dfs(graph, parts[2], memo)
-           when parts[1] == "RSHIFT"
-             memo_dfs(graph, parts[0], memo) >> memo_dfs(graph, parts[2], memo)
-           end
+  result = case parts.size
+  when 1
+    memo_dfs(graph, parts[0], memo)
+  when 2
+    ~memo_dfs(graph, parts[1], memo) & 0xFFFF
+  when 3
+    case parts[1]
+    when 'AND'
+      memo_dfs(graph, parts[0], memo) & memo_dfs(graph, parts[2], memo)
+    when 'OR'
+      memo_dfs(graph, parts[0], memo) | memo_dfs(graph, parts[2], memo)
+    when 'LSHIFT'
+      (memo_dfs(graph, parts[0], memo) << parts[2].to_i) & 0xFFFF
+    when 'RSHIFT'
+      memo_dfs(graph, parts[0], memo) >> parts[2].to_i
+    end
+  end
 
   memo[entry] = result
-  result
 end
 
+input = File.read('input.txt').strip
 puts some_assembly_required(input)

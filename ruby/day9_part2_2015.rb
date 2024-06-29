@@ -1,29 +1,23 @@
 
-locations = []
-distances = {}
-
-File.open("input.txt").each do |line|
-  parts = line.chomp.split(" ")
-  locations << parts[0]
-  locations << parts[2]
-  distances[[parts[0], parts[2]].sort] = parts[4].to_i
-end
-
-locations.uniq!
-
-all_routes = locations.permutation.to_a
-
-shortest_distance = Float::INFINITY
-longest_distance = 0
-
-all_routes.each do |route|
-  distance = 0
-  route.each_cons(2) do |pair|
-    distance += distances[pair.sort]
+def read_and_parse_input(filename)
+  distances = Hash.new { |h, k| h[k] = {} }
+  File.foreach(filename) do |line|
+    from, _, to, _, dist = line.split
+    distance = dist.to_i
+    distances[from][to] = distances[to][from] = distance
   end
-  shortest_distance = [shortest_distance, distance].min
-  longest_distance = [longest_distance, distance].max
+  distances
 end
 
-puts shortest_distance
-puts longest_distance
+def find_longest_route(distances)
+  locations = distances.keys
+  max_distance = 0
+  locations.permutation.each do |route|
+    distance = route.each_cons(2).sum { |a, b| distances[a][b] }
+    max_distance = distance if distance > max_distance
+  end
+  max_distance
+end
+
+distances = read_and_parse_input("input.txt")
+puts find_longest_route(distances)

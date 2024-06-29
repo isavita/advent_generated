@@ -1,37 +1,18 @@
-houses = Hash.new(0)
-santa_x, santa_y = 0, 0
-robo_x, robo_y = 0, 0
-santa_turn = true
 
-houses["0,0"] += 2
+directions = File.read('input.txt').strip
+visited = {[0, 0] => true}
+santa = [0, 0]
+robo = [0, 0]
 
-File.open("input.txt").each_char do |char|
-  if santa_turn
-    case char
-    when "^"
-      santa_y += 1
-    when "v"
-      santa_y -= 1
-    when ">"
-      santa_x += 1
-    when "<"
-      santa_x -= 1
-    end
-    houses["#{santa_x},#{santa_y}"] += 1
-  else
-    case char
-    when "^"
-      robo_y += 1
-    when "v"
-      robo_y -= 1
-    when ">"
-      robo_x += 1
-    when "<"
-      robo_x -= 1
-    end
-    houses["#{robo_x},#{robo_y}"] += 1
+directions.each_char.with_index do |dir, i|
+  current = i.even? ? santa : robo
+  case dir
+  when '^' then current[1] += 1
+  when 'v' then current[1] -= 1
+  when '>' then current[0] += 1
+  when '<' then current[0] -= 1
   end
-  santa_turn = !santa_turn
+  visited[current.dup] = true
 end
 
-puts houses.length
+puts visited.size

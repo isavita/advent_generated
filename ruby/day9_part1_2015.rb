@@ -1,25 +1,23 @@
 
-locations = []
-distances = {}
-
-File.open("input.txt").each do |line|
-  parts = line.chomp.split(" ")
-  locations << parts[0]
-  locations << parts[2]
-  distances[[parts[0], parts[2]]] = parts[4].to_i
-  distances[[parts[2], parts[0]]] = parts[4].to_i
-end
-
-locations.uniq!
-
-min_distance = Float::INFINITY
-
-locations.permutation.each do |perm|
-  distance = 0
-  perm.each_cons(2) do |pair|
-    distance += distances[pair]
+def read_and_parse_input(filename)
+  distances = Hash.new { |h, k| h[k] = {} }
+  File.foreach(filename) do |line|
+    from, _, to, _, dist = line.split
+    distance = dist.to_i
+    distances[from][to] = distances[to][from] = distance
   end
-  min_distance = [min_distance, distance].min
+  distances
 end
 
-puts min_distance
+def find_shortest_route(distances)
+  locations = distances.keys
+  min_distance = Float::INFINITY
+  locations.permutation.each do |route|
+    dist = route.each_cons(2).sum { |a, b| distances[a][b] }
+    min_distance = dist if dist < min_distance
+  end
+  min_distance
+end
+
+distances = read_and_parse_input('input.txt')
+puts find_shortest_route(distances)

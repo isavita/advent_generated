@@ -1,23 +1,28 @@
 
-grid = Array.new(1000) { Array.new(1000, false) }
+GRID_SIZE = 1000
 
-File.foreach("input.txt") do |line|
-  action, from, to = line.scan(/(toggle|turn on|turn off) (\d+,\d+) through (\d+,\d+)/).flatten
-  x1, y1 = from.split(",").map(&:to_i)
-  x2, y2 = to.split(",").map(&:to_i)
+grid = Array.new(GRID_SIZE) { [0] * GRID_SIZE }
 
-  (x1..x2).each do |x|
-    (y1..y2).each do |y|
-      case action
-      when "turn on"
-        grid[x][y] = true
-      when "turn off"
-        grid[x][y] = false
-      when "toggle"
-        grid[x][y] = !grid[x][y]
+File.foreach('input.txt') do |line|
+  parts = line.split
+  start_x, start_y = parts[-3].split(',').map(&:to_i)
+  end_x, end_y = parts[-1].split(',').map(&:to_i)
+
+  case parts[0]
+  when 'turn'
+    value = parts[1] == 'on' ? 1 : 0
+    (start_x..end_x).each do |x|
+      (start_y..end_y).each do |y|
+        grid[x][y] = value
+      end
+    end
+  when 'toggle'
+    (start_x..end_x).each do |x|
+      (start_y..end_y).each do |y|
+        grid[x][y] ^= 1
       end
     end
   end
 end
 
-puts grid.flatten.count(true)
+puts grid.sum { |row| row.count(1) }

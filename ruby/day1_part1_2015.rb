@@ -1,2 +1,4 @@
-input = File.read("input.txt")
-puts input.count("(") - input.count(")")
+
+input = File.read('input.txt').strip
+floor = input.count('(') - input.count(')')
+puts floor

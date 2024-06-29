@@ -1,22 +1,28 @@
 
-lights = Array.new(1000) { Array.new(1000, 0) }
+GRID_SIZE = 1000
 
-File.open("input.txt").each do |line|
-  action, start_x, start_y, end_x, end_y = line.match(/(turn on|turn off|toggle) (\d+),(\d+) through (\d+),(\d+)/).captures
-  start_x, start_y, end_x, end_y = start_x.to_i, start_y.to_i, end_x.to_i, end_y.to_i
+grid = Array.new(GRID_SIZE) { [0] * GRID_SIZE }
 
-  (start_x..end_x).each do |x|
-    (start_y..end_y).each do |y|
-      case action
-      when "turn on"
-        lights[x][y] += 1
-      when "turn off"
-        lights[x][y] = [lights[x][y] - 1, 0].max
-      when "toggle"
-        lights[x][y] += 2
+File.foreach('input.txt') do |line|
+  parts = line.split
+  start_x, start_y = parts[-3].split(',').map(&:to_i)
+  end_x, end_y = parts[-1].split(',').map(&:to_i)
+
+  case parts[0]
+  when 'turn'
+    value = parts[1] == 'on' ? 1 : -1
+    (start_x..end_x).each do |x|
+      (start_y..end_y).each do |y|
+        grid[x][y] = [grid[x][y] + value, 0].max
+      end
+    end
+  when 'toggle'
+    (start_x..end_x).each do |x|
+      (start_y..end_y).each do |y|
+        grid[x][y] += 2
       end
     end
   end
 end
 
-puts lights.flatten.sum
+puts grid.sum { |row| row.sum }

@@ -1,32 +1,37 @@
 
-relationships = Hash.new { |h, k| h[k] = Hash.new(0) }
-people = []
+def read_happiness_values(filename)
+  happiness_map = Hash.new { |h, k| h[k] = {} }
+  File.readlines(filename).each do |line|
+    parts = line.split
+    next if parts.size < 11
+    from, to = parts[0], parts[10].chomp('.')
+    change = parts[3].to_i
+    change = -change if parts[2] == 'lose'
+    happiness_map[from][to] = change
+  end
+  happiness_map
+end
 
-File.open("input.txt").each do |line|
-  line.chomp.match(/(\w+) would (gain|lose) (\d+) happiness units by sitting next to (\w+)/) do |match|
-    relationships[match[1]][match[4]] = match[2] == "gain" ? match[3].to_i : -match[3].to_i
-    people << match[1]
+def add_yourself(happiness_map)
+  happiness_map['You'] = {}
+  happiness_map.each do |guest, _|
+    happiness_map[guest]['You'] = 0
+    happiness_map['You'][guest] = 0
   end
 end
 
-people.uniq!
-
-def calculate_happiness(people, relationships)
-  people.permutation.map do |arrangement|
-    happiness = 0
-    arrangement.each_with_index do |person, index|
-      left = index == 0 ? arrangement[-1] : arrangement[index - 1]
-      right = index == arrangement.length - 1 ? arrangement[0] : arrangement[index + 1]
-      happiness += relationships[person][left] + relationships[person][right]
-    end
-    happiness
-  end.max
+def calculate_optimal_arrangement(happiness_map)
+  guests = happiness_map.keys
+  guests.permutation.map { |arrangement|
+    arrangement.each_with_index.sum { |guest, i|
+      left = arrangement[(i - 1) % guests.size]
+      right = arrangement[(i + 1) % guests.size]
+      happiness_map[guest][left] + happiness_map[guest][right]
+    }
+  }.max
 end
 
-puts calculate_happiness(people, relationships)
-
-people.each { |person| relationships[person]['You'] = 0 }
-relationships['You'] = Hash.new(0)
-people << 'You'
-
-puts calculate_happiness(people, relationships)
+happiness_map = read_happiness_values('input.txt')
+add_yourself(happiness_map)
+max_happiness = calculate_optimal_arrangement(happiness_map)
+puts max_happiness

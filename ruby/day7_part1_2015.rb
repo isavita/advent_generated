@@ -1,35 +1,42 @@
 
-def evaluate(instruction, wires)
-  operation, result = instruction.split(' -> ')
-  case operation
-  when /^\d+$/
-    wires[result] = operation.to_i
-  when /^NOT (\w+)$/
-    wires[result] = ~wires[$1] & 0xFFFF
-  when /^(\w+) AND (\w+)$/
-    wires[result] = wires[$1] & wires[$2]
-  when /^(\w+) OR (\w+)$/
-    wires[result] = wires[$1] | wires[$2]
-  when /^(\w+) LSHIFT (\d+)$/
-    wires[result] = (wires[$1] << $2.to_i) & 0xFFFF
-  when /^(\w+) RSHIFT (\d+)$/
-    wires[result] = wires[$1] >> $2.to_i
-  else
-    if operation =~ /^\w+$/
-      wires[result] = wires[operation]
-    end
+def some_assembly_required(input)
+  wire_to_rule = {}
+  input.each_line do |line|
+    parts = line.strip.split(' -> ')
+    wire_to_rule[parts[1]] = parts[0]
   end
+
+  memo = {}
+  memo_dfs(wire_to_rule, 'a', memo)
 end
 
-def solve(instructions)
-  wires = Hash.new { |h, k| h[k] = (k =~ /^\d+$/ ? k.to_i : nil) }
-  until instructions.empty?
-    instructions.reject! do |instruction|
-      evaluate(instruction, wires) unless instruction.split(' -> ').first.split.any? { |part| part =~ /[a-z]/ && wires[part].nil? }
+def memo_dfs(graph, entry, memo)
+  return memo[entry] if memo.key?(entry)
+  return entry.to_i if entry =~ /\A\d+\z/
+
+  source_rule = graph[entry]
+  parts = source_rule.split
+
+  result = case parts.size
+  when 1
+    memo_dfs(graph, parts[0], memo)
+  when 2
+    ~memo_dfs(graph, parts[1], memo) & 0xFFFF
+  when 3
+    case parts[1]
+    when 'AND'
+      memo_dfs(graph, parts[0], memo) & memo_dfs(graph, parts[2], memo)
+    when 'OR'
+      memo_dfs(graph, parts[0], memo) | memo_dfs(graph, parts[2], memo)
+    when 'LSHIFT'
+      (memo_dfs(graph, parts[0], memo) << parts[2].to_i) & 0xFFFF
+    when 'RSHIFT'
+      memo_dfs(graph, parts[0], memo) >> parts[2].to_i
     end
   end
-  wires['a']
+
+  memo[entry] = result
 end
 
-instructions = File.readlines('input.txt', chomp: true)
-puts solve(instructions)
+input = File.read('input.txt').strip
+puts some_assembly_required(input)

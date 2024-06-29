@@ -1,28 +1,28 @@
-File.open('input.txt') do |file|
-  happiness = Hash.new { |h, k| h[k] = Hash.new(0) }
-  people = []
 
-  file.each_line do |line|
-    parts = line.scan(/(\w+) would (gain|lose) (\d+) happiness units by sitting next to (\w+)/).flatten
-    person1, gain_or_lose, units, person2 = parts
-
-    units = units.to_i
-    units *= -1 if gain_or_lose == 'lose'
-
-    happiness[person1][person2] = units
-    people << person1
+def read_happiness_values(filename)
+  happiness_map = Hash.new { |h, k| h[k] = {} }
+  File.foreach(filename) do |line|
+    parts = line.split
+    next if parts.size < 11
+    from, to = parts[0], parts[10].chomp('.')
+    change = parts[3].to_i
+    change = -change if parts[2] == 'lose'
+    happiness_map[from][to] = change
   end
-
-  people.uniq!
-  max_happiness = 0
-
-  people.permutation.each do |arrangement|
-    happiness_change = (0...arrangement.length).sum do |i|
-      happiness[arrangement[i]][arrangement[(i + 1) % arrangement.length]] + happiness[arrangement[(i + 1) % arrangement.length]][arrangement[i]]
-    end
-
-    max_happiness = [max_happiness, happiness_change].max
-  end
-
-  puts max_happiness
+  happiness_map
 end
+
+def calculate_happiness(arrangement, happiness_map)
+  n = arrangement.size
+  arrangement.each_with_index.sum do |person, i|
+    left = arrangement[(i - 1) % n]
+    right = arrangement[(i + 1) % n]
+    happiness_map[person][left] + happiness_map[person][right]
+  end
+end
+
+happiness_map = read_happiness_values('input.txt')
+guests = happiness_map.keys
+
+max_happiness = guests.permutation.map { |arr| calculate_happiness(arr, happiness_map) }.max
+puts max_happiness

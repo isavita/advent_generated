@@ -1,18 +1,19 @@
 
+def increment_password(password)
+  password.next
+end
+
 def valid_password?(password)
-  return false if password.match(/[iol]/)
-  return false unless password.scan(/(.)\1/).uniq.size >= 2
-  return false unless password.chars.each_cons(3).any? { |a, b, c| a.ord + 1 == b.ord && b.ord + 1 == c.ord }
-  true
+  password =~ /(?=.*([a-z])\1.*([a-z])\2)(?!.*[iol])(?=.*abc|.*bcd|.*cde|.*def|.*efg|.*fgh|.*pqr|.*qrs|.*rst|.*stu|.*tuv|.*uvw|.*vwx|.*wxy|.*xyz)/
 end
 
-def next_password(password)
+def find_next_password(password)
   loop do
-    password.succ!
-    break if valid_password?(password)
+    password = increment_password(password)
+    return password if valid_password?(password)
   end
-  password
 end
 
-input = File.read("input.txt").strip
-puts next_password(input)
+current_password = File.read('input.txt').strip
+new_password = find_next_password(current_password)
+puts new_password

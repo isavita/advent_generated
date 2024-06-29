@@ -1,14 +1,8 @@
 
-instructions = File.read("input.txt").strip
+input = File.read('input.txt').strip
 floor = 0
-basement_position = nil
-
-instructions.chars.each_with_index do |char, index|
-  floor += char == '(' ? 1 : -1
-  if floor == -1 && basement_position.nil?
-    basement_position = index + 1
-  end
+position = input.each_char.with_index(1) do |c, i|
+  floor += (c == '(' ? 1 : -1)
+  break i if floor == -1
 end
-
-puts floor
-puts basement_position
+puts position
