@@ -1,0 +1,50 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let increment_password password =
+  let rec aux chars i =
+    if i < 0 then chars
+    else
+      let new_char = if chars.(i) = 'z' then 'a' else char_of_int (int_of_char chars.(i) + 1) in
+      chars.(i) <- new_char;
+      if new_char = 'a' then aux chars (i - 1) else chars
+  in
+  let chars = Array.of_list (List.init (String.length password) (String.get password)) in
+  String.of_seq (Array.to_seq (aux chars (Array.length chars - 1)))
+
+let has_straight password =
+  let rec aux i =
+    if i > String.length password - 3 then false
+    else
+      let a, b, c = String.get password i, String.get password (i + 1), String.get password (i + 2) in
+      if (Char.code b = Char.code a + 1) && (Char.code c = Char.code a + 2) then true
+      else aux (i + 1)
+  in aux 0
+
+let contains_invalid_letters password =
+  let invalid = ['i'; 'o'; 'l'] in
+  String.exists (fun c -> List.mem c invalid) password
+
+let has_two_pairs password =
+  let rec aux i count =
+    if i >= String.length password - 1 then count >= 2
+    else if String.get password i = String.get password (i + 1) then aux (i + 2) (count + 1)
+    else aux (i + 1) count
+  in aux 0 0
+
+let is_valid_password password =
+  has_straight password && not (contains_invalid_letters password) && has_two_pairs password
+
+let rec find_next_password password =
+  let next_password = increment_password password in
+  if is_valid_password next_password then next_password else find_next_password next_password
+
+let () =
+  let current_password = read_input "input.txt" in
+  let first_new_password = find_next_password current_password in
+  let second_new_password = find_next_password first_new_password in
+  print_endline second_new_password

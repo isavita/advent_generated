@@ -1,0 +1,40 @@
+
+(* Function to read lines from a file and convert them to a list of integers *)
+let read_depths filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let depth = int_of_string line in
+      read_lines (depth :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Function to count the number of times the depth increases *)
+let count_increases depths =
+  List.fold_left (fun (count, prev) curr ->
+    if curr > prev then (count + 1, curr) else (count, curr)
+  ) (0, List.hd depths) (List.tl depths) |> fst
+
+(* Function to count the number of times the sum of three-measurement windows increases *)
+let count_window_increases depths =
+  let sums = 
+    List.fold_left (fun acc i ->
+      if i + 2 < List.length depths then
+        let sum = List.nth depths i + List.nth depths (i + 1) + List.nth depths (i + 2) in
+        sum :: acc
+      else acc
+    ) [] (List.init (List.length depths - 2) Fun.id)
+  in
+  count_increases (List.rev sums)
+
+(* Main function to read the input and calculate the results *)
+let () =
+  let depths = read_depths "input.txt" in
+  let increase_count = count_increases depths in
+  let window_increase_count = count_window_increases depths in
+  Printf.printf "Number of depth increases: %d\n" increase_count;
+  Printf.printf "Number of sliding window increases: %d\n" window_increase_count

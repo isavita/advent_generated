@@ -1,0 +1,18 @@
+
+let decode pass =
+  let row = int_of_string ("0b" ^ String.sub pass 0 7 |> String.map (function 'F' -> '0' | 'B' -> '1' | c -> c) ) in
+  let column = int_of_string ("0b" ^ String.sub pass 7 3 |> String.map (function 'L' -> '0' | 'R' -> '1' | c -> c) ) in
+  row * 8 + column
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec aux max_seat_id =
+    try
+      let pass = input_line ic in
+      let seat_id = decode pass in
+      aux (max max_seat_id seat_id)
+    with End_of_file -> max_seat_id
+  in
+  let max_seat_id = aux 0 in
+  print_int max_seat_id;
+  close_in ic

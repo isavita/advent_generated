@@ -1,0 +1,62 @@
+
+(* Define the type for the Intcode program *)
+type intcode = int array
+
+(* Function to parse the input from a file *)
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let numbers = String.split_on_char ',' line in
+      let int_array = Array.of_list (List.map int_of_string numbers) in
+      int_array :: acc
+    with End_of_file -> close_in ic; List.rev acc
+  in
+  read_lines []
+
+(* Function to get the parameter value based on mode *)
+let get_param mode value memory =
+  match mode with
+  | 0 -> memory.(value) (* Position mode *)
+  | 1 -> value          (* Immediate mode *)
+  | _ -> failwith "Unknown parameter mode"
+
+(* Function to execute the Intcode program *)
+let execute_program memory input =
+  let rec loop ip =
+    let opcode = memory.(ip) mod 100 in
+    let modes = [(memory.(ip) / 100) mod 10; (memory.(ip) / 1000) mod 10; (memory.(ip) / 10000) mod 10] in
+    match opcode with
+    | 1 -> (* Add *)
+        let a = get_param (List.nth modes 0) memory.(ip + 1) memory in
+        let b = get_param (List.nth modes 1) memory.(ip + 2) memory in
+        let dest = memory.(ip + 3) in
+        memory.(dest) <- a + b;
+        loop (ip + 4)
+    | 2 -> (* Multiply *)
+        let a = get_param (List.nth modes 0) memory.(ip + 1) memory in
+        let b = get_param (List.nth modes 1) memory.(ip + 2) memory in
+        let dest = memory.(ip + 3) in
+        memory.(dest) <- a * b;
+        loop (ip + 4)
+    | 3 -> (* Input *)
+        let dest = memory.(ip + 1) in
+        memory.(dest) <- input;
+        loop (ip + 2)
+    | 4 -> (* Output *)
+        let output = get_param (List.nth modes 0) memory.(ip + 1) memory in
+        Printf.printf "Output: %d\n" output;
+        loop (ip + 2)
+    | 99 -> (* Halt *)
+        ()
+    | _ -> failwith "Unknown opcode"
+  in
+  loop 0
+
+(* Main function to read input and execute the program *)
+let () =
+  let input = 1 in (* The ID for the ship's air conditioner unit *)
+  let program = List.hd (read_input "input.txt") in
+  let memory = Array.copy program in
+  execute_program memory input

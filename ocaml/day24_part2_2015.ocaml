@@ -1,0 +1,52 @@
+
+(* Function to calculate the total weight and target weight for groups *)
+let total_weight weights = List.fold_left (+) 0 weights
+
+let target_weight weights groups =
+  let total = total_weight weights in
+  if total mod groups <> 0 then None else Some (total / groups)
+
+(* Function to calculate the quantum entanglement of a group *)
+let quantum_entanglement group =
+  List.fold_left ( * ) 1 group
+
+(* Function to find all combinations of weights that sum to target *)
+let rec combinations weights target =
+  let rec aux acc weights target =
+    match weights with
+    | [] -> if target = 0 then [List.rev acc] else []
+    | w :: ws ->
+      let with_w = aux (w :: acc) ws (target - w) in
+      let without_w = aux acc ws target in
+      with_w @ without_w
+  in
+  aux [] weights target
+
+(* Function to find the best configuration of packages *)
+let find_best_configuration weights groups =
+  match target_weight weights groups with
+  | None -> failwith "Cannot divide weights evenly"
+  | Some target ->
+    let valid_combinations = combinations weights target in
+    let valid_groups = List.filter (fun group -> List.length group > 0) valid_combinations in
+    let sorted_groups = List.sort (fun a b -> compare (List.length a) (List.length b)) valid_groups in
+    let min_length = List.length (List.hd sorted_groups) in
+    let best_groups = List.filter (fun group -> List.length group = min_length) sorted_groups in
+    let entanglements = List.map quantum_entanglement best_groups in
+    List.fold_left min (List.hd entanglements) entanglements
+
+(* Main function to read input and execute the program *)
+let () =
+  let input_file = "input.txt" in
+  let ic = open_in input_file in
+  let weights = ref [] in
+  try
+    while true do
+      let line = input_line ic in
+      weights := int_of_string line :: !weights
+    done
+  with End_of_file ->
+    close_in ic;
+    let weights = List.rev !weights in
+    let result = find_best_configuration weights 4 in
+    Printf.printf "The quantum entanglement of the first group is: %d\n" result

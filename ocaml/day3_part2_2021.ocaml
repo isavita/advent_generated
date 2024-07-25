@@ -1,0 +1,77 @@
+
+(* Function to read lines from a file *)
+let read_lines filename =
+  let ic = open_in filename in
+  let rec read_lines_aux acc =
+    try
+      let line = input_line ic in
+      read_lines_aux (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines_aux []
+
+(* Function to calculate gamma and epsilon rates *)
+let calculate_gamma_epsilon binary_numbers =
+  let length = String.length (List.hd binary_numbers) in
+  let counts = Array.make length 0 in
+  List.iter (fun number ->
+    String.iteri (fun i bit ->
+      if bit = '1' then counts.(i) <- counts.(i) + 1
+    ) number
+  ) binary_numbers;
+  
+  let half_count = List.length binary_numbers / 2 in
+  let gamma_bits = Array.make length '0' in
+  let epsilon_bits = Array.make length '0' in
+  for i = 0 to length - 1 do
+    if counts.(i) > half_count then (
+      gamma_bits.(i) <- '1';
+      epsilon_bits.(i) <- '0'
+    ) else (
+      gamma_bits.(i) <- '0';
+      epsilon_bits.(i) <- '1'
+    )
+  done;
+  
+  (String.of_seq (Array.to_seq gamma_bits), String.of_seq (Array.to_seq epsilon_bits))
+
+(* Function to convert binary string to decimal *)
+let binary_to_decimal binary =
+  int_of_string ("0b" ^ binary)
+
+(* Function to filter based on the rating criteria *)
+let filter_rating binary_numbers criteria =
+  let rec filter_aux numbers index =
+    if List.length numbers = 1 then List.hd numbers
+    else
+      let count = List.fold_left (fun (zero, one) number ->
+        if String.get number index = '0' then (zero + 1, one) else (zero, one + 1)
+      ) (0, 0) numbers in
+      let keep_bit = criteria count in
+      let filtered_numbers = List.filter (fun number ->
+        String.get number index = keep_bit
+      ) numbers in
+      filter_aux filtered_numbers (index + 1)
+  in
+  filter_aux binary_numbers 0
+
+(* Main function *)
+let () =
+  let binary_numbers = read_lines "input.txt" in
+  
+  (* Calculate gamma and epsilon rates *)
+  let (gamma, epsilon) = calculate_gamma_epsilon binary_numbers in
+  let power_consumption = binary_to_decimal gamma * binary_to_decimal epsilon in
+  Printf.printf "Power Consumption: %d\n" power_consumption;
+
+  (* Calculate oxygen generator rating and CO2 scrubber rating *)
+  let oxygen_generator_rating = filter_rating binary_numbers (fun (zero, one) ->
+    if one >= zero then '1' else '0'
+  ) in
+  let co2_scrubber_rating = filter_rating binary_numbers (fun (zero, one) ->
+    if zero <= one then '0' else '1'
+  ) in
+  let life_support_rating = binary_to_decimal oxygen_generator_rating * binary_to_decimal co2_scrubber_rating in
+  Printf.printf "Life Support Rating: %d\n" life_support_rating

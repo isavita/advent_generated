@@ -1,0 +1,82 @@
+
+(* Define the required fields and their validation rules *)
+let required_fields = ["byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"]
+
+let validate_byr byr = 
+  let year = int_of_string byr in
+  year >= 1920 && year <= 2002
+
+let validate_iyr iyr = 
+  let year = int_of_string iyr in
+  year >= 2010 && year <= 2020
+
+let validate_eyr eyr = 
+  let year = int_of_string eyr in
+  year >= 2020 && year <= 2030
+
+let validate_hgt hgt = 
+  let len = String.length hgt in
+  if len < 3 then false else
+  let unit = String.sub hgt (len - 2) 2 in
+  let value = int_of_string (String.sub hgt 0 (len - 2)) in
+  match unit with
+  | "cm" -> value >= 150 && value <= 193
+  | "in" -> value >= 59 && value <= 76
+  | _ -> false
+
+let validate_hcl hcl = 
+  let len = String.length hcl in
+  len = 7 && String.get hcl 0 = '#' &&
+  String.for_all (fun c -> Char.code c >= Char.code '0' && Char.code c <= Char.code '9' ||
+                            Char.code c >= Char.code 'a' && Char.code c <= Char.code 'f') 
+                  (String.sub hcl 1 6)
+
+let validate_ecl ecl = 
+  List.mem ecl ["amb"; "blu"; "brn"; "gry"; "grn"; "hzl"; "oth"]
+
+let validate_pid pid = 
+  let len = String.length pid in
+  len = 9 && String.for_all (fun c -> Char.code c >= Char.code '0' && Char.code c <= Char.code '9') pid
+
+(* Validate a single passport *)
+let validate_passport fields =
+  let has_required_fields = List.for_all (fun field -> List.mem_assoc field fields) required_fields in
+  if not has_required_fields then false
+  else
+    let byr_valid = validate_byr (List.assoc "byr" fields) in
+    let iyr_valid = validate_iyr (List.assoc "iyr" fields) in
+    let eyr_valid = validate_eyr (List.assoc "eyr" fields) in
+    let hgt_valid = validate_hgt (List.assoc "hgt" fields) in
+    let hcl_valid = validate_hcl (List.assoc "hcl" fields) in
+    let ecl_valid = validate_ecl (List.assoc "ecl" fields) in
+    let pid_valid = validate_pid (List.assoc "pid" fields) in
+    byr_valid && iyr_valid && eyr_valid && hgt_valid && hcl_valid && ecl_valid && pid_valid
+
+(* Read input from file and process passports *)
+let read_passports filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let lines = read_lines [] in
+  close_in ic;
+  let passports = String.concat "\n" lines |> String.split_on_char '\n' in
+  let rec parse_passports acc current_passport = function
+    | [] -> if current_passport = [] then List.rev acc else List.rev ((List.rev current_passport) :: acc)
+    | "" :: rest -> parse_passports ((List.rev current_passport) :: acc) [] rest
+    | line :: rest ->
+      let fields = String.split_on_char ' ' line in
+      let fields_assoc = List.map (fun field -> 
+        let kv = String.split_on_char ':' field in
+        (List.hd kv, List.nth kv 1)) fields in
+      parse_passports acc (fields_assoc @ current_passport) rest
+  in
+  parse_passports [] [] passports
+
+let () =
+  let passports = read_passports "input.txt" in
+  let valid_count = List.filter validate_passport passports |> List.length in
+  Printf.printf "Number of valid passports: %d\n" valid_count

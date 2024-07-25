@@ -1,0 +1,25 @@
+
+(* Function to compute the HASH of a given string *)
+let hash str =
+  let rec aux current_value = function
+    | [] -> current_value
+    | c :: cs ->
+      let ascii_code = Char.code c in
+      let new_value = (current_value + ascii_code) * 17 mod 256 in
+      aux new_value cs
+  in
+  aux 0 (List.of_seq (String.to_seq str))
+
+(* Function to read the input from the file and compute the sum of HASH results *)
+let compute_hash_sum filename =
+  let ic = open_in filename in
+  let input = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+
+  let steps = String.split_on_char ',' input in
+  List.fold_left (fun acc step -> acc + hash step) 0 steps
+
+(* Main function *)
+let () =
+  let sum = compute_hash_sum "input.txt" in
+  Printf.printf "The sum of the HASH results is: %d\n" sum

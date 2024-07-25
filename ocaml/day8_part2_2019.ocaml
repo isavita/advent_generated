@@ -1,0 +1,34 @@
+
+let () =
+  let input = 
+    let ic = open_in "input.txt" in
+    let rec read_all acc =
+      try read_all (acc ^ input_line ic) with End_of_file -> acc
+    in
+    let data = read_all "" in
+    close_in ic;
+    String.trim data
+  in
+
+  let width, height = 25, 6 in
+  let layer_size = width * height in
+  let final_image = Array.make layer_size '2' in
+
+  let rec process_layers i =
+    if i < String.length input then
+      let layer = String.sub input i (min layer_size (String.length input - i)) in
+      String.iteri (fun j pixel ->
+        if final_image.(j) = '2' then final_image.(j) <- pixel
+      ) layer;
+      process_layers (i + layer_size)
+  in
+  process_layers 0;
+
+  Printf.printf "Decoded image:\n";
+  for i = 0 to height - 1 do
+    for j = 0 to width - 1 do
+      let pixel = final_image.(i * width + j) in
+      Printf.printf "%s" (if pixel = '0' then " " else "#")
+    done;
+    Printf.printf "\n"
+  done

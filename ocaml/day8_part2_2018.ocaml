@@ -1,0 +1,41 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  List.map int_of_string (String.split_on_char ' ' line)
+
+let rec parse_tree data index =
+  let child_count = data.(index) in
+  let meta_count = data.(index + 1) in
+  let index = index + 2 in
+  let child_values = Array.make child_count 0 in
+  let rec read_children i index =
+    if i < child_count then
+      let child_value, new_index = parse_tree data index in
+      child_values.(i) <- child_value;
+      read_children (i + 1) new_index
+    else
+      index
+  in
+  let new_index = read_children 0 index in
+  let value =
+    if child_count = 0 then
+      Array.fold_left (+) 0 (Array.sub data new_index meta_count)
+    else
+      let rec sum_metadata i acc =
+        if i < meta_count then
+          let metadata = data.(new_index + i) in
+          let child_value = if metadata > 0 && metadata <= child_count then child_values.(metadata - 1) else 0 in
+          sum_metadata (i + 1) (acc + child_value)
+        else
+          acc
+      in
+      sum_metadata 0 0
+  in
+  (value, new_index + meta_count)
+
+let () =
+  let numbers = Array.of_list (read_input "input.txt") in
+  let value, _ = parse_tree numbers 0 in
+  Printf.printf "%d\n" value

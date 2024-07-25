@@ -1,0 +1,101 @@
+
+open Printf
+open Str
+
+type acre = Open | Trees | Lumberyard
+type grid = acre array array
+
+let size = 50
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let row = Array.init (String.length line) (fun i ->
+        match line.[i] with
+        | '.' -> Open
+        | '|' -> Trees
+        | '#' -> Lumberyard
+        | _ -> failwith "Invalid character") in
+      read_lines (row :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  Array.of_list (read_lines [])
+
+let transform grid =
+  let new_grid = Array.make_matrix size size Open in
+  let count_adjacent grid i j acre_type =
+    let count = ref 0 in
+    for x = -1 to 1 do
+      for y = -1 to 1 do
+        if (x <> 0 || y <> 0) then
+          let ni, nj = i + x, j + y in
+          if ni >= 0 && ni < size && nj >= 0 && nj < size && grid.(ni).(nj) = acre_type then
+            incr count
+      done
+    done;
+    !count
+  in
+  for i = 0 to size - 1 do
+    for j = 0 to size - 1 do
+      match grid.(i).(j) with
+      | Open when count_adjacent grid i j Trees >= 3 -> new_grid.(i).(j) <- Trees
+      | Trees when count_adjacent grid i j Lumberyard >= 3 -> new_grid.(i).(j) <- Lumberyard
+      | Lumberyard when count_adjacent grid i j Lumberyard >= 1 && count_adjacent grid i j Trees >= 1 -> new_grid.(i).(j) <- Lumberyard
+      | Lumberyard -> new_grid.(i).(j) <- Open
+      | _ -> new_grid.(i).(j) <- grid.(i).(j)
+    done
+  done;
+  new_grid
+
+let grid_to_string grid =
+  let buf = Buffer.create (size * size) in
+  for i = 0 to size - 1 do
+    for j = 0 to size - 1 do
+      let char = match grid.(i).(j) with
+        | Open -> '.'
+        | Trees -> '|'
+        | Lumberyard -> '#' in
+      Buffer.add_char buf char
+    done;
+    Buffer.add_char buf '\n'
+  done;
+  Buffer.contents buf
+
+let count_resources grid =
+  let wooded = ref 0 in
+  let lumberyards = ref 0 in
+  for i = 0 to size - 1 do
+    for j = 0 to size - 1 do
+      match grid.(i).(j) with
+      | Trees -> incr wooded
+      | Lumberyard -> incr lumberyards
+      | _ -> ()
+    done
+  done;
+  (!wooded, !lumberyards)
+
+let () =
+  let grid = read_input "input.txt" in
+  let seen_states = Hashtbl.create 10000 in
+  let rec loop minute grid =
+    let state = grid_to_string grid in
+    if Hashtbl.mem seen_states state then
+      let cycle_start = Hashtbl.find seen_states state in
+      let cycle_length = minute - cycle_start in
+      let remaining_minutes = (1000000000 - cycle_start) mod cycle_length in
+      let rec advance_grid n grid =
+        if n = 0 then grid else advance_grid (n - 1) (transform grid)
+      in
+      let final_grid = advance_grid remaining_minutes grid in
+      let wooded, lumberyards = count_resources final_grid in
+      printf "%d\n" (wooded * lumberyards)
+    else begin
+      Hashtbl.add seen_states state minute;
+      loop (minute + 1) (transform grid)
+    end
+  in
+  loop 0 grid

@@ -1,0 +1,59 @@
+
+type ingredient = {
+  name : string;
+  capacity : int;
+  durability : int;
+  flavor : int;
+  texture : int;
+}
+
+let read_ingredients filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char ' ' line in
+      if List.length parts >= 11 then
+        let capacity = int_of_string (String.sub (List.nth parts 2) 0 ((String.length (List.nth parts 2)) - 1)) in
+        let durability = int_of_string (String.sub (List.nth parts 4) 0 ((String.length (List.nth parts 4)) - 1)) in
+        let flavor = int_of_string (String.sub (List.nth parts 6) 0 ((String.length (List.nth parts 6)) - 1)) in
+        let texture = int_of_string (String.sub (List.nth parts 8) 0 ((String.length (List.nth parts 8)) - 1)) in
+        aux ({name = List.nth parts 0; capacity; durability; flavor; texture} :: acc)
+      else aux acc
+    with End_of_file -> close_in ic; List.rev acc
+  in aux []
+
+let score ingredients teaspoons =
+  let capacity = ref 0 in
+  let durability = ref 0 in
+  let flavor = ref 0 in
+  let texture = ref 0 in
+  List.iteri (fun i ing ->
+    capacity := !capacity + ing.capacity * List.nth teaspoons i;
+    durability := !durability + ing.durability * List.nth teaspoons i;
+    flavor := !flavor + ing.flavor * List.nth teaspoons i;
+    texture := !texture + ing.texture * List.nth teaspoons i;
+  ) ingredients;
+  let c = max 0 !capacity in
+  let d = max 0 !durability in
+  let f = max 0 !flavor in
+  let t = max 0 !texture in
+  c * d * f * t
+
+let rec find_max_score ingredients total_teaspoons =
+  let rec aux index remaining teaspoons =
+    if index = List.length ingredients - 1 then
+      score ingredients (teaspoons @ [remaining])
+    else
+      let rec loop i max_score =
+        if i > remaining then max_score
+        else
+          let current_score = aux (index + 1) (remaining - i) (teaspoons @ [i]) in
+          loop (i + 1) (max max_score current_score)
+      in loop 0 0
+  in aux 0 total_teaspoons []
+
+let () =
+  let ingredients = read_ingredients "input.txt" in
+  let max_score = find_max_score ingredients 100 in
+  Printf.printf "%d\n" max_score

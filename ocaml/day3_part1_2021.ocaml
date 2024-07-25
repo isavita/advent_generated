@@ -1,0 +1,48 @@
+
+(* Function to read lines from a file *)
+let read_lines filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      aux (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  aux []
+
+(* Function to calculate gamma and epsilon rates *)
+let calculate_rates binary_numbers =
+  let length = String.length (List.hd binary_numbers) in
+  let count_ones = Array.make length 0 in
+  let total_numbers = List.length binary_numbers in
+
+  (* Count the number of ones in each bit position *)
+  List.iter (fun number ->
+    for i = 0 to length - 1 do
+      if number.[i] = '1' then
+        count_ones.(i) <- count_ones.(i) + 1
+    done
+  ) binary_numbers;
+
+  (* Calculate gamma and epsilon rates *)
+  let gamma_rate = ref 0 in
+  let epsilon_rate = ref 0 in
+  for i = 0 to length - 1 do
+    if count_ones.(i) > total_numbers / 2 then
+      gamma_rate := !gamma_rate lsl 1 + 1  (* Set bit to 1 *)
+    else
+      gamma_rate := !gamma_rate lsl 1;       (* Set bit to 0 *)
+      
+    epsilon_rate := !epsilon_rate lsl 1 + (if count_ones.(i) > total_numbers / 2 then 0 else 1);
+  done;
+
+  (!gamma_rate, !epsilon_rate)
+
+(* Main function *)
+let () =
+  let binary_numbers = read_lines "input.txt" in
+  let gamma_rate, epsilon_rate = calculate_rates binary_numbers in
+  let power_consumption = gamma_rate * epsilon_rate in
+  Printf.printf "Power Consumption: %d\n" power_consumption

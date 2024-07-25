@@ -1,0 +1,32 @@
+
+let () =
+  let input = open_in "input.txt" in
+  let rec process_instruction (x, y, facing) action value =
+    match action with
+    | 'N' -> (x, y + value, facing)
+    | 'S' -> (x, y - value, facing)
+    | 'E' -> (x + value, y, facing)
+    | 'W' -> (x - value, y, facing)
+    | 'L' -> (x, y, (facing - value + 360) mod 360)
+    | 'R' -> (x, y, (facing + value) mod 360)
+    | 'F' ->
+      let dx, dy = match facing with
+        | 0 -> (value, 0)
+        | 90 -> (0, -value)
+        | 180 -> (-value, 0)
+        | 270 -> (0, value)
+        | _ -> (0, 0)
+      in (x + dx, y + dy, facing)
+    | _ -> (x, y, facing)
+  in
+  let rec read_lines (x, y, facing) =
+    try
+      let line = input_line input in
+      let action = line.[0] in
+      let value = int_of_string (String.sub line 1 (String.length line - 1)) in
+      read_lines (process_instruction (x, y, facing) action value)
+    with End_of_file -> (x, y, facing)
+  in
+  let x, y, _ = read_lines (0, 0, 0) in
+  Printf.printf "%d\n" (abs x + abs y);
+  close_in input

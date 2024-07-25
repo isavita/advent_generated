@@ -1,0 +1,64 @@
+
+module Coordinate4D = struct
+  type t = int * int * int * int
+  let create x y z w = (x, y, z, w)
+  let x (a, _, _, _) = a
+  let y (_, b, _, _) = b
+  let z (_, _, c, _) = c
+  let w (_, _, _, d) = d
+end
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      aux (line :: acc)
+    with End_of_file ->
+      close_in ic; List.rev acc
+  in aux []
+
+let simulate_cycle4d active_cubes =
+  let neighbor_counts = Hashtbl.create 100 in
+  let update_count coord =
+    let dxs = [-1; 0; 1] in
+    List.iter (fun dw ->
+      List.iter (fun dz ->
+        List.iter (fun dy ->
+          List.iter (fun dx ->
+            if not (dw = 0 && dz = 0 && dy = 0 && dx = 0) then
+              let neighbor = Coordinate4D.create (Coordinate4D.x coord + dx) 
+                                                  (Coordinate4D.y coord + dy) 
+                                                  (Coordinate4D.z coord + dz) 
+                                                  (Coordinate4D.w coord + dw) in
+              Hashtbl.replace neighbor_counts neighbor (1 + (try Hashtbl.find neighbor_counts neighbor with Not_found -> 0))
+          ) dxs
+        ) dxs
+      ) dxs
+    ) dxs
+  in
+  Hashtbl.iter (fun coord _ -> update_count coord) active_cubes;
+  let new_active_cubes = Hashtbl.create 100 in
+  Hashtbl.iter (fun coord count ->
+    if count = 3 || (count = 2 && Hashtbl.mem active_cubes coord) then
+      Hashtbl.add new_active_cubes coord ()
+  ) neighbor_counts;
+  new_active_cubes
+
+let () =
+  let input = read_input "input.txt" in
+  let active_cubes = Hashtbl.create 100 in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      if char = '#' then
+        Hashtbl.add active_cubes (Coordinate4D.create x y 0 0) ()
+    ) line
+  ) input;
+  
+  let rec run_cycles cycles active_cubes =
+    if cycles = 0 then active_cubes
+    else run_cycles (cycles - 1) (simulate_cycle4d active_cubes)
+  in
+  
+  let final_state = run_cycles 6 active_cubes in
+  Printf.printf "%d\n" (Hashtbl.length final_state)

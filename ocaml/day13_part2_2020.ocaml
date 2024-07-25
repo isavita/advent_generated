@@ -1,0 +1,66 @@
+
+(* Function to read the input from a file *)
+let read_input filename =
+  let ic = open_in filename in
+  let timestamp = int_of_string (input_line ic) in
+  let bus_ids = input_line ic in
+  close_in ic;
+  (timestamp, bus_ids)
+
+(* Function to parse bus IDs, ignoring 'x' *)
+let parse_bus_ids bus_ids =
+  List.filter_map (fun id -> if id = "x" then None else Some (int_of_string id))
+    (String.split_on_char ',' bus_ids)
+
+(* Part 1: Find the earliest bus *)
+let part1 timestamp bus_ids =
+  let buses = parse_bus_ids bus_ids in
+  let rec find_earliest_bus t =
+    List.fold_left (fun (best_id, best_wait) bus_id ->
+      let wait_time = bus_id - (t mod bus_id) in
+      if wait_time < best_wait then (bus_id, wait_time) else (best_id, best_wait)
+    ) (0, max_int) buses
+  in
+  let (best_id, best_wait) = find_earliest_bus timestamp in
+  best_id * best_wait
+
+(* Extended Euclidean Algorithm to find modular inverses *)
+let rec gcd a b =
+  if b = 0 then a else gcd b (a mod b)
+
+let extended_gcd a b =
+  let rec aux a b x0 x1 y0 y1 =
+    if b = 0 then (x0, y0, a) else
+      let q = a / b in
+      aux b (a mod b) x1 (x0 - q * x1) y1 (y0 - q * y1)
+  in
+  aux a b 1 0 0 1
+
+let mod_inverse a m =
+  let x, y, g = extended_gcd a m in
+  if g <> 1 then failwith "No modular inverse" else (x mod m + m) mod m
+
+(* Part 2: Find the earliest timestamp for the bus schedule *)
+let part2 bus_ids =
+  let buses = String.split_on_char ',' bus_ids in
+  let indexed_buses = List.mapi (fun i id -> if id = "x" then None else Some (i, int_of_string id)) buses in
+  let valid_buses = List.filter_map Fun.id indexed_buses in
+  let n = List.fold_left (fun acc (_, bus_id) -> acc * bus_id) 1 valid_buses in
+  let rec find_timestamp acc m =
+    match m with
+    | [] -> acc
+    | (offset, bus_id) :: rest ->
+      let ni = n / bus_id in
+      let xi = mod_inverse ni bus_id in
+      let ai = (bus_id - offset) mod bus_id in
+      find_timestamp (acc + ai * ni * xi) rest
+  in
+  let result = find_timestamp 0 valid_buses in
+  result mod n
+
+let () =
+  let timestamp, bus_ids = read_input "input.txt" in
+  let result1 = part1 timestamp bus_ids in
+  Printf.printf "Part 1: %d\n" result1;
+  let result2 = part2 bus_ids in
+  Printf.printf "Part 2: %d\n" result2

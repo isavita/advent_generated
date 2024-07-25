@@ -1,0 +1,38 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      let nums = String.split_on_char ',' line |> List.map int_of_string in
+      aux (acc @ nums)
+    with End_of_file -> close_in ic; acc
+  in aux []
+
+let execute_program data =
+  let rec aux i =
+    if i >= Array.length data then data.(0)
+    else
+      match data.(i) with
+      | 1 ->
+          let pos1 = data.(i + 1) in
+          let pos2 = data.(i + 2) in
+          let pos3 = data.(i + 3) in
+          data.(pos3) <- data.(pos1) + data.(pos2);
+          aux (i + 4)
+      | 2 ->
+          let pos1 = data.(i + 1) in
+          let pos2 = data.(i + 2) in
+          let pos3 = data.(i + 3) in
+          data.(pos3) <- data.(pos1) * data.(pos2);
+          aux (i + 4)
+      | 99 -> data.(0)
+      | _ -> failwith "Invalid opcode"
+  in aux 0
+
+let () =
+  let input_data = read_input "input.txt" |> Array.of_list in
+  input_data.(1) <- 12;
+  input_data.(2) <- 2;
+  let result = execute_program input_data in
+  Printf.printf "%d\n" result

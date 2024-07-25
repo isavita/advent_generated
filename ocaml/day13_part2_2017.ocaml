@@ -1,0 +1,26 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char ':' line in
+      let depth = int_of_string (String.trim (List.nth parts 0)) in
+      let rng = int_of_string (String.trim (List.nth parts 1)) in
+      aux ((depth, rng) :: acc)
+    with End_of_file -> close_in ic; List.rev acc
+  in aux []
+
+let pass_through firewall delay =
+  List.for_all (fun (depth, rng) ->
+    (depth + delay) mod (2 * (rng - 1)) <> 0) firewall
+
+let find_delay firewall =
+  let rec aux delay =
+    if pass_through firewall delay then delay else aux (delay + 1)
+  in aux 0
+
+let () =
+  let firewall = read_input "input.txt" in
+  let delay = find_delay firewall in
+  print_int delay

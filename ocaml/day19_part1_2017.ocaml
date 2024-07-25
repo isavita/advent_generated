@@ -1,0 +1,43 @@
+
+let () =
+  let input = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line input in
+      read_lines (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let grid = read_lines [] in
+  let grid = List.map (fun line -> Array.of_list (List.init (String.length line) (String.get line))) grid in
+  let width = Array.length (List.hd grid) in
+  let height = List.length grid in
+
+  let rec find_start x =
+    if x >= width then failwith "Start not found"
+    else if (Array.get (List.hd grid) x) = '|' then x
+    else find_start (x + 1)
+  in
+  let x_start = find_start 0 in
+
+  let rec traverse x y dx dy letters =
+    if x < 0 || x >= width || y < 0 || y >= height then letters
+    else
+      let cell = Array.get (List.nth grid y) x in
+      if cell = ' ' then letters
+      else
+        let letters = if cell >= 'A' && cell <= 'Z' then cell :: letters else letters in
+        let (dx', dy') =
+          if cell = '+' then
+            if dx = 0 then
+              if x > 0 && ((Array.get (List.nth grid y) (x - 1)) = '-' || (Array.get (List.nth grid y) (x - 1) >= 'A' && Array.get (List.nth grid y) (x - 1) <= 'Z')) then (-1, 0) else (1, 0)
+            else
+              if y > 0 && ((Array.get (List.nth grid (y - 1)) x) = '|' || (Array.get (List.nth grid (y - 1)) x >= 'A' && Array.get (List.nth grid (y - 1)) x <= 'Z')) then (0, -1) else (0, 1)
+          else (dx, dy)
+        in
+        traverse (x + dx') (y + dy') dx' dy' letters
+  in
+
+  let letters = traverse x_start 0 0 1 [] in
+  let result = String.of_seq (List.to_seq (List.rev letters)) in
+  print_endline result;
+  close_in input

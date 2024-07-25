@@ -1,0 +1,66 @@
+
+(* Define types for chips, bots, and outputs *)
+type chip = int
+type bot = int
+type instruction = 
+  | Value of chip * bot
+  | Give of bot * (chip * bot) * (chip * bot)
+
+(* Parse the input instructions from a file *)
+let parse_instruction line =
+  let parts = String.split_on_char ' ' line in
+  match parts with
+  | ["value"; v; "goes"; "to"; "bot"; b] ->
+      Value (int_of_string v, int_of_string b)
+  | ["bot"; b; "gives"; "low"; "to"; "bot"; lb; "and"; "high"; "to"; "bot"; hb] ->
+      Give (int_of_string b, (0, int_of_string lb), (1, int_of_string hb))
+  | _ -> failwith "Invalid instruction"
+
+(* Execute the instructions and simulate the bots *)
+let execute_instructions instructions =
+  let bots = Hashtbl.create 100 in
+  let outputs = Hashtbl.create 100 in
+  let rec process_bot b =
+    match Hashtbl.find_opt bots b with
+    | Some (c1, c2) when c1 <> -1 && c2 <> -1 -> 
+        let low, high = min c1 c2, max c1 c2 in
+        if (low = 17 && high = 61) || (low = 61 && high = 17) then
+          Some b
+        else begin
+          Hashtbl.remove bots b;
+          let low_target = if low = c1 then (snd (Hashtbl.find bots b)) else (snd (Hashtbl.find bots b)) in
+          let high_target = if high = c1 then (snd (Hashtbl.find bots b)) else (snd (Hashtbl.find bots b)) in
+          process_bot low_target;
+          process_bot high_target;
+        end
+    | _ -> None
+  in
+
+  List.iter (function
+    | Value (v, b) ->
+        let chips = match Hashtbl.find_opt bots b with
+          | Some (c1, c2) -> (c1, c2)
+          | None -> (-1, -1) in
+        Hashtbl.replace bots b (if fst chips = -1 then v else fst chips, if snd chips = -1 then -1 else snd chips)
+    | Give (b, (low, lb), (high, hb)) ->
+        Hashtbl.replace bots b (fst (Hashtbl.find bots b), snd (Hashtbl.find bots b));
+        Hashtbl.replace bots lb (fst (Hashtbl.find bots b), -1);
+        Hashtbl.replace bots hb (-1, snd (Hashtbl.find bots b))
+  ) instructions;
+
+  let rec find_bot = function
+    | [] -> None
+    | b :: bs ->
+        match process_bot b with
+        | Some result -> Some result
+        | None -> find_bot bs
+  in
+  find_bot (Hashtbl.to_seq_keys bots |> List.of_seq)
+
+(* Main function to read from file and execute *)
+let () =
+  let input = In_channel.read_lines "input.txt" in
+  let instructions = List.map parse_instruction input in
+  match execute_instructions instructions with
+  | Some bot -> Printf.printf "Bot responsible for comparing 61 and 17 is: %d\n" bot
+  | None -> Printf.printf "No bot found responsible for comparing 61 and 17.\n"

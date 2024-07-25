@@ -1,0 +1,57 @@
+
+(* Define a type to represent the operation of a monkey *)
+type operation =
+  | Value of int
+  | Op of string * string * string  (* operation: (monkey1, operator, monkey2) *)
+
+(* A map to store the operations for each monkey *)
+module StringMap = Map.Make(String)
+
+(* Function to parse a single line of input *)
+let parse_line line =
+  let parts = String.split_on_char ':' line in
+  let name = String.trim (List.hd parts) in
+  let operation = String.trim (List.nth parts 1) in
+  if String.contains operation ' ' then
+    let tokens = String.split_on_char ' ' operation in
+    let monkey1 = List.nth tokens 0 in
+    let operator = List.nth tokens 1 in
+    let monkey2 = List.nth tokens 2 in
+    (name, Op (monkey1, operator, monkey2))
+  else
+    (name, Value (int_of_string operation))
+
+(* Function to read the input file and build the operations map *)
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (parse_line line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Function to evaluate the operation for a given monkey *)
+let rec evaluate monkey_name operations_map =
+  let operation = StringMap.find monkey_name operations_map in
+  match operation with
+  | Value n -> n
+  | Op (m1, op, m2) ->
+    let v1 = evaluate m1 operations_map in
+    let v2 = evaluate m2 operations_map in
+    match op with
+    | "+" -> v1 + v2
+    | "-" -> v1 - v2
+    | "*" -> v1 * v2
+    | "/" -> v1 / v2
+    | _ -> failwith "Unknown operator"
+
+(* Main function to read the input and compute the result for the root monkey *)
+let () =
+  let operations_list = read_input "input.txt" in
+  let operations_map = List.fold_left (fun acc (name, op) -> StringMap.add name op acc) StringMap.empty operations_list in
+  let result = evaluate "root" operations_map in
+  Printf.printf "The monkey named root will yell: %d\n" result

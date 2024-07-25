@@ -1,0 +1,85 @@
+
+(* Function to read the input file and return a 2D array of tree heights *)
+let read_input filename =
+  let lines = ref [] in
+  let ic = open_in filename in
+  try
+    while true do
+      let line = input_line ic in
+      lines := line :: !lines
+    done; []
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+;;
+
+(* Function to convert the list of strings to a 2D array of integers *)
+let parse_input lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let grid = Array.make_matrix height width 0 in
+  List.iteri (fun i line ->
+    String.iteri (fun j ch ->
+      grid.(i).(j) <- int_of_char ch - int_of_char '0'
+    ) line
+  ) lines;
+  grid
+;;
+
+(* Function to check if a tree is visible from a given position *)
+let is_visible grid x y =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let tree_height = grid.(x).(y) in
+
+  (* Check visibility from the left *)
+  let left_visible = ref true in
+  for j = 0 to y - 1 do
+    if grid.(x).(j) >= tree_height then left_visible := false
+  done;
+
+  (* Check visibility from the right *)
+  let right_visible = ref true in
+  for j = y + 1 to width - 1 do
+    if grid.(x).(j) >= tree_height then right_visible := false
+  done;
+
+  (* Check visibility from the top *)
+  let top_visible = ref true in
+  for i = 0 to x - 1 do
+    if grid.(i).(y) >= tree_height then top_visible := false
+  done;
+
+  (* Check visibility from the bottom *)
+  let bottom_visible = ref true in
+  for i = x + 1 to height - 1 do
+    if grid.(i).(y) >= tree_height then bottom_visible := false
+  done;
+
+  !left_visible || !right_visible || !top_visible || !bottom_visible
+;;
+
+(* Function to count the number of visible trees *)
+let count_visible_trees grid =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let count = ref 0 in
+
+  (* Count edge trees *)
+  for i = 0 to height - 1 do
+    for j = 0 to width - 1 do
+      if i = 0 || i = height - 1 || j = 0 || j = width - 1 then
+        count := !count + 1
+      else if is_visible grid i j then
+        count := !count + 1
+    done;
+  done;
+  !count
+;;
+
+(* Main function to read the input, process it, and print the result *)
+let () =
+  let lines = read_input "input.txt" in
+  let grid = parse_input lines in
+  let visible_count = count_visible_trees grid in
+  Printf.printf "Total visible trees: %d\n" visible_count

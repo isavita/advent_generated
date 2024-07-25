@@ -1,0 +1,30 @@
+
+let disk_length = 35651584
+
+let read_initial_state filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let generate_data initial_state length =
+  let rec aux data =
+    if String.length data >= length then String.sub data 0 length
+    else
+      let b = String.init (String.length data) (fun i -> if data.[String.length data - 1 - i] = '0' then '1' else '0') in
+      aux (data ^ "0" ^ b)
+  in aux initial_state
+
+let calculate_checksum data =
+  let rec aux d =
+    if String.length d mod 2 <> 0 then d
+    else
+      let b = String.init (String.length d / 2) (fun i -> if d.[2 * i] = d.[2 * i + 1] then '1' else '0') in
+      aux b
+  in aux data
+
+let () =
+  let initial_state = read_initial_state "input.txt" in
+  let data = generate_data initial_state disk_length in
+  let checksum = calculate_checksum data in
+  Printf.printf "Checksum: %s\n" checksum

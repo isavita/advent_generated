@@ -1,0 +1,29 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  List.map int_of_string (String.split_on_char ' ' line)
+
+let rec parse_tree data index =
+  let child_count = data.(index) in
+  let meta_count = data.(index + 1) in
+  let index = index + 2 in
+  let sum = ref 0 in
+  let new_index = ref index in
+  for _ = 0 to child_count - 1 do
+    let child_sum, next_index = parse_tree data !new_index in
+    sum := !sum + child_sum;
+    new_index := next_index
+  done;
+  for i = 0 to meta_count - 1 do
+    sum := !sum + data.(!new_index + i)
+  done;
+  new_index := !new_index + meta_count;
+  (!sum, !new_index)
+
+let () =
+  let numbers = Array.of_list (read_input "input.txt") in
+  let sum, _ = parse_tree numbers 0 in
+  print_int sum;
+  print_newline ()

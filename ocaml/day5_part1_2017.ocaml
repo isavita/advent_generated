@@ -1,0 +1,32 @@
+
+(* Function to read the jump offsets from a file *)
+let read_offsets filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let offset = int_of_string line in
+      read_lines (offset :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Function to calculate the number of steps to exit the maze *)
+let steps_to_exit offsets =
+  let rec jump index steps offsets =
+    if index < 0 || index >= List.length offsets then
+      steps
+    else
+      let current_offset = List.nth offsets index in
+      let new_offsets = List.mapi (fun i x -> if i = index then x + 1 else x) offsets in
+      jump (index + current_offset) (steps + 1) new_offsets
+  in
+  jump 0 0 offsets
+
+(* Main function *)
+let () =
+  let offsets = read_offsets "input.txt" in
+  let steps = steps_to_exit offsets in
+  Printf.printf "Steps to exit: %d\n" steps

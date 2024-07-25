@@ -1,0 +1,34 @@
+
+open Digest
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let find_password door_id =
+  let password = Bytes.make 8 ' ' in
+  let filled_positions = ref 0 in
+  let found = Array.make 8 false in
+  let rec loop i =
+    if !filled_positions < 8 then (
+      let hash = to_hex (string (door_id ^ string_of_int i)) in
+      if String.starts_with ~prefix:"00000" hash then (
+        let pos = Char.code hash.[5] - Char.code '0' in
+        if pos >= 0 && pos < 8 && not found.(pos) then (
+          found.(pos) <- true;
+          Bytes.set password pos hash.[6];
+          incr filled_positions
+        )
+      );
+      loop (i + 1)
+    )
+  in
+  loop 0;
+  Bytes.to_string password
+
+let () =
+  let door_id = read_input "input.txt" in
+  let password = find_password (String.trim door_id) in
+  print_endline password

@@ -1,0 +1,55 @@
+
+(* Function to read lines from a file *)
+let read_lines filename =
+  let ic = open_in filename in
+  let rec read_lines_aux acc =
+    try
+      let line = input_line ic in
+      read_lines_aux (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines_aux []
+
+(* Function to execute the instructions and generate the CRT display *)
+let execute_program instructions =
+  let x = ref 1 in
+  let cycle = ref 0 in
+  let crt = Array.make (6 * 40) '.' in
+
+  let draw_pixel () =
+    let pos = !cycle mod 40 in
+    if pos >= !x - 1 && pos <= !x + 1 then
+      crt.(!cycle) <- '#'
+  in
+
+  let execute_instruction instr =
+    match instr with
+    | "noop" ->
+        draw_pixel ();
+        incr cycle
+    | _ ->
+        let parts = String.split_on_char ' ' instr in
+        let v = int_of_string (List.nth parts 1) in
+        draw_pixel ();
+        incr cycle;
+        draw_pixel ();
+        incr cycle;
+        x := !x + v
+  in
+
+  List.iter execute_instruction instructions;
+
+  (* Print the CRT display *)
+  for row = 0 to 5 do
+    for col = 0 to 39 do
+      print_char crt.(row * 40 + col)
+    done;
+    print_newline ()
+  done
+
+(* Main function to read input and execute the program *)
+let () =
+  let instructions = read_lines "input.txt" in
+  execute_program instructions

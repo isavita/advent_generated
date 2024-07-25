@@ -1,0 +1,24 @@
+
+let () =
+  let lines = 
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (int_of_string line :: acc)
+      with End_of_file -> 
+        close_in ic; List.rev acc
+    in
+    read_lines []
+  in
+  let offsets = Array.of_list lines in
+  let index = ref 0 in
+  let steps = ref 0 in
+  while !index >= 0 && !index < Array.length offsets do
+    let jump = offsets.(!index) in
+    offsets.(!index) <- if jump >= 3 then jump - 1 else jump + 1;
+    index := !index + jump;
+    incr steps
+  done;
+  print_int !steps;
+  print_newline ()

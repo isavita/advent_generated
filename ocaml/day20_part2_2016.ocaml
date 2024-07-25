@@ -1,0 +1,66 @@
+
+(* Function to parse the input file and return a list of blocked ranges *)
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char '-' line in
+      let start = int_of_string (List.hd parts) in
+      let stop = int_of_string (List.hd (List.tl parts)) in
+      read_lines ((start, stop) :: acc)
+    with End_of_file -> close_in ic; List.rev acc
+  in
+  read_lines []
+
+(* Function to merge overlapping or contiguous ranges *)
+let merge_ranges ranges =
+  let sorted_ranges = List.sort (fun (a1, b1) (a2, b2) -> compare a1 a2) ranges in
+  let rec merge acc = function
+    | [] -> List.rev acc
+    | (start, stop) :: rest ->
+      match acc with
+      | [] -> merge [(start, stop)] rest
+      | (last_start, last_stop) :: _ when last_stop + 1 >= start ->
+        let new_stop = max last_stop stop in
+        merge ((last_start, new_stop) :: (List.tl acc)) rest
+      | _ -> merge ((start, stop) :: acc) rest
+  in
+  merge [] sorted_ranges
+
+(* Function to find the lowest unblocked IP *)
+let find_lowest_unblocked_ip merged_ranges =
+  let rec aux current_ip = function
+    | [] -> current_ip
+    | (start, stop) :: rest ->
+      if current_ip < start then
+        current_ip
+      else if current_ip <= stop then
+        aux (stop + 1) rest
+      else
+        aux current_ip rest
+  in
+  aux 0 merged_ranges
+
+(* Function to count allowed IPs *)
+let count_allowed_ips merged_ranges =
+  let rec aux current_ip count = function
+    | [] -> count + (4294967295 - current_ip + 1)
+    | (start, stop) :: rest ->
+      if current_ip < start then
+        aux (stop + 1) (count + (start - current_ip)) rest
+      else if current_ip <= stop then
+        aux (stop + 1) count rest
+      else
+        aux current_ip count rest
+  in
+  aux 0 0 merged_ranges
+
+(* Main function *)
+let () =
+  let blocked_ranges = read_input "input.txt" in
+  let merged_ranges = merge_ranges blocked_ranges in
+  let lowest_unblocked_ip = find_lowest_unblocked_ip merged_ranges in
+  let allowed_count = count_allowed_ips merged_ranges in
+  Printf.printf "Lowest unblocked IP: %d\n" lowest_unblocked_ip;
+  Printf.printf "Total allowed IPs: %d\n" allowed_count

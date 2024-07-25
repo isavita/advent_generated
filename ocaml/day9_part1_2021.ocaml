@@ -1,0 +1,58 @@
+
+(* Function to read the heightmap from a file *)
+let read_heightmap filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Function to convert the heightmap from string to a 2D list of integers *)
+let parse_heightmap lines =
+  List.map (fun line -> List.map (fun c -> int_of_char c - int_of_char '0') (List.init (String.length line) (String.get line))) lines
+
+(* Function to check if a point is a low point *)
+let is_low_point heightmap x y =
+  let height = List.nth (List.nth heightmap y) x in
+  let adjacent_positions = [
+    (x - 1, y); (* left *)
+    (x + 1, y); (* right *)
+    (x, y - 1); (* up *)
+    (x, y + 1); (* down *)
+  ] in
+  List.for_all (fun (nx, ny) ->
+    if nx < 0 || ny < 0 || ny >= List.length heightmap || nx >= List.length (List.hd heightmap) then
+      true (* Out of bounds, ignore *)
+    else
+      height < List.nth (List.nth heightmap ny) nx
+  ) adjacent_positions
+
+(* Function to calculate the total risk level *)
+let total_risk_level heightmap =
+  let height = List.length heightmap in
+  let width = List.length (List.hd heightmap) in
+  let rec find_low_points acc x y =
+    if y >= height then acc
+    else if x >= width then find_low_points acc 0 (y + 1)
+    else
+      let new_acc =
+        if is_low_point heightmap x y then
+          acc + (1 + List.nth (List.nth heightmap y) x)
+        else
+          acc
+      in
+      find_low_points new_acc (x + 1) y
+  in
+  find_low_points 0 0 0
+
+(* Main function *)
+let () =
+  let lines = read_heightmap "input.txt" in
+  let heightmap = parse_heightmap lines in
+  let risk_level_sum = total_risk_level heightmap in
+  Printf.printf "Total risk level: %d\n" risk_level_sum

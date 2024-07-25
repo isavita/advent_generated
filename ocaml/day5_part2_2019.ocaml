@@ -1,0 +1,61 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  List.map int_of_string (String.split_on_char ',' line)
+
+let get_value program pos mode =
+  if mode = 0 then List.nth program (List.nth program pos) else List.nth program pos
+
+let rec run_program program input output i =
+  let opcode = List.nth program i mod 100 in
+  let modes = List.nth program i / 100 in
+  let param1_mode = modes mod 10 in
+  let param2_mode = (modes / 10) mod 10 in
+  match opcode with
+  | 1 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      let p3 = List.nth program (i + 3) in
+      let new_program = List.mapi (fun idx v -> if idx = p3 then p1 + p2 else v) program in
+      run_program new_program input output (i + 4)
+  | 2 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      let p3 = List.nth program (i + 3) in
+      let new_program = List.mapi (fun idx v -> if idx = p3 then p1 * p2 else v) program in
+      run_program new_program input output (i + 4)
+  | 3 ->
+      let new_program = List.mapi (fun idx v -> if idx = List.nth program (i + 1) then input else v) program in
+      run_program new_program input output (i + 2)
+  | 4 ->
+      let output_value = get_value program (i + 1) param1_mode in
+      print_int output_value; print_newline ();
+      run_program program input output (i + 2)
+  | 5 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      if p1 <> 0 then run_program program input output p2 else run_program program input output (i + 3)
+  | 6 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      if p1 = 0 then run_program program input output p2 else run_program program input output (i + 3)
+  | 7 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      let p3 = List.nth program (i + 3) in
+      let new_program = List.mapi (fun idx v -> if idx = p3 then if p1 < p2 then 1 else 0 else v) program in
+      run_program new_program input output (i + 4)
+  | 8 ->
+      let p1 = get_value program (i + 1) param1_mode in
+      let p2 = get_value program (i + 2) param2_mode in
+      let p3 = List.nth program (i + 3) in
+      let new_program = List.mapi (fun idx v -> if idx = p3 then if p1 = p2 then 1 else 0 else v) program in
+      run_program new_program input output (i + 4)
+  | 99 -> ()
+  | _ -> failwith "Invalid opcode"
+
+let () =
+  let program = read_input "input.txt" in
+  run_program program 5 0 0

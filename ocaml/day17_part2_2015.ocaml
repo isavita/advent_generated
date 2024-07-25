@@ -1,0 +1,49 @@
+
+(* Function to find all combinations of containers that sum to a target volume *)
+let rec find_combinations containers target =
+  let rec aux current_combination remaining_containers remaining_target =
+    if remaining_target = 0 then
+      (* Found a valid combination *)
+      [List.rev current_combination]
+    else if remaining_target < 0 || remaining_containers = [] then
+      (* No valid combination *)
+      []
+    else
+      (* Include the first container and exclude it *)
+      let first = List.hd remaining_containers in
+      let rest = List.tl remaining_containers in
+      let with_first = aux (first :: current_combination) rest (remaining_target - first) in
+      let without_first = aux current_combination rest remaining_target in
+      with_first @ without_first
+  in
+  aux [] containers target
+
+(* Function to find the minimum number of containers and the number of ways to use that many containers *)
+let min_containers_and_combinations containers target =
+  let combinations = find_combinations containers target in
+  let min_count = 
+    List.fold_left (fun acc comb -> min acc (List.length comb)) max_int combinations
+  in
+  let count_min_combinations =
+    List.filter (fun comb -> List.length comb = min_count) combinations |> List.length
+  in
+  (min_count, count_min_combinations)
+
+(* Main function to read input and compute results *)
+let () =
+  let input_file = "input.txt" in
+  let ic = open_in input_file in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let size = int_of_string line in
+      read_lines (size :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let containers = read_lines [] in
+  let target = 150 in
+  let (min_count, count_min_combinations) = min_containers_and_combinations containers target in
+  Printf.printf "Minimum number of containers: %d\n" min_count;
+  Printf.printf "Number of ways to use that many containers: %d\n" count_min_combinations

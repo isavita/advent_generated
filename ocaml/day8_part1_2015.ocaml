@@ -1,0 +1,41 @@
+
+(* Function to decode a string and calculate its in-memory length *)
+let decode_string s =
+  let rec aux i acc =
+    if i >= String.length s then acc
+    else
+      match s.[i] with
+      | '"' -> aux (i + 1) acc  (* Ignore the starting and ending quotes *)
+      | '\\' ->
+          if i + 1 < String.length s then
+            match s.[i + 1] with
+            | '"' -> aux (i + 2) (acc + 1)  (* Escaped quote *)
+            | '\\' -> aux (i + 2) (acc + 1) (* Escaped backslash *)
+            | 'x' ->
+                if i + 3 < String.length s then
+                  aux (i + 4) (acc + 1)  (* Hexadecimal escape *)
+                else acc  (* Malformed escape, shouldn't happen in valid input *)
+            | _ -> aux (i + 1) acc  (* Ignore other characters *)
+          else acc  (* Malformed escape, shouldn't happen in valid input *)
+      | _ -> aux (i + 1) (acc + 1)  (* Regular character *)
+  in
+  aux 0 0
+
+(* Main function to read the file and compute the result *)
+let () =
+  let in_channel = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line in_channel in
+      let code_length = String.length line in
+      let memory_length = decode_string line in
+      read_lines ((code_length, memory_length) :: acc)
+    with End_of_file ->
+      close_in in_channel;
+      acc
+  in
+  let lengths = read_lines [] in
+  let total_code = List.fold_left (fun acc (code, _) -> acc + code) 0 lengths in
+  let total_memory = List.fold_left (fun acc (_, mem) -> acc + mem) 0 lengths in
+  let result = total_code - total_memory in
+  Printf.printf "%d\n" result

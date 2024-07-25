@@ -1,0 +1,100 @@
+
+(* Define the type for the Intcode program *)
+type state = {
+  mutable memory: int array;
+  mutable relative_base: int;
+  mutable pc: int;
+}
+
+(* Function to get the value from memory based on the mode *)
+let get_value state mode param =
+  match mode with
+  | 0 -> state.memory.(param) (* Position mode *)
+  | 1 -> param               (* Immediate mode *)
+  | 2 -> state.memory.(state.relative_base + param) (* Relative mode *)
+  | _ -> failwith "Invalid mode"
+
+(* Function to set the value in memory based on the mode *)
+let set_value state mode param value =
+  match mode with
+  | 0 -> state.memory.(param) <- value (* Position mode *)
+  | 2 -> state.memory.(state.relative_base + param) <- value (* Relative mode *)
+  | _ -> failwith "Invalid mode"
+
+(* Function to execute the Intcode program *)
+let rec execute state input =
+  let opcode = state.memory.(state.pc) mod 100 in
+  let modes = [
+    (state.memory.(state.pc) / 100) mod 10; (* First parameter mode *)
+    (state.memory.(state.pc) / 1000) mod 10; (* Second parameter mode *)
+    (state.memory.(state.pc) / 10000) mod 10; (* Third parameter mode *)
+  ] in
+  match opcode with
+  | 1 -> (* Add *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      let b = get_value state (List.nth modes 1) (state.memory.(state.pc + 2)) in
+      set_value state (List.nth modes 2) (state.memory.(state.pc + 3)) (a + b);
+      state.pc <- state.pc + 4;
+      execute state input
+  | 2 -> (* Multiply *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      let b = get_value state (List.nth modes 1) (state.memory.(state.pc + 2)) in
+      set_value state (List.nth modes 2) (state.memory.(state.pc + 3)) (a * b);
+      state.pc <- state.pc + 4;
+      execute state input
+  | 3 -> (* Input *)
+      set_value state (List.nth modes 0) (state.memory.(state.pc + 1)) input;
+      state.pc <- state.pc + 2;
+      execute state input
+  | 4 -> (* Output *)
+      let output = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      Printf.printf "Output: %d\n" output;
+      state.pc <- state.pc + 2;
+      execute state input
+  | 5 -> (* Jump if true *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      if a <> 0 then
+        state.pc <- get_value state (List.nth modes 1) (state.memory.(state.pc + 2))
+      else
+        state.pc <- state.pc + 3;
+      execute state input
+  | 6 -> (* Jump if false *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      if a = 0 then
+        state.pc <- get_value state (List.nth modes 1) (state.memory.(state.pc + 2))
+      else
+        state.pc <- state.pc + 3;
+      execute state input
+  | 7 -> (* Less than *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      let b = get_value state (List.nth modes 1) (state.memory.(state.pc + 2)) in
+      set_value state (List.nth modes 2) (state.memory.(state.pc + 3)) (if a < b then 1 else 0);
+      state.pc <- state.pc + 4;
+      execute state input
+  | 8 -> (* Equals *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      let b = get_value state (List.nth modes 1) (state.memory.(state.pc + 2)) in
+      set_value state (List.nth modes 2) (state.memory.(state.pc + 3)) (if a = b then 1 else 0);
+      state.pc <- state.pc + 4;
+      execute state input
+  | 9 -> (* Adjust relative base *)
+      let a = get_value state (List.nth modes 0) (state.memory.(state.pc + 1)) in
+      state.relative_base <- state.relative_base + a;
+      state.pc <- state.pc + 2;
+      execute state input
+  | 99 -> (* Halt *)
+      ()
+  | _ -> failwith "Unknown opcode"
+
+(* Function to read the input file and parse the Intcode program *)
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  Array.of_list (List.map int_of_string (String.split_on_char ',' line))
+
+(* Main function to run the Intcode computer *)
+let () =
+  let program = read_input "input.txt" in
+  let state = { memory = Array.append program (Array.make 10000 0); relative_base = 0; pc = 0 } in
+  execute state 1

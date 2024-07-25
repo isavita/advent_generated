@@ -1,0 +1,46 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let registers = Hashtbl.create 16 in
+  let highest_value = ref 0 in
+
+  let update_register reg op amount =
+    let current_value = Hashtbl.find_opt registers reg |> Option.value ~default:0 in
+    let new_value = match op with
+      | "inc" -> current_value + amount
+      | "dec" -> current_value - amount
+      | _ -> current_value
+    in
+    Hashtbl.replace registers reg new_value;
+    if new_value > !highest_value then highest_value := new_value
+  in
+
+  let check_condition cond_reg cond_op cond_val =
+    let cond_value = Hashtbl.find_opt registers cond_reg |> Option.value ~default:0 in
+    match cond_op with
+    | ">" -> cond_value > cond_val
+    | ">=" -> cond_value >= cond_val
+    | "<" -> cond_value < cond_val
+    | "<=" -> cond_value <= cond_val
+    | "==" -> cond_value = cond_val
+    | "!=" -> cond_value <> cond_val
+    | _ -> false
+  in
+
+  try
+    while true do
+      let line = input_line ic in
+      let parts = String.split_on_char ' ' line in
+      let reg = List.nth parts 0 in
+      let op = List.nth parts 1 in
+      let amount = int_of_string (List.nth parts 2) in
+      let cond_reg = List.nth parts 4 in
+      let cond_op = List.nth parts 5 in
+      let cond_val = int_of_string (List.nth parts 6) in
+
+      if check_condition cond_reg cond_op cond_val then
+        update_register reg op amount
+    done
+  with End_of_file ->
+    close_in ic;
+    print_endline (string_of_int !highest_value)

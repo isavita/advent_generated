@@ -1,0 +1,22 @@
+
+let decode pass =
+  let row = int_of_string ("0b" ^ String.sub pass 0 7 |> String.map (function 'F' -> '0' | 'B' -> '1' | c -> c) |> String.to_seq |> String.of_seq) in
+  let column = int_of_string ("0b" ^ String.sub pass 7 3 |> String.map (function 'L' -> '0' | 'R' -> '1' | c -> c) |> String.to_seq |> String.of_seq) in
+  row * 8 + column
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (decode line :: acc)
+    with End_of_file -> acc
+  in
+  let seat_ids = read_lines [] in
+  close_in ic;
+  let sorted_ids = List.sort compare seat_ids in
+  let rec find_missing = function
+    | [] | [_] -> ()
+    | x :: (y :: _ as tl) -> if y <> x + 1 then print_int (x + 1) else find_missing tl
+  in
+  find_missing sorted_ids

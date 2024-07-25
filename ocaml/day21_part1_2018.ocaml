@@ -1,0 +1,60 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+type instruction = { name: string; abc: int array }
+type opcode_computer = { mutable registers: int array; mutable ip: int; instructions: instruction list }
+
+let parse_input lines =
+  let ip = int_of_string (String.sub (List.hd lines) 4 ((String.length (List.hd lines)) - 4)) in
+  let instructions = List.tl lines |> List.map (fun line ->
+    let parts = String.split_on_char ' ' line in
+    { name = List.nth parts 0; abc = Array.of_list (List.map int_of_string (List.tl parts)) }
+  ) in
+  { registers = Array.make 6 0; ip; instructions }
+
+let execute_instruction opcode_computer inst =
+  let a, b, c = inst.abc.(0), inst.abc.(1), inst.abc.(2) in
+  match inst.name with
+  | "addr" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) + opcode_computer.registers.(b)
+  | "addi" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) + b
+  | "mulr" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) * opcode_computer.registers.(b)
+  | "muli" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) * b
+  | "banr" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) land opcode_computer.registers.(b)
+  | "bani" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) land b
+  | "borr" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) lor opcode_computer.registers.(b)
+  | "bori" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a) lor b
+  | "setr" -> opcode_computer.registers.(c) <- opcode_computer.registers.(a)
+  | "seti" -> opcode_computer.registers.(c) <- a
+  | "gtir" -> opcode_computer.registers.(c) <- if a > opcode_computer.registers.(b) then 1 else 0
+  | "gtri" -> opcode_computer.registers.(c) <- if opcode_computer.registers.(a) > b then 1 else 0
+  | "gtrr" -> opcode_computer.registers.(c) <- if opcode_computer.registers.(a) > opcode_computer.registers.(b) then 1 else 0
+  | "eqir" -> opcode_computer.registers.(c) <- if a = opcode_computer.registers.(b) then 1 else 0
+  | "eqri" -> opcode_computer.registers.(c) <- if opcode_computer.registers.(a) = b then 1 else 0
+  | "eqrr" -> opcode_computer.registers.(c) <- if opcode_computer.registers.(a) = opcode_computer.registers.(b) then 1 else 0
+
+let run_computer opcode_computer =
+  let rec loop () =
+    if opcode_computer.ip >= List.length opcode_computer.instructions then ()
+    else
+      let inst = List.nth opcode_computer.instructions opcode_computer.registers.(opcode_computer.ip) in
+      execute_instruction opcode_computer inst;
+      opcode_computer.registers.(opcode_computer.ip) <- opcode_computer.registers.(opcode_computer.ip) + 1;
+      if opcode_computer.registers.(opcode_computer.ip) <> 28 then loop ()
+  in
+  loop ()
+
+let () =
+  let lines = read_input "input.txt" in
+  let opcode_computer = parse_input lines in
+  run_computer opcode_computer;
+  Printf.printf "%d\n" opcode_computer.registers.(5)

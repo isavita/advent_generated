@@ -1,0 +1,51 @@
+
+module IntMap = Map.Make(Int)
+
+type position = { x: int; y: int }
+
+let () =
+  let input = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line input in
+      read_lines (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let lines = read_lines [] in
+  close_in input;
+
+  let grid = ref IntMap.empty in
+  let start_x = String.length (List.hd lines) / 2 in
+  let start_y = List.length lines / 2 in
+
+  List.iteri (fun y line ->
+    String.iteri (fun x c ->
+      if c = '#' then
+        grid := IntMap.add (x + y * 10000) 2 !grid
+    ) line
+  ) lines;
+
+  let dx = [| 0; 1; 0; -1 |] in
+  let dy = [| -1; 0; 1; 0 |] in
+
+  let rec simulate x y dir infected_count steps =
+    if steps = 0 then infected_count
+    else
+      let pos = x + y * 10000 in
+      let state = IntMap.find_opt pos !grid |> Option.value ~default:0 in
+      let new_dir, new_state =
+        match state with
+        | 0 -> ((dir - 1 + 4) mod 4, 1)
+        | 1 -> (dir, 2)
+        | 2 -> ((dir + 1) mod 4, 3)
+        | 3 -> ((dir + 2) mod 4, 0)
+        | _ -> failwith "Invalid state"
+      in
+      grid := IntMap.add pos new_state !grid;
+      let new_x = x + dx.(new_dir) in
+      let new_y = y + dy.(new_dir) in
+      simulate new_x new_y new_dir (if new_state = 2 then infected_count + 1 else infected_count) (steps - 1)
+  in
+
+  let result = simulate start_x start_y 0 0 10000000 in
+  Printf.printf "%d\n" result

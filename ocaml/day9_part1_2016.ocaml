@@ -1,0 +1,28 @@
+
+let get_decompressed_length input =
+  let rec aux i length =
+    if i >= String.length input then length
+    else
+      match String.index_from_opt input i '(' with
+      | None -> length + (String.length input - i)
+      | Some start ->
+          let end_marker = String.index_from input (start + 1) ')' in
+          let marker = String.sub input (start + 1) (end_marker - start - 1) in
+          let parts = String.split_on_char 'x' marker in
+          let char_count = int_of_string (List.nth parts 0) in
+          let repeat_count = int_of_string (List.nth parts 1) in
+          let next_index = end_marker + 1 in
+          let next_length = char_count * repeat_count in
+          aux (next_index + char_count) (length + next_length)
+  in
+  aux 0 0
+
+let () =
+  let input = 
+    let ic = open_in "input.txt" in
+    let content = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    content
+  in
+  let decompressed_length = get_decompressed_length input in
+  Printf.printf "%d\n" decompressed_length

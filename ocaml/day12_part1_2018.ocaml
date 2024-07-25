@@ -1,0 +1,46 @@
+
+let read_input filename =
+  let lines = List.of_seq (Seq.unfold (fun ic -> try Some (input_line ic, ic) with End_of_file -> None) (open_in filename)) in
+  let initial_state, rules =
+    List.fold_left (fun (state, rules) line ->
+      if String.contains line 'i' then
+        let state = String.trim (String.sub line 15 (String.length line - 15)) in
+        (state, rules)
+      else if String.contains line '=' then
+        let parts = String.split_on_char ' ' line in
+        let pattern = List.nth parts 0 in
+        let result = List.nth parts 2 in
+        (state, (pattern, result.[0]) :: rules)
+      else
+        (state, rules)
+    ) ("", []) lines
+  in
+  (initial_state, List.rev rules)
+
+let min_max_keys state =
+  let keys = List.map fst state in
+  (List.fold_left min (List.hd keys) keys, List.fold_left max (List.hd keys) keys)
+
+let update_state state rules generations =
+  let rec aux state gen =
+    if gen = 0 then state
+    else
+      let new_state = Hashtbl.create 100 in
+      let min_pot, max_pot = min_max_keys (Hashtbl.to_seq state |> List.of_seq) in
+      for i = min_pot - 2 to max_pot + 2 do
+        let pattern = String.init 5 (fun j -> if Hashtbl.mem state (i + j - 2) then '#' else '.') in
+        match List.assoc_opt pattern rules with
+        | Some '#' -> Hashtbl.add new_state i '#'
+        | _ -> ()
+      done;
+      aux new_state (gen - 1)
+  in
+  aux state generations
+
+let () =
+  let initial_state, rules = read_input "input.txt" in
+  let state = Hashtbl.create 100 in
+  String.iteri (fun i c -> if c = '#' then Hashtbl.add state i '#') initial_state;
+  let final_state = update_state state rules 20 in
+  let sum = Hashtbl.fold (fun k _ acc -> acc + k) final_state 0 in
+  Printf.printf "%d\n" sum

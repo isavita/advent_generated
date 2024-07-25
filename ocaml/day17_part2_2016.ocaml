@@ -1,0 +1,53 @@
+
+open Printf
+open Digest
+
+type point = { x: int; y: int; path: string }
+
+let read_passcode filename =
+  let ic = open_in filename in
+  let passcode = input_line ic in
+  close_in ic;
+  passcode
+
+let get_open_doors passcode path =
+  let hash = to_hex (string (passcode ^ path)) in
+  let doors = ref [] in
+  if hash.[0] >= 'b' && hash.[0] <= 'f' then doors := "U" :: !doors;
+  if hash.[1] >= 'b' && hash.[1] <= 'f' then doors := "D" :: !doors;
+  if hash.[2] >= 'b' && hash.[2] <= 'f' then doors := "L" :: !doors;
+  if hash.[3] >= 'b' && hash.[3] <= 'f' then doors := "R" :: !doors;
+  !doors
+
+let find_longest_path_length passcode =
+  let rec aux queue longest =
+    match queue with
+    | [] -> longest
+    | { x; y; path } :: rest ->
+      if x = 3 && y = 3 then
+        aux rest (max longest (String.length path))
+      else
+        let doors = get_open_doors passcode path in
+        let next_points =
+          List.fold_left (fun acc dir ->
+            let next_point = match dir with
+              | "U" -> { x; y = y - 1; path = path ^ dir }
+              | "D" -> { x; y = y + 1; path = path ^ dir }
+              | "L" -> { x = x - 1; y; path = path ^ dir }
+              | "R" -> { x = x + 1; y; path = path ^ dir }
+              | _ -> failwith "Invalid direction"
+            in
+            if next_point.x >= 0 && next_point.x < 4 && next_point.y >= 0 && next_point.y < 4 then
+              next_point :: acc
+            else
+              acc
+          ) [] doors
+        in
+        aux (rest @ next_points) longest
+  in
+  aux [{ x = 0; y = 0; path = "" }] 0
+
+let () =
+  let passcode = read_passcode "input.txt" in
+  let longest_path_length = find_longest_path_length passcode in
+  printf "%d\n" longest_path_length

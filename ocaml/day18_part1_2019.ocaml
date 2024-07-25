@@ -1,0 +1,85 @@
+
+(* Define the types for the grid and the state of the search *)
+type position = int * int
+type state = {
+  pos: position;
+  keys: int; (* bitmask representing collected keys *)
+  steps: int; (* number of steps taken *)
+}
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let find_start_and_keys map =
+  let keys = Hashtbl.create 26 in
+  let start = ref None in
+  List.iteri (fun y line ->
+    String.iteri (fun x c ->
+      match c with
+      | '@' -> start := Some (x, y)
+      | 'a'..'z' -> Hashtbl.add keys c (x, y)
+      | _ -> ()
+    ) line
+  ) map;
+  (!start, keys)
+
+let bfs map start keys =
+  let directions = [(0, 1); (1, 0); (0, -1); (-1, 0)] in
+  let key_count = Hashtbl.length keys in
+  let key_bitmask = (1 lsl key_count) - 1 in
+  let queue = Queue.create () in
+  let visited = Hashtbl.create 1000 in
+  let rec enqueue state =
+    if not (Hashtbl.mem visited (state.pos, state.keys)) then begin
+      Hashtbl.add visited (state.pos, state.keys) ();
+      Queue.add state queue
+    end
+  in
+  enqueue { pos = start; keys = 0; steps = 0 };
+  
+  let rec explore () =
+    if Queue.is_empty queue then -1
+    else
+      let { pos = (x, y); keys; steps } = Queue.take queue in
+      if keys = key_bitmask then steps
+      else
+        let next_states = List.fold_left (fun acc (dx, dy) ->
+          let nx, ny = x + dx, y + dy in
+          if nx < 0 || ny < 0 || ny >= List.length map || nx >= String.length (List.nth map ny) then acc
+          else
+            let cell = (List.nth map ny).[nx] in
+            match cell with
+            | '#' -> acc
+            | '.' | '@' ->
+              enqueue { pos = (nx, ny); keys; steps = steps + 1 };
+              acc
+            | 'a'..'z' ->
+              let new_keys = keys lor (1 lsl (Char.code cell - Char.code 'a')) in
+              enqueue { pos = (nx, ny); keys = new_keys; steps = steps + 1 };
+              acc
+            | 'A'..'Z' when (keys land (1 lsl (Char.code cell - Char.code 'A'))) <> 0 ->
+              enqueue { pos = (nx, ny); keys; steps = steps + 1 };
+              acc
+            | _ -> acc
+        ) [] directions in
+        explore ()
+  in
+  explore ()
+
+let () =
+  let map = read_input "input.txt" in
+  let (start, keys) = find_start_and_keys map in
+  match start with
+  | None -> Printf.printf "No starting point found.\n"
+  | Some start_pos ->
+    let result = bfs map start_pos keys in
+    Printf.printf "Shortest path to collect all keys: %d steps\n" result

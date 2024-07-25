@@ -1,0 +1,22 @@
+
+let sort_string s =
+  let sorted = String.to_seq s |> List.of_seq |> List.sort Char.compare in
+  String.of_seq (List.to_seq sorted)
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec count_valid_passphrases acc =
+    try
+      let passphrase = input_line ic in
+      let words = String.split_on_char ' ' passphrase in
+      let sorted_words = List.map sort_string words in
+      let unique_sorted_words = List.sort_uniq String.compare sorted_words in
+      if List.length sorted_words = List.length unique_sorted_words then
+        count_valid_passphrases (acc + 1)
+      else
+        count_valid_passphrases acc
+    with End_of_file -> acc
+  in
+  let valid_count = count_valid_passphrases 0 in
+  close_in ic;
+  Printf.printf "%d\n" valid_count

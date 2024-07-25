@@ -1,0 +1,52 @@
+
+(* Define a type to represent a point in the grid *)
+type point = int * int
+
+(* Function to parse a line segment from a string *)
+let parse_line line =
+  let parts = String.split_on_char ' ' line in
+  let start = String.split_on_char ',' (List.nth parts 0) in
+  let end_ = String.split_on_char ',' (List.nth parts 2) in
+  let x1, y1 = (int_of_string (List.nth start 0), int_of_string (List.nth start 1)) in
+  let x2, y2 = (int_of_string (List.nth end_ 0), int_of_string (List.nth end_ 1)) in
+  (x1, y1, x2, y2)
+
+(* Function to generate all points covered by a line segment *)
+let generate_points (x1, y1, x2, y2) =
+  let rec points acc x y =
+    if x = x2 && y = y2 then (x, y) :: acc
+    else if x = x2 then points ((x, y) :: acc) x (if y < y2 then y + 1 else y - 1)
+    else if y = y2 then points ((x, y) :: acc) (if x < x2 then x + 1 else x - 1) y
+    else points ((x, y) :: acc) (if x < x2 then x + 1 else x - 1) (if y < y2 then y + 1 else y - 1)
+  in
+  List.rev (points [] x1 y1)
+
+(* Function to count overlaps in the grid *)
+let count_overlaps lines =
+  let grid = Hashtbl.create 1000 in
+  List.iter (fun line ->
+    let points = generate_points line in
+    List.iter (fun p ->
+      let count = Hashtbl.find_opt grid p |> Option.value ~default:0 in
+      Hashtbl.replace grid p (count + 1)
+    ) points
+  ) lines;
+  Hashtbl.fold (fun _ count acc -> if count >= 2 then acc + 1 else acc) grid 0
+
+(* Main function to read input and compute the result *)
+let () =
+  let input_file = "input.txt" in
+  let lines = 
+    let ic = open_in input_file in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (parse_line line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let result = count_overlaps lines in
+  Printf.printf "Number of points where at least two lines overlap: %d\n" result

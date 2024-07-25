@@ -1,0 +1,36 @@
+
+let () =
+  let input = open_in "input.txt" in
+  let adj = Hashtbl.create 100 in
+  let rec read_lines () =
+    try
+      let line = input_line input in
+      let parts = String.split_on_char ' ' line in
+      let from = int_of_string (List.hd parts) in
+      let to_nodes = String.split_on_char ',' (String.concat "" (List.tl (List.tl parts))) in
+      List.iter (fun to_node ->
+        let to_node = int_of_string (String.trim to_node) in
+        Hashtbl.add adj from (to_node);
+        Hashtbl.add adj to_node (from)
+      ) to_nodes;
+      read_lines ()
+    with End_of_file -> ()
+  in
+  read_lines ();
+  close_in input;
+
+  let visited = Hashtbl.create 100 in
+  let rec dfs node =
+    if not (Hashtbl.mem visited node) then begin
+      Hashtbl.add visited node true;
+      List.iter dfs (Hashtbl.find_all adj node)
+    end
+  in
+  let groups = ref 0 in
+  Hashtbl.iter (fun node _ ->
+    if not (Hashtbl.mem visited node) then begin
+      dfs node;
+      incr groups
+    end
+  ) adj;
+  Printf.printf "%d\n" !groups

@@ -1,0 +1,62 @@
+
+type moon = {
+  mutable position: int * int * int;
+  mutable velocity: int * int * int;
+}
+
+let read_moons filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let x, y, z =
+        Scanf.sscanf line "<x=%d, y=%d, z=%d>" (fun x y z -> (x, y, z))
+      in
+      read_lines ({ position = (x, y, z); velocity = (0, 0, 0) } :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let moons = read_lines [] in
+  close_in ic;
+  moons
+
+let apply_gravity moon1 moon2 =
+  let (x1, y1, z1) = moon1.position in
+  let (x2, y2, z2) = moon2.position in
+  let (vx1, vy1, vz1) = moon1.velocity in
+  let (vx2, vy2, vz2) = moon2.velocity in
+  moon1.velocity <- (vx1 + compare x2 x1, vy1 + compare y2 y1, vz1 + compare z2 z1);
+  moon2.velocity <- (vx2 + compare x1 x2, vy2 + compare y1 y2, vz2 + compare z1 z2)
+
+let apply_velocity moon =
+  let (vx, vy, vz) = moon.velocity in
+  let (x, y, z) = moon.position in
+  moon.position <- (x + vx, y + vy, z + vz)
+
+let total_energy moon =
+  let (x, y, z) = moon.position in
+  let (vx, vy, vz) = moon.velocity in
+  let potential_energy = abs x + abs y + abs z in
+  let kinetic_energy = abs vx + abs vy + abs vz in
+  potential_energy * kinetic_energy
+
+let simulate moons steps =
+  for _ = 1 to steps do
+    (* Apply gravity *)
+    let n = List.length moons in
+    for i = 0 to n - 1 do
+      for j = i + 1 to n - 1 do
+        apply_gravity (List.nth moons i) (List.nth moons j)
+      done
+    done;
+    (* Apply velocity *)
+    List.iter apply_velocity moons
+  done
+
+let total_system_energy moons =
+  List.fold_left (fun acc moon -> acc + total_energy moon) 0 moons
+
+let () =
+  let moons = read_moons "input.txt" in
+  simulate moons 1000;
+  let total_energy = total_system_energy moons in
+  Printf.printf "Total energy after 1000 steps: %d\n" total_energy

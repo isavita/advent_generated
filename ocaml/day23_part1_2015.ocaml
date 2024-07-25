@@ -1,0 +1,57 @@
+
+let () =
+  let instructions = 
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file -> List.rev acc
+    in
+    let lines = read_lines [] in
+    close_in ic;
+    List.map String.trim lines
+  in
+
+  let registers = Hashtbl.create 2 in
+  Hashtbl.add registers "a" 0;
+  Hashtbl.add registers "b" 0;
+
+  let rec execute i =
+    if i < List.length instructions then
+      let parts = String.split_on_char ' ' (List.nth instructions i) in
+      match List.hd parts with
+      | "hlf" -> 
+          let reg = List.nth parts 1 in
+          Hashtbl.replace registers reg (Hashtbl.find registers reg / 2);
+          execute (i + 1)
+      | "tpl" -> 
+          let reg = List.nth parts 1 in
+          Hashtbl.replace registers reg (Hashtbl.find registers reg * 3);
+          execute (i + 1)
+      | "inc" -> 
+          let reg = List.nth parts 1 in
+          Hashtbl.replace registers reg (Hashtbl.find registers reg + 1);
+          execute (i + 1)
+      | "jmp" -> 
+          let offset = int_of_string (List.nth parts 1) in
+          execute (i + offset)
+      | "jie" -> 
+          let reg = String.sub (List.nth parts 1) 0 1 in
+          if Hashtbl.find registers reg mod 2 = 0 then
+            let offset = int_of_string (List.nth parts 2) in
+            execute (i + offset)
+          else
+            execute (i + 1)
+      | "jio" -> 
+          let reg = String.sub (List.nth parts 1) 0 1 in
+          if Hashtbl.find registers reg = 1 then
+            let offset = int_of_string (List.nth parts 2) in
+            execute (i + offset)
+          else
+            execute (i + 1)
+      | _ -> failwith ("Unknown instruction: " ^ List.hd parts)
+  in
+
+  execute 0;
+  Printf.printf "%d\n" (Hashtbl.find registers "b")

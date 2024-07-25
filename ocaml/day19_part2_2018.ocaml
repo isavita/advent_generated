@@ -1,0 +1,65 @@
+
+let () =
+  let instructions = [
+    ("addr", fun r a b -> r.(a) + r.(b));
+    ("addi", fun r a b -> r.(a) + b);
+    ("mulr", fun r a b -> r.(a) * r.(b));
+    ("muli", fun r a b -> r.(a) * b);
+    ("banr", fun r a b -> r.(a) land r.(b));
+    ("bani", fun r a b -> r.(a) land b);
+    ("borr", fun r a b -> r.(a) lor r.(b));
+    ("bori", fun r a b -> r.(a) lor b);
+    ("setr", fun r a _ -> r.(a));
+    ("seti", fun _ a _ -> a);
+    ("gtir", fun r a b -> if a > r.(b) then 1 else 0);
+    ("gtri", fun r a b -> if r.(a) > b then 1 else 0);
+    ("gtrr", fun r a b -> if r.(a) > r.(b) then 1 else 0);
+    ("eqir", fun r a b -> if a = r.(b) then 1 else 0);
+    ("eqri", fun r a b -> if r.(a) = b then 1 else 0);
+    ("eqrr", fun r a b -> if r.(a) = r.(b) then 1 else 0);
+  ] |> List.to_seq |> Hashtbl.of_seq in
+
+  let lines = 
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        if line = "" then read_lines acc else read_lines (line :: acc)
+      with End_of_file -> close_in ic; List.rev acc
+    in read_lines [] in
+
+  let ip_register, program =
+    let rec aux ip_reg prog = function
+      | [] -> (ip_reg, List.rev prog)
+      | line :: rest ->
+        if String.starts_with ~prefix:"#ip" line then
+          aux (int_of_string (String.sub line 4 1)) prog rest
+        else
+          let parts = String.split_on_char ' ' line in
+          let op = Hashtbl.find instructions (List.hd parts) in
+          let nums = List.tl parts |> List.map int_of_string in
+          aux ip_reg ((fun r -> r.(List.nth nums 2) <- op r (List.nth nums 0) (List.nth nums 1)) :: prog) rest
+    in aux 0 [] lines in
+
+  let run_program ip_reg program registers max_cycles =
+    let rec loop ip cycles =
+      if ip < 0 || ip >= List.length program || (max_cycles > 0 && cycles >= max_cycles) then registers
+      else
+        let () = registers.(ip_reg) <- ip in
+        let () = (List.nth program ip) registers in
+        loop (registers.(ip_reg) + 1) (cycles + 1)
+    in loop 0 0 in
+
+  let max arr = Array.fold_left max arr.(0) arr in
+
+  let registers = Array.make 6 0 in
+  registers.(0) <- 1;
+  let final_registers = run_program ip_register program registers 1000 in
+  let n = max final_registers in
+  let total = 
+    let rec sum_divisors acc i =
+      if i > n then acc
+      else if n mod i = 0 then sum_divisors (acc + i) (i + 1)
+      else sum_divisors acc (i + 1)
+    in sum_divisors 0 1 in
+  Printf.printf "%d\n" total

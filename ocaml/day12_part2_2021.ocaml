@@ -1,0 +1,66 @@
+
+(* Define a module for handling the cave system *)
+module CaveSystem = struct
+  (* Type for caves and their connections *)
+  type cave = string
+  type graph = (cave, cave list) Hashtbl.t
+
+  (* Create a graph from the input connections *)
+  let create_graph connections =
+    let graph = Hashtbl.create 16 in
+    List.iter (fun (from_cave, to_cave) ->
+      let add_connection cave1 cave2 =
+        let connections = try Hashtbl.find graph cave1 with Not_found -> [] in
+        Hashtbl.replace graph cave1 (cave2 :: connections)
+      in
+      add_connection from_cave to_cave;
+      add_connection to_cave from_cave
+    ) connections;
+    graph
+
+  (* Check if a cave is small *)
+  let is_small_cave cave = String.lowercase_ascii cave = cave
+
+  (* Recursive function to count paths *)
+  let rec count_paths graph visited small_cave_visited cave =
+    if cave = "end" then 1
+    else
+      let connections = Hashtbl.find graph cave in
+      List.fold_left (fun acc next_cave ->
+        if next_cave = "start" then acc (* Can't revisit start *)
+        else if is_small_cave next_cave then
+          if List.mem next_cave visited then
+            if small_cave_visited then acc (* Already visited a small cave twice *)
+            else count_paths graph (next_cave :: visited) true next_cave + acc
+          else
+            count_paths graph (next_cave :: visited) small_cave_visited next_cave + acc
+        else
+          count_paths graph (next_cave :: visited) small_cave_visited next_cave + acc
+      ) 0 connections
+
+  (* Main function to count all paths from start to end *)
+  let count_all_paths connections =
+    let graph = create_graph connections in
+    count_paths graph [] false "start"
+end
+
+(* Read connections from input file and parse them *)
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char '-' line in
+      let connection = (List.nth parts 0, List.nth parts 1) in
+      read_lines (connection :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Main entry point *)
+let () =
+  let connections = read_input "input.txt" in
+  let path_count = CaveSystem.count_all_paths connections in
+  Printf.printf "Total paths: %d\n" path_count
