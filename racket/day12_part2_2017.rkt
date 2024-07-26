@@ -1,0 +1,50 @@
+
+#lang racket
+
+(require racket/list)
+
+(define (parse-input filename)
+  (define lines (file->lines filename))
+  (define connections (for/list ([line lines])
+                        (define parts (string-split line " <-> "))
+                        (define id (string->number (first parts)))
+                        (define neighbors (map string->number (string-split (second parts) ", ")))
+                        (cons id neighbors)))
+  (define graph (make-hash))
+  (for-each (lambda (conn)
+              (define id (first conn))
+              (define neighbors (rest conn))
+              (hash-set! graph id neighbors))
+            connections)
+  graph)
+
+(define (dfs graph visited node)
+  (unless (hash-ref visited node #f)
+    (hash-set! visited node #t)
+    (for-each (lambda (neighbor)
+                (dfs graph visited neighbor))
+              (hash-ref graph node '()))))
+
+(define (count-group-size graph start)
+  (define visited (make-hash))
+  (dfs graph visited start)
+  (hash-count visited))
+
+(define (count-total-groups graph)
+  (define visited (make-hash))
+  (define group-count 0)
+  (for-each (lambda (node)
+              (unless (hash-ref visited node #f)
+                (dfs graph visited node)
+                (set! group-count (+ group-count 1))))
+            (hash-keys graph))
+  group-count)
+
+(define (main)
+  (define graph (parse-input "input.txt"))
+  (define group-size (count-group-size graph 0))
+  (define total-groups (count-total-groups graph))
+  (printf "Size of group containing program ID 0: ~a\n" group-size)
+  (printf "Total number of groups: ~a\n" total-groups))
+
+(main)
