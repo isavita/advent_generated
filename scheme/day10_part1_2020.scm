@@ -1,0 +1,32 @@
+(define (read-adapters filename)
+  (with-input-from-file filename
+    (lambda ()
+      (let loop ((lines '()))
+        (let ((line (read-line)))
+          (if (eof-object? line)
+              (reverse lines)
+              (loop (cons (string->number line) lines))))))))
+
+(define (sort cmp lst)
+  (if (null? lst)
+      '()
+      (let ((pivot (car lst)))
+        (append (sort cmp (filter (lambda (x) (cmp x pivot)) (cdr lst)))
+                (list pivot)
+                (sort cmp (filter (lambda (x) (not (cmp x pivot))) (cdr lst)))))))
+
+(define (count-joltage-differences adapters)
+  (define sorted-adapters (sort < (cons 0 adapters)))
+  (define built-in-adapter (+ (apply max adapters) 3))
+  (define all-adapters (append sorted-adapters (list built-in-adapter)))
+  (define diffs (map - (cdr all-adapters) all-adapters))
+  (define count-1 (length (filter (lambda (x) (= x 1)) diffs)))
+  (define count-3 (length (filter (lambda (x) (= x 3)) diffs)))
+  (* count-1 count-3))
+
+(define (main)
+  (let ((adapters (read-adapters "input.txt")))
+    (display (count-joltage-differences adapters))
+    (newline)))
+
+(main)

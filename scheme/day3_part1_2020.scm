@@ -1,0 +1,23 @@
+(define (count-trees slope)
+  (let* ((right (car slope))
+         (down (cadr slope))
+         (lines (with-input-from-file "input.txt"
+                   (lambda ()
+                     (let loop ((l (read-line)) (acc '()))
+                       (if (eof-object? l)
+                           (reverse acc)
+                           (loop (read-line) (cons l acc)))))))
+         (width (string-length (car lines)))
+         (height (length lines)))
+    (define (tree-count x y count)
+      (if (>= y height)
+          count
+          (let ((pos (modulo x width)))
+            (tree-count (+ pos right) (+ y down)
+                        (if (char=? (string-ref (list-ref lines y) pos) #\#)
+                            (+ count 1)
+                            count)))))
+    (tree-count 0 0 0)))
+
+(display (count-trees '(3 1)))
+(newline)
