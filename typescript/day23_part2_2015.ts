@@ -1,0 +1,34 @@
+const fs = require('fs');
+
+const instructions = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const registers = { a: 1, b: 0 };
+
+for (let i = 0; i < instructions.length; i++) {
+  const parts = instructions[i].split(' ');
+  switch (parts[0]) {
+    case 'hlf':
+      registers[parts[1]] /= 2;
+      break;
+    case 'tpl':
+      registers[parts[1]] *= 3;
+      break;
+    case 'inc':
+      registers[parts[1]]++;
+      break;
+    case 'jmp':
+      i += parseInt(parts[1]) - 1;
+      break;
+    case 'jie':
+      if (registers[parts[1][0]] % 2 === 0) {
+        i += parseInt(parts[2]) - 1;
+      }
+      break;
+    case 'jio':
+      if (registers[parts[1][0]] === 1) {
+        i += parseInt(parts[2]) - 1;
+      }
+      break;
+  }
+}
+
+console.log(registers.b);
