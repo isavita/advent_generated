@@ -1,70 +1,53 @@
-
 const fs = require('fs');
 
-const file = fs.readFileSync('input.txt', 'utf8');
-const lines = file.split('\n');
+const input = fs.readFileSync('input.txt', 'utf8').split('\n');
 
 let initialState = '';
-const rules = new Map();
+const rules: { [key: string]: string } = {};
 
-for (const line of lines) {
-    if (line.includes('initial state')) {
-        initialState = line.split(': ')[1];
-    } else if (line.includes('=>')) {
-        const parts = line.split(' => ');
-        rules.set(parts[0], parts[1][0]);
-    }
+for (const line of input) {
+  if (line.includes('initial state')) {
+    initialState = line.split(': ')[1];
+  } else if (line.includes('=>')) {
+    const [pattern, result] = line.split(' => ');
+    rules[pattern] = result;
+  }
 }
 
-const state = new Map();
+let state: { [key: number]: string } = {};
 for (let i = 0; i < initialState.length; i++) {
-    if (initialState[i] === '#') {
-        state.set(i, '#');
-    }
+  if (initialState[i] === '#') {
+    state[i] = '#';
+  }
 }
 
 for (let generation = 0; generation < 20; generation++) {
-    const newState = new Map();
-    const [minPot, maxPot] = minMaxKeys(state);
-    for (let i = minPot - 2; i <= maxPot + 2; i++) {
-        let pattern = '';
-        for (let j = i - 2; j <= i + 2; j++) {
-            pattern += state.get(j) === '#' ? '#' : '.';
-        }
-        if (rules.get(pattern) === '#') {
-            newState.set(i, '#');
-        }
+  const newState: { [key: number]: string } = {};
+  let minPot = Infinity;
+  let maxPot = -Infinity;
+  for (const pot in state) {
+    if (parseInt(pot) < minPot) {
+      minPot = parseInt(pot);
     }
-    state.clear();
-    newState.forEach((value, key) => {
-        state.set(key, value);
-    });
+    if (parseInt(pot) > maxPot) {
+      maxPot = parseInt(pot);
+    }
+  }
+  for (let i = minPot - 2; i <= maxPot + 2; i++) {
+    let pattern = '';
+    for (let j = i - 2; j <= i + 2; j++) {
+      pattern += state[j] || '.';
+    }
+    if (rules[pattern] === '#') {
+      newState[i] = '#';
+    }
+  }
+  state = { ...newState }; // Use the spread operator to create a new object
 }
 
 let sum = 0;
-state.forEach((value, key) => {
-    sum += key;
-});
+for (const pot in state) {
+  sum += parseInt(pot);
+}
 
 console.log(sum);
-
-function minMaxKeys(m) {
-    let first = true;
-    let minKey = 0;
-    let maxKey = 0;
-    for (const key of m.keys()) {
-        if (first) {
-            minKey = key;
-            maxKey = key;
-            first = false;
-        } else {
-            if (key < minKey) {
-                minKey = key;
-            }
-            if (key > maxKey) {
-                maxKey = key;
-            }
-        }
-    }
-    return [minKey, maxKey];
-}

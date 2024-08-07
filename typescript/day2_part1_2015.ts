@@ -1,25 +1,37 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-
-let total = 0;
-for (let line of input) {
-    const dimensions = line.split('x');
-    if (dimensions.length !== 3) {
-        console.log('Invalid input format');
-        process.exit(1);
-    }
-
-    const l = parseInt(dimensions[0]);
-    const w = parseInt(dimensions[1]);
-    const h = parseInt(dimensions[2]);
-
+// Function to calculate the wrapping paper needed for a single present
+function calculateWrappingPaper(dimensions: number[]): number {
+    const [l, w, h] = dimensions;
     const side1 = l * w;
     const side2 = w * h;
     const side3 = h * l;
-
-    const smallest = Math.min(side1, side2, side3);
-    total += 2 * side1 + 2 * side2 + 2 * side3 + smallest;
+    const surfaceArea = 2 * side1 + 2 * side2 + 2 * side3;
+    const smallestSide = Math.min(side1, side2, side3);
+    return surfaceArea + smallestSide;
 }
 
-console.log(total);
+// Function to read input from file and calculate total wrapping paper needed
+function calculateTotalWrappingPaper(filePath: string): number {
+    const input = fs.readFileSync(filePath, 'utf-8').trim();
+    const lines = input.split('\n');
+    let totalWrappingPaper = 0;
+
+    lines.forEach(line => {
+        const dimensions = line.split('x').map(Number);
+        totalWrappingPaper += calculateWrappingPaper(dimensions);
+    });
+
+    return totalWrappingPaper;
+}
+
+// Main function
+function main() {
+    const filePath = path.join(__dirname, 'input.txt');
+    const totalWrappingPaper = calculateTotalWrappingPaper(filePath);
+    console.log(`Total square feet of wrapping paper needed: ${totalWrappingPaper}`);
+}
+
+// Run the main function
+main();

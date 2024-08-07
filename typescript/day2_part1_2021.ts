@@ -1,26 +1,26 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8');
+const commands = input.trim().split('\n');
 
-let horizontalPosition = 0;
+let horizontal = 0;
 let depth = 0;
 
-data.forEach(line => {
-    const [direction, units] = line.split(' ');
-    const numUnits = parseInt(units);
+commands.forEach(command => {
+    const [direction, valueStr] = command.split(' ');
+    const value = parseInt(valueStr);
 
     switch (direction) {
         case 'forward':
-            horizontalPosition += numUnits;
+            horizontal += value;
             break;
         case 'down':
-            depth += numUnits;
+            depth += value;
             break;
         case 'up':
-            depth -= numUnits;
+            depth -= value;
             break;
     }
 });
 
-const product = horizontalPosition * depth;
-console.log(product);
+console.log(horizontal * depth);

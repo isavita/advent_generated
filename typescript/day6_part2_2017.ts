@@ -1,25 +1,60 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const banks = data.trim().split(/\s+/).map(Number);
+async function readInput(filePath: string): Promise<number[]> {
+    const fileStream = fs.createReadStream(filePath);
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
 
-const seen = new Map();
-let cycles = 0;
+    const input: number[] = [];
+    for await (const line of rl) {
+        input.push(...line.split(/\s+/).map(Number));
+    }
 
-while (true) {
-  const state = JSON.stringify(banks);
-  if (seen.has(state)) {
-    console.log(cycles - seen.get(state));
-    break;
-  }
-  seen.set(state, cycles);
-
-  const maxIndex = banks.indexOf(Math.max(...banks));
-  const blocks = banks[maxIndex];
-  banks[maxIndex] = 0;
-  for (let i = 1; i <= blocks; i++) {
-    banks[(maxIndex + i) % banks.length]++;
-  }
-
-  cycles++;
+    return input;
 }
+
+function reallocate(banks: number[]): number[] {
+    const maxBlocks = Math.max(...banks);
+    const maxIndex = banks.indexOf(maxBlocks);
+
+    const newBanks = [...banks];
+    newBanks[maxIndex] = 0;
+
+    for (let i = 1; i <= maxBlocks; i++) {
+        newBanks[(maxIndex + i) % newBanks.length]++;
+    }
+
+    return newBanks;
+}
+
+function findCycleLength(banks: number[]): [number, number] {
+    const seenConfigurations = new Map<string, number>();
+    let cycles = 0;
+    let loopSize = 0;
+
+    while (true) {
+        const configKey = banks.join(',');
+        if (seenConfigurations.has(configKey)) {
+            loopSize = cycles - seenConfigurations.get(configKey)!;
+            break;
+        }
+        seenConfigurations.set(configKey, cycles);
+        banks = reallocate(banks);
+        cycles++;
+    }
+
+    return [cycles, loopSize];
+}
+
+async function main() {
+    const banks = await readInput('input.txt');
+    const [cycles, loopSize] = findCycleLength(banks);
+
+    console.log(`Number of redistributions before a configuration is seen again: ${cycles}`);
+    console.log(`Size of the loop: ${loopSize}`);
+}
+
+main().catch(console.error);

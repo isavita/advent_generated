@@ -1,50 +1,44 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const readInput = (filePath: string): string[] => {
+    return fs.readFileSync(filePath, 'utf-8').trim().split('\n\n');
+};
 
-const input = fs.readFileSync('input.txt', 'utf8');
-const packets = [];
-let sum = 0;
+const parsePacket = (packet: string): any => JSON.parse(packet);
 
-input.split('\n\n').forEach((pair, i) => {
-    const sp = pair.split('\n');
-    const first = JSON.parse(sp[0]);
-    const second = JSON.parse(sp[1]);
-    packets.push(first, second);
-    if (compare(first, second) === -1) {
-        sum += i + 1;
-    }
-});
-
-console.log(sum);
-
-function compare(a, b) {
-    const anum = typeof a === 'number';
-    const bnum = typeof b === 'number';
-
-    if (anum && bnum) {
-        return sign(a - b);
-    } else if (anum) {
-        return compare([a], b);
-    } else if (bnum) {
-        return compare(a, [b]);
-    } else {
-        const aa = a;
-        const bb = b;
-
-        for (let i = 0; i < aa.length && i < bb.length; i++) {
-            const c = compare(aa[i], bb[i]);
-            if (c !== 0) {
-                return c;
-            }
+const comparePackets = (left: any, right: any): number => {
+    if (Array.isArray(left) && Array.isArray(right)) {
+        for (let i = 0; i < Math.max(left.length, right.length); i++) {
+            if (i >= left.length) return -1; // left ran out of items
+            if (i >= right.length) return 1; // right ran out of items
+            const result = comparePackets(left[i], right[i]);
+            if (result !== 0) return result;
         }
-
-        return sign(aa.length - bb.length);
+    } else if (Array.isArray(left)) {
+        return comparePackets(left, [right]);
+    } else if (Array.isArray(right)) {
+        return comparePackets([left], right);
+    } else {
+        return left - right; // both are integers
     }
-}
+    return 0; // they are equal
+};
 
-function sign(n) {
-    if (n === 0) {
-        return 0;
-    }
-    return n < 0 ? -1 : 1;
-}
+const calculateSumOfIndices = (pairs: string[]): number => {
+    let sum = 0;
+    pairs.forEach((pair, index) => {
+        const [left, right] = pair.split('\n').map(parsePacket);
+        if (comparePackets(left, right) < 0) {
+            sum += index + 1; // index is 0-based, so add 1
+        }
+    });
+    return sum;
+};
+
+const main = () => {
+    const input = readInput('input.txt');
+    const result = calculateSumOfIndices(input);
+    console.log(result);
+};
+
+main();

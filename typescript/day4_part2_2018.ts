@@ -1,65 +1,97 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Record {
-  constructor(time, event) {
-    this.time = time;
-    this.event = event;
-  }
+interface SleepRecord {
+    timestamp: Date;
+    guardId?: number;
+    action: 'falls asleep' | 'wakes up' | 'begins shift';
 }
 
-class Guard {
-  constructor(id) {
-    this.id = id;
-    this.minutes = Array(60).fill(0);
-    this.totalMin = 0;
-  }
-}
+const parseInput = (data: string): SleepRecord[] => {
+    return data.trim().split('\n').map(line => {
+        const regex = /\[(.+?)\] (Guard #(\d+) begins shift|falls asleep|wakes up)/;
+        const match = line.match(regex);
+        return {
+            timestamp: new Date(match![1]),
+            guardId: match![3] ? parseInt(match![3]) : undefined,
+            action: match![3] ? 'begins shift' : match![2] as 'falls asleep' | 'wakes up'
+        };
+    });
+};
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-const records = [];
-const guards = {};
+const analyzeRecords = (records: SleepRecord[]) => {
+    const guardSleepMinutes: Map<number, number[]> = new Map();
+    let currentGuardId: number | null = null;
 
-input.forEach((line) => {
-  const t = new Date(line.substring(1, 17));
-  records.push(new Record(t, line.substring(19)));
-});
+    records.forEach(record => {
+        if (record.guardId) {
+            currentGuardId = record.guardId;
+            if (!guardSleepMinutes.has(currentGuardId)) {
+                guardSleepMinutes.set(currentGuardId, new Array(60).fill(0));
+            }
+        } else if (currentGuardId !== null) {
+            const minute = record.timestamp.getUTCMinutes();
+            if (record.action === 'falls asleep') {
+                guardSleepMinutes.get(currentGuardId)![minute] += 1;
+            } else if (record.action === 'wakes up') {
+                for (let i = minute - 1; i >= 0 && guardSleepMinutes.get(currentGuardId)![i] > 0; i--) {
+                    guardSleepMinutes.get(currentGuardId)![i] += 1;
+                }
+            }
+        }
+    });
 
-records.sort((a, b) => a.time - b.time);
+    return guardSleepMinutes;
+};
 
-let currentGuard;
-let sleepStart;
+const findMostAsleepGuard = (guardSleepMinutes: Map<number, number[]>): [number, number] => {
+    let maxSleep = 0;
+    let chosenGuardId = -1;
+    let chosenMinute = -1;
 
-records.forEach((record) => {
-  switch (true) {
-    case record.event.includes('begins shift'):
-      const id = parseInt(record.event.split(' ')[1].substring(1));
-      if (!guards[id]) {
-        guards[id] = new Guard(id);
-      }
-      currentGuard = guards[id];
-      break;
-    case record.event.includes('falls asleep'):
-      sleepStart = record.time.getMinutes();
-      break;
-    case record.event.includes('wakes up'):
-      for (let i = sleepStart; i < record.time.getMinutes(); i++) {
-        currentGuard.minutes[i]++;
-        currentGuard.totalMin++;
-      }
-      break;
-  }
-});
-
-let mostFreqGuard;
-let mostFreqMin;
-
-Object.values(guards).forEach((g) => {
-  g.minutes.forEach((m, i) => {
-    if (!mostFreqGuard || m > mostFreqGuard.minutes[mostFreqMin]) {
-      mostFreqGuard = g;
-      mostFreqMin = i;
+    for (const [guardId, minutes] of guardSleepMinutes) {
+        const totalSleep = minutes.reduce((sum, count) => sum + count, 0);
+        if (totalSleep > maxSleep) {
+            maxSleep = totalSleep;
+            chosenGuardId = guardId;
+            chosenMinute = minutes.indexOf(Math.max(...minutes));
+        }
     }
-  });
-});
 
-console.log(mostFreqGuard.id * mostFreqMin);
+    return [chosenGuardId, chosenMinute];
+};
+
+const findMostFrequentSleepMinute = (guardSleepMinutes: Map<number, number[]>): [number, number] => {
+    let maxFrequency = 0;
+    let chosenGuardId = -1;
+    let chosenMinute = -1;
+
+    for (const [guardId, minutes] of guardSleepMinutes) {
+        const maxMinuteFrequency = Math.max(...minutes);
+        if (maxMinuteFrequency > maxFrequency) {
+            maxFrequency = maxMinuteFrequency;
+            chosenGuardId = guardId;
+            chosenMinute = minutes.indexOf(maxMinuteFrequency);
+        }
+    }
+
+    return [chosenGuardId, chosenMinute];
+};
+
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const records = parseInput(input);
+    records.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    const guardSleepMinutes = analyzeRecords(records);
+
+    const [guard1, minute1] = findMostAsleepGuard(guardSleepMinutes);
+    const answer1 = guard1 * minute1;
+
+    const [guard2, minute2] = findMostFrequentSleepMinute(guardSleepMinutes);
+    const answer2 = guard2 * minute2;
+
+    console.log(`Strategy 1: ${answer1}`);
+    console.log(`Strategy 2: ${answer2}`);
+};
+
+main();

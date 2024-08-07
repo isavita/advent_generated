@@ -1,17 +1,30 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const lines = data.trim().split('\n');
-const offsets = lines.map(Number);
-
-let index = 0;
-let steps = 0;
-
-while (index >= 0 && index < offsets.length) {
-    const jump = offsets[index];
-    offsets[index]++;
-    index += jump;
-    steps++;
+function readInputFile(filePath: string): number[] {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    return fileContent.split('\n').filter(line => line.trim() !== '').map(Number);
 }
 
-console.log(steps);
+function solveMaze(jumps: number[]): number {
+    let steps = 0;
+    let index = 0;
+
+    while (index >= 0 && index < jumps.length) {
+        const offset = jumps[index];
+        jumps[index]++;
+        index += offset;
+        steps++;
+    }
+
+    return steps;
+}
+
+function main() {
+    const filePath = path.join(__dirname, 'input.txt');
+    const jumps = readInputFile(filePath);
+    const steps = solveMaze(jumps);
+    console.log(`It takes ${steps} steps to reach the exit.`);
+}
+
+main();

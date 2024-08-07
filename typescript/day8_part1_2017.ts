@@ -1,25 +1,66 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-const file = fs.readFileSync('input.txt', 'utf8');
-const lines = file.split('\n');
-
-const registers = {};
-
-for (const line of lines) {
-  const [reg, op, amount, , condReg, condOp, condVal] = line.split(' ');
-
-  const cond = eval(`${registers[condReg] || 0} ${condOp} ${+condVal}`);
-
-  if (cond) {
-    registers[reg] = (registers[reg] || 0) + (op === 'inc' ? +amount : -amount);
-  }
+interface Instruction {
+    register: string;
+    operation: string;
+    value: number;
+    conditionRegister: string;
+    conditionOperator: string;
+    conditionValue: number;
 }
 
-let maxValue = 0;
-for (const value of Object.values(registers)) {
-  if (value > maxValue) {
-    maxValue = value;
-  }
+function parseInstructions(input: string): Instruction[] {
+    return input.split('\n')
+        .filter(line => line.trim() !== '')
+        .map(line => {
+            const [register, operation, value, _, conditionRegister, conditionOperator, conditionValue] = line.split(' ');
+            return {
+                register,
+                operation,
+                value: parseInt(value, 10),
+                conditionRegister,
+                conditionOperator,
+                conditionValue: parseInt(conditionValue, 10)
+            };
+        });
 }
 
-console.log(maxValue);
+function evaluateCondition(registers: Record<string, number>, condition: Instruction): boolean {
+    const registerValue = registers[condition.conditionRegister] || 0;
+    switch (condition.conditionOperator) {
+        case '>': return registerValue > condition.conditionValue;
+        case '<': return registerValue < condition.conditionValue;
+        case '>=': return registerValue >= condition.conditionValue;
+        case '<=': return registerValue <= condition.conditionValue;
+        case '==': return registerValue === condition.conditionValue;
+        case '!=': return registerValue !== condition.conditionValue;
+        default: throw new Error(`Unknown operator: ${condition.conditionOperator}`);
+    }
+}
+
+function processInstructions(instructions: Instruction[]): number {
+    const registers: Record<string, number> = {};
+
+    for (const instruction of instructions) {
+        if (evaluateCondition(registers, instruction)) {
+            const registerValue = registers[instruction.register] || 0;
+            const newValue = instruction.operation === 'inc'
+                ? registerValue + instruction.value
+                : registerValue - instruction.value;
+            registers[instruction.register] = newValue;
+        }
+    }
+
+    return Math.max(...Object.values(registers));
+}
+
+function main() {
+    const filePath = path.join(__dirname, 'input.txt');
+    const input = fs.readFileSync(filePath, 'utf8');
+    const instructions = parseInstructions(input);
+    const largestValue = processInstructions(instructions);
+    console.log(largestValue);
+}
+
+main();

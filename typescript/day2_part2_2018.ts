@@ -1,29 +1,53 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
 
-const lines = input.slice(0, input.length - 1);
+function calculateChecksum(ids: string[]): number {
+    let countTwo = 0;
+    let countThree = 0;
 
-for (let i = 0; i < lines.length - 1; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-        let diff = 0;
-        for (let k = 0; k < lines[i].length; k++) {
-            if (lines[i][k] !== lines[j][k]) {
-                diff++;
-                if (diff > 1) {
-                    break;
-                }
-            }
+    ids.forEach(id => {
+        const letterCounts = Array(26).fill(0);
+        for (const char of id) {
+            letterCounts[char.charCodeAt(0) - 'a'.charCodeAt(0)]++;
         }
-        if (diff === 1) {
-            let common = '';
-            for (let k = 0; k < lines[i].length; k++) {
-                if (lines[i][k] === lines[j][k]) {
-                    common += lines[i][k];
-                }
+        const hasTwo = letterCounts.includes(2);
+        const hasThree = letterCounts.includes(3);
+        if (hasTwo) countTwo++;
+        if (hasThree) countThree++;
+    });
+
+    return countTwo * countThree;
+}
+
+function findCloseIds(ids: string[]): string | null {
+    for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+            const [diffIndex, diffCount] = compareIds(ids[i], ids[j]);
+            if (diffCount === 1) {
+                return ids[i].split('').filter((_, index) => index !== diffIndex).join('');
             }
-            console.log(common);
-            process.exit();
         }
     }
+    return null;
 }
+
+function compareIds(id1: string, id2: string): [number, number] {
+    let diffIndex = -1;
+    let diffCount = 0;
+
+    for (let i = 0; i < id1.length; i++) {
+        if (id1[i] !== id2[i]) {
+            diffCount++;
+            if (diffCount > 1) return [-1, diffCount];
+            diffIndex = i;
+        }
+    }
+    return [diffIndex, diffCount];
+}
+
+const checksum = calculateChecksum(input);
+console.log(`Checksum: ${checksum}`);
+
+const commonLetters = findCloseIds(input);
+console.log(`Common letters in the correct box IDs: ${commonLetters}`);

@@ -1,14 +1,21 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').trim();
-console.log(firstNUnique(data, 4));
-
-function firstNUnique(s, n) {
-    for (let i = n; i < s.length; i++) {
-        const b = Array.from(new Set(s.slice(i - n, i)));
-        if (b.length === n) {
-            return i;
+function findStartOfPacketMarker(datastream: string): number {
+    for (let i = 3; i < datastream.length; i++) {
+        const lastFourChars = datastream.slice(i - 3, i + 1);
+        const uniqueChars = new Set(lastFourChars);
+        if (uniqueChars.size === 4) {
+            return i + 1;
         }
     }
-    return -1;
+    return -1; // In case no marker is found
 }
+
+fs.readFile('input.txt', 'utf8', (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+    }
+    const position = findStartOfPacketMarker(data.trim());
+    console.log(position);
+});

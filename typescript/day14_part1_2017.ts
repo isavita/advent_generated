@@ -1,64 +1,53 @@
+import * as fs from 'fs';
+import * as crypto from 'crypto';
 
-const fs = require('fs');
-
-function reverseSection(arr, start, length) {
-    const n = arr.length;
-    for (let i = start, j = start + length - 1; i < j; i++, j--) {
-        [arr[i % n], arr[j % n]] = [arr[j % n], arr[i % n]];
-    }
-}
-
-function knotHash(input) {
-    const lengths = [...input].map(char => char.charCodeAt(0));
-    lengths.push(17, 31, 73, 47, 23);
-
-    const list = Array.from({ length: 256 }, (_, i) => i);
-
+// Function to compute the knot hash
+function knotHash(input: string): string {
+    const lengths = input.split('').map(char => char.charCodeAt(0)).concat([17, 31, 73, 47, 23]);
+    let list = Array.from({ length: 256 }, (_, i) => i);
     let position = 0;
-    let skip = 0;
+    let skipSize = 0;
+
     for (let round = 0; round < 64; round++) {
         for (const length of lengths) {
-            reverseSection(list, position, length);
-            position += length + skip;
-            skip++;
+            let sublist = [];
+            for (let i = 0; i < length; i++) {
+                sublist.push(list[(position + i) % list.length]);
+            }
+            sublist.reverse();
+            for (let i = 0; i < length; i++) {
+                list[(position + i) % list.length] = sublist[i];
+            }
+            position = (position + length + skipSize) % list.length;
+            skipSize++;
         }
     }
 
     const denseHash = [];
     for (let i = 0; i < 16; i++) {
-        let xor = 0;
-        for (let j = 0; j < 16; j++) {
-            xor ^= list[i * 16 + j];
-        }
-        denseHash.push(xor);
+        denseHash.push(list.slice(i * 16, (i + 1) * 16).reduce((a, b) => a ^ b));
     }
 
-    const hexHash = denseHash.map(v => v.toString(16).padStart(2, '0')).join('');
-    return hexHash;
+    return denseHash.map(num => num.toString(16).padStart(2, '0')).join('');
 }
 
-function hexToBinary(hexStr) {
-    let binaryStr = '';
-    for (const hexDigit of hexStr) {
-        const val = parseInt(hexDigit, 16);
-        binaryStr += val.toString(2).padStart(4, '0');
+// Function to convert hexadecimal to binary
+function hexToBinary(hex: string): string {
+    return hex.split('').map(char => parseInt(char, 16).toString(2).padStart(4, '0')).join('');
+}
+
+// Main function to read input, compute hashes, and count used squares
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim();
+    let usedSquaresCount = 0;
+
+    for (let row = 0; row < 128; row++) {
+        const hash = knotHash(`${input}-${row}`);
+        const binary = hexToBinary(hash);
+        usedSquaresCount += binary.split('').filter(bit => bit === '1').length;
     }
-    return binaryStr;
+
+    console.log(usedSquaresCount);
 }
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-let totalUsed = 0;
-
-for (let i = 0; i < 128; i++) {
-    const rowKey = `${input}-${i}`;
-    const hash = knotHash(rowKey);
-    const binaryRow = hexToBinary(hash);
-
-    for (const bit of binaryRow) {
-        if (bit === '1') {
-            totalUsed++;
-        }
-    }
-}
-
-console.log(totalUsed);
+main();

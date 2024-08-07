@@ -1,36 +1,47 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+type Instruction = [string, number];
 
-const [accumulator] = executeBootCode(input);
-console.log(accumulator);
+const parseInstructions = (data: string): Instruction[] => {
+    return data.trim().split('\n').map(line => {
+        const [operation, argument] = line.split(' ');
+        return [operation, parseInt(argument)];
+    });
+};
 
-function executeBootCode(instructions) {
+const runProgram = (instructions: Instruction[]): number => {
+    const visited = new Set<number>();
     let accumulator = 0;
-    const visited = new Set();
-    let currentInstruction = 0;
+    let pointer = 0;
 
-    while (currentInstruction < instructions.length) {
-        if (visited.has(currentInstruction)) {
-            return [accumulator, true];
+    while (pointer < instructions.length) {
+        if (visited.has(pointer)) {
+            return accumulator;
         }
-
-        visited.add(currentInstruction);
-        const [op, arg] = instructions[currentInstruction].split(' ');
+        visited.add(pointer);
         
-        switch (op) {
+        const [operation, argument] = instructions[pointer];
+        switch (operation) {
             case 'acc':
-                accumulator += parseInt(arg);
-                currentInstruction++;
+                accumulator += argument;
+                pointer++;
                 break;
             case 'jmp':
-                currentInstruction += parseInt(arg);
+                pointer += argument;
                 break;
             case 'nop':
-                currentInstruction++;
+                pointer++;
                 break;
         }
     }
+    return accumulator;
+};
 
-    return [accumulator, false];
-}
+const main = () => {
+    const data = fs.readFileSync('input.txt', 'utf-8');
+    const instructions = parseInstructions(data);
+    const result = runProgram(instructions);
+    console.log(result);
+};
+
+main();

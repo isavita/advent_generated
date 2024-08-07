@@ -1,30 +1,42 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const directions = data.trim();
-
-const visitedHouses = new Map();
-let x = 0, y = 0;
-
-visitedHouses.set(`${x},${y}`, true);
-
-for (let dir of directions) {
-    switch (dir) {
-        case '^':
-            y++;
-            break;
-        case 'v':
-            y--;
-            break;
-        case '>':
-            x++;
-            break;
-        case '<':
-            x--;
-            break;
-    }
-
-    visitedHouses.set(`${x},${y}`, true);
+// Function to read the input file and return its content as a string
+function readInput(filePath: string): string {
+    return fs.readFileSync(filePath, 'utf-8');
 }
 
-console.log(visitedHouses.size);
+// Function to calculate the number of houses that receive at least one present
+function countHousesWithPresents(directions: string): number {
+    const visitedHouses = new Set<string>();
+    let x = 0;
+    let y = 0;
+
+    // Add the starting location to the set of visited houses
+    visitedHouses.add(`${x},${y}`);
+
+    // Process each direction
+    for (const direction of directions) {
+        switch (direction) {
+            case '^': y++; break;
+            case 'v': y--; break;
+            case '>': x++; break;
+            case '<': x--; break;
+        }
+        // Add the current location to the set of visited houses
+        visitedHouses.add(`${x},${y}`);
+    }
+
+    // Return the number of unique houses visited
+    return visitedHouses.size;
+}
+
+// Main function
+function main() {
+    const inputFilePath = 'input.txt';
+    const directions = readInput(inputFilePath);
+    const result = countHousesWithPresents(directions);
+    console.log(result);
+}
+
+// Execute the main function
+main();

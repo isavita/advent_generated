@@ -1,61 +1,50 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function readInput(filename) {
-  return fs.readFileSync(filename, 'utf8').trim();
-}
+// Function to increment the password
+function incrementPassword(password: string): string {
+    const chars = password.split('');
+    let i = chars.length - 1;
 
-function findNextPassword(password) {
-  while (true) {
-    password = incrementPassword(password);
-    if (isValidPassword(password)) {
-      break;
+    while (i >= 0) {
+        if (chars[i] === 'z') {
+            chars[i] = 'a';
+            i--;
+        } else {
+            chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
+            break;
+        }
     }
-  }
-  return password;
+
+    return chars.join('');
 }
 
-function incrementPassword(password) {
-  let chars = password.split('');
-  for (let i = chars.length - 1; i >= 0; i--) {
-    chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
-    if (chars[i].charCodeAt(0) > 'z'.charCodeAt(0)) {
-      chars[i] = 'a';
-    } else {
-      break;
+// Function to check if the password is valid
+function isValidPassword(password: string): boolean {
+    if (/[iol]/.test(password)) return false;
+    if (!(/([a-z])\1.*([a-z])\2/.test(password))) return false;
+    if (!(/(?:(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz))/.test(password))) return false;
+
+    return true;
+}
+
+// Function to find the next valid password
+function findNextValidPassword(currentPassword: string): string {
+    let nextPassword = incrementPassword(currentPassword);
+
+    while (!isValidPassword(nextPassword)) {
+        nextPassword = incrementPassword(nextPassword);
     }
-  }
-  return chars.join('');
+
+    return nextPassword;
 }
 
-function isValidPassword(password) {
-  return hasStraight(password) && !containsInvalidLetters(password) && hasTwoPairs(password);
-}
+// Read the input from the file
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
 
-function hasStraight(password) {
-  for (let i = 0; i < password.length - 2; i++) {
-    if (password.charCodeAt(i) + 1 === password.charCodeAt(i + 1) && password.charCodeAt(i) + 2 === password.charCodeAt(i + 2)) {
-      return true;
-    }
-  }
-  return false;
-}
+// Find and print the next valid password
+const nextPassword = findNextValidPassword(input);
+console.log(nextPassword);
 
-function containsInvalidLetters(password) {
-  return password.includes('i') || password.includes('o') || password.includes('l');
-}
-
-function hasTwoPairs(password) {
-  let count = 0;
-  for (let i = 0; i < password.length - 1; i++) {
-    if (password[i] === password[i + 1]) {
-      count++;
-      i++; // Skip the next character
-    }
-  }
-  return count >= 2;
-}
-
-const currentPassword = readInput('input.txt');
-const firstNewPassword = findNextPassword(currentPassword);
-const secondNewPassword = findNextPassword(firstNewPassword);
-console.log(secondNewPassword);
+// Find and print the next valid password after the first one
+const nextNextPassword = findNextValidPassword(nextPassword);
+console.log(nextNextPassword);

@@ -1,41 +1,53 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8');
-let score = 0;
-let depth = 0;
-let inGarbage = false;
-let cancelNext = false;
-let garbageCount = 0;
+function processStream(input: string): [number, number] {
+    let score = 0;
+    let totalScore = 0;
+    let garbageCount = 0;
+    let inGarbage = false;
+    let cancelNext = false;
+    let depth = 0;
 
-for (let i = 0; i < input.length; i++) {
-    const ch = input[i];
-    if (cancelNext) {
-        cancelNext = false;
-        continue;
-    }
+    for (let i = 0; i < input.length; i++) {
+        const char = input[i];
 
-    if (inGarbage) {
-        if (ch === '!') {
-            cancelNext = true;
-        } else if (ch === '>') {
-            inGarbage = false;
-        } else {
-            garbageCount++;
+        if (cancelNext) {
+            cancelNext = false;
+            continue;
         }
-    } else {
-        switch (ch) {
-            case '{':
+
+        if (char === '!') {
+            cancelNext = true;
+            continue;
+        }
+
+        if (inGarbage) {
+            if (char === '>') {
+                inGarbage = false;
+            } else {
+                garbageCount++;
+            }
+        } else {
+            if (char === '<') {
+                inGarbage = true;
+            } else if (char === '{') {
                 depth++;
-                break;
-            case '}':
+            } else if (char === '}') {
                 score += depth;
                 depth--;
-                break;
-            case '<':
-                inGarbage = true;
-                break;
+            }
         }
     }
+
+    return [score, garbageCount];
 }
 
-console.log(garbageCount);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf8');
+    const [totalScore, garbageCount] = processStream(input);
+
+    console.log(`Total score for all groups: ${totalScore}`);
+    console.log(`Non-canceled characters within the garbage: ${garbageCount}`);
+}
+
+main();

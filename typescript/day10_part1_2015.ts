@@ -1,27 +1,45 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-
-const result = lookAndSay(input, 40);
-console.log(result.length);
-
-function lookAndSay(sequence, iterations) {
-  for (let i = 0; i < iterations; i++) {
-    sequence = nextSequence(sequence);
-  }
-  return sequence;
-}
-
-function nextSequence(sequence) {
-  let result = '';
-  for (let i = 0; i < sequence.length; ) {
+// Function to generate the next look-and-say sequence
+function lookAndSay(sequence: string): string {
+    let result = '';
     let count = 1;
-    let digit = sequence[i];
-    for (let j = i + 1; j < sequence.length && sequence[j] === digit; j++) {
-      count++;
+
+    for (let i = 1; i <= sequence.length; i++) {
+        if (i === sequence.length || sequence[i] !== sequence[i - 1]) {
+            result += count + sequence[i - 1];
+            count = 1;
+        } else {
+            count++;
+        }
     }
-    result += count + digit;
-    i += count;
-  }
-  return result;
+
+    return result;
 }
+
+// Function to read input from file and process the look-and-say sequence
+async function processInput(filePath: string): Promise<void> {
+    const fileStream = fs.createReadStream(filePath);
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
+
+    for await (const line of rl) {
+        let sequence = line.trim();
+        for (let i = 0; i < 40; i++) {
+            sequence = lookAndSay(sequence);
+        }
+        console.log(sequence.length);
+    }
+}
+
+// Main function to start the process
+(async () => {
+    try {
+        await processInput('input.txt');
+    } catch (error) {
+        console.error('Error reading file:', error);
+    }
+})();

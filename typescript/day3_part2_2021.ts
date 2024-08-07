@@ -1,42 +1,42 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
 
-const filterValues = (values, criteria) => {
-  for (let i = 0; i < values[0].length; i++) {
-    let zeros = 0, ones = 0;
-    for (const val of values) {
-      if (val[i] === '0') {
-        zeros++;
-      } else {
-        ones++;
-      }
+const calculateGammaEpsilon = (data: string[]) => {
+    const length = data[0].length;
+    const count = Array(length).fill(0);
+
+    for (const number of data) {
+        for (let i = 0; i < length; i++) {
+            count[i] += number[i] === '1' ? 1 : -1;
+        }
     }
-    const keep = criteria(zeros, ones);
-    values = filterByBit(values, i, keep);
-    if (values.length === 1) {
-      break;
+
+    const gamma = count.map(c => (c > 0 ? '1' : '0')).join('');
+    const epsilon = count.map(c => (c < 0 ? '1' : '0')).join('');
+    
+    return [parseInt(gamma, 2), parseInt(epsilon, 2)];
+};
+
+const calculateRating = (data: string[], isOxygen: boolean) => {
+    let filtered = [...data];
+    const length = filtered[0].length;
+
+    for (let i = 0; i < length && filtered.length > 1; i++) {
+        const count = filtered.reduce((acc, number) => acc + (number[i] === '1' ? 1 : -1), 0);
+        const keepBit = isOxygen ? (count >= 0 ? '1' : '0') : (count < 0 ? '1' : '0');
+        filtered = filtered.filter(number => number[i] === keepBit);
     }
-  }
-  return values[0];
-}
 
-const filterByBit = (values, bitIndex, keep) => {
-  const filtered = [];
-  for (const val of values) {
-    if (val[bitIndex] === keep) {
-      filtered.push(val);
-    }
-  }
-  return filtered;
-}
+    return parseInt(filtered[0], 2);
+};
 
-const inputContent = fs.readFileSync('input.txt', 'utf-8');
-const values = inputContent.trim().split('\n');
+const [gamma, epsilon] = calculateGammaEpsilon(input);
+const powerConsumption = gamma * epsilon;
 
-const oxygenGeneratorRating = filterValues(values, (zeros, ones) => zeros > ones ? '0' : '1');
-const oxygenGeneratorRatingInt = parseInt(oxygenGeneratorRating, 2);
+const oxygenRating = calculateRating(input, true);
+const co2Rating = calculateRating(input, false);
+const lifeSupportRating = oxygenRating * co2Rating;
 
-const co2ScrubberRating = filterValues(values, (zeros, ones) => zeros <= ones ? '0' : '1');
-const co2ScrubberRatingInt = parseInt(co2ScrubberRating, 2);
-
-console.log(oxygenGeneratorRatingInt * co2ScrubberRatingInt);
+console.log(`Power Consumption: ${powerConsumption}`);
+console.log(`Life Support Rating: ${lifeSupportRating}`);

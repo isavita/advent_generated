@@ -1,33 +1,33 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const decodeSeat = (boardingPass: string): number => {
+    const rowBinary = boardingPass.slice(0, 7).replace(/F/g, '0').replace(/B/g, '1');
+    const colBinary = boardingPass.slice(7).replace(/L/g, '0').replace(/R/g, '1');
+    const row = parseInt(rowBinary, 2);
+    const col = parseInt(colBinary, 2);
+    return row * 8 + col;
+};
 
-const seatIDs = data.map(pass => {
-    pass = pass.replace(/F/g, '0').replace(/B/g, '1').replace(/L/g, '0').replace(/R/g, '1');
-    return decode(pass);
+const findSeatID = (boardingPasses: string[]): number[] => {
+    return boardingPasses.map(decodeSeat);
+};
+
+const findMissingSeatID = (seatIDs: number[]): number => {
+    const allIDs = new Set(seatIDs);
+    for (let id = Math.min(...seatIDs); id <= Math.max(...seatIDs); id++) {
+        if (!allIDs.has(id)) return id;
+    }
+    return -1; // In case no missing seat is found
+};
+
+fs.readFile('input.txt', 'utf8', (err, data) => {
+    if (err) throw err;
+    const boardingPasses = data.trim().split('\n');
+    const seatIDs = findSeatID(boardingPasses);
+    
+    const highestSeatID = Math.max(...seatIDs);
+    console.log('Highest Seat ID:', highestSeatID);
+    
+    const missingSeatID = findMissingSeatID(seatIDs);
+    console.log('Missing Seat ID:', missingSeatID);
 });
-
-seatIDs.sort((a, b) => a - b);
-
-for (let i = 0; i < seatIDs.length - 1; i++) {
-    if (seatIDs[i + 1] !== seatIDs[i] + 1) {
-        console.log(seatIDs[i] + 1);
-        break;
-    }
-}
-
-function decode(pass) {
-    const row = binaryToInt(pass.slice(0, 7));
-    const column = binaryToInt(pass.slice(7));
-    return row * 8 + column;
-}
-
-function binaryToInt(binaryStr) {
-    let result = 0;
-    for (let i = 0; i < binaryStr.length; i++) {
-        if (binaryStr[i] === '1') {
-            result |= 1 << (binaryStr.length - i - 1);
-        }
-    }
-    return result;
-}

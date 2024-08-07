@@ -1,53 +1,45 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const totalRows = 40;
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
 
-function readFirstRow(filename) {
-  return fs.readFileSync(filename, 'utf8').trim();
-}
-
-function countSafeTiles(firstRow, totalRows) {
-  let currentRow = firstRow;
-  let safeCount = countChar(currentRow, '.');
-
-  for (let i = 1; i < totalRows; i++) {
-    let nextRow = '';
-    for (let j = 0; j < currentRow.length; j++) {
-      if (isTrap(j - 1, j, j + 1, currentRow)) {
-        nextRow += '^';
-      } else {
-        nextRow += '.';
-        safeCount++;
-      }
+// Function to determine the type of the next tile based on the previous row
+function getNextTile(left: string, center: string, right: string): string {
+    if ((left === '^' && center === '^' && right === '.') ||
+        (center === '^' && right === '^' && left === '.') ||
+        (left === '^' && center === '.' && right === '.') ||
+        (left === '.' && center === '.' && right === '^')) {
+        return '^';
     }
-    currentRow = nextRow;
-  }
-  return safeCount;
+    return '.';
 }
 
-function isTrap(left, center, right, row) {
-  let l = safeIfOutOfBounds(left, row);
-  let c = row[center];
-  let r = safeIfOutOfBounds(right, row);
-
-  return (l === '^' && c === '^' && r === '.') ||
-         (c === '^' && r === '^' && l === '.') ||
-         (l === '^' && c === '.' && r === '.') ||
-         (r === '^' && c === '.' && l === '.');
+// Function to generate the next row based on the previous row
+function generateNextRow(row: string): string {
+    let nextRow = '';
+    for (let i = 0; i < row.length; i++) {
+        const left = i > 0 ? row[i - 1] : '.';
+        const center = row[i];
+        const right = i < row.length - 1 ? row[i + 1] : '.';
+        nextRow += getNextTile(left, center, right);
+    }
+    return nextRow;
 }
 
-function safeIfOutOfBounds(index, row) {
-  return (index < 0 || index >= row.length) ? '.' : row[index];
+// Function to count the number of safe tiles in a row
+function countSafeTiles(row: string): number {
+    return row.split('.').length - 1;
 }
 
-function countChar(str, char) {
-  return str.split(char).length - 1;
+// Initialize the first row and the total number of safe tiles
+let currentRow = input;
+let totalSafeTiles = countSafeTiles(currentRow);
+
+// Generate the next 39 rows and count the safe tiles
+for (let i = 1; i < 40; i++) {
+    currentRow = generateNextRow(currentRow);
+    totalSafeTiles += countSafeTiles(currentRow);
 }
 
-function main() {
-  let firstRow = readFirstRow('input.txt');
-  let safeTilesCount = countSafeTiles(firstRow, totalRows);
-  console.log(safeTilesCount);
-}
-
-main();
+// Print the total number of safe tiles
+console.log(totalSafeTiles);

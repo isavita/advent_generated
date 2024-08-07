@@ -1,30 +1,41 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function readInput(filename) {
-    return fs.readFileSync(filename, 'utf8').trim();
-}
-
-function lookAndSay(sequence, iterations) {
-    for (let i = 0; i < iterations; i++) {
-        sequence = nextSequence(sequence);
-    }
-    return sequence;
-}
-
-function nextSequence(sequence) {
+function lookAndSay(input: string): string {
     let result = '';
-    for (let i = 0; i < sequence.length;) {
-        let count = 1;
-        let digit = sequence[i];
-        for (let j = i + 1; j < sequence.length && sequence[j] === digit; j++) {
+    let count = 1;
+
+    for (let i = 0; i < input.length; i++) {
+        if (input[i] === input[i + 1]) {
             count++;
+        } else {
+            result += count + input[i];
+            count = 1;
         }
-        result += `${count}${digit}`;
-        i += count;
     }
+
     return result;
 }
 
-const initialSequence = readInput('input.txt');
-const result = lookAndSay(initialSequence, 50);
-console.log(result.length);
+function solve(input: string, iterations: number): number {
+    let sequence = input;
+
+    for (let i = 0; i < iterations; i++) {
+        sequence = lookAndSay(sequence);
+    }
+
+    return sequence.length;
+}
+
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim();
+
+    // Part 1: Apply the process 40 times
+    const lengthAfter40 = solve(input, 40);
+    console.log(`Length after 40 iterations: ${lengthAfter40}`);
+
+    // Part 2: Apply the process 50 times
+    const lengthAfter50 = solve(input, 50);
+    console.log(`Length after 50 iterations: ${lengthAfter50}`);
+}
+
+main();

@@ -1,38 +1,61 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-
-const contains = {};
-
-for (const line of input) {
-    const parts = line.split(' bags contain ');
-    const container = parts[0];
-    if (parts[1] === 'no other bags.') {
-        continue;
-    }
-    const containedBags = parts[1].split(', ');
-    for (const bag of containedBags) {
-        const bagName = bag.split(' ').slice(1, 3).join(' ');
-        if (!contains[bagName]) {
-            contains[bagName] = [];
-        }
-        contains[bagName].push(container);
-    }
-}
-
-const countCanContain = (target, contains) => {
-    const seen = {};
-    const dfs = (bag) => {
-        for (const outer of contains[bag] || []) {
-            if (!seen[outer]) {
-                seen[outer] = true;
-                dfs(outer);
-            }
-        }
-    };
-    dfs(target);
-    return Object.keys(seen).length;
+type BagRule = {
+    color: string;
+    contains: Array<{ count: number; color: string }>;
 };
 
-const count = countCanContain('shiny gold', contains);
-console.log(count);
+const parseInput = (input: string): BagRule[] => {
+    const lines = input.trim().split('\n');
+    const rules: BagRule[] = [];
+
+    for (const line of lines) {
+        const [_, color, contents] = line.match(/(\w+ \w+) bags contain (.+)\./) || [];
+        const contains = contents.split(', ').map(content => {
+            const match = content.match(/(\d+) (\w+ \w+) bags?/);
+            return match ? { count: parseInt(match[1]), color: match[2] } : null;
+        }).filter(Boolean) as Array<{ count: number; color: string }>;
+
+        rules.push({ color, contains });
+    }
+    return rules;
+};
+
+const buildGraph = (rules: BagRule[]): Map<string, string[]> => {
+    const graph = new Map<string, string[]>();
+    for (const { color, contains } of rules) {
+        for (const { color: containedColor } of contains) {
+            if (!graph.has(containedColor)) {
+                graph.set(containedColor, []);
+            }
+            graph.get(containedColor)!.push(color);
+        }
+    }
+    return graph;
+};
+
+const countBagColors = (graph: Map<string, string[]>, target: string): number => {
+    const visited = new Set<string>();
+    const stack: string[] = [target];
+
+    while (stack.length > 0) {
+        const current = stack.pop()!;
+        if (!visited.has(current)) {
+            visited.add(current);
+            const neighbors = graph.get(current) || [];
+            stack.push(...neighbors);
+        }
+    }
+    visited.delete(target); // Exclude the target bag itself
+    return visited.size;
+};
+
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const rules = parseInput(input);
+    const graph = buildGraph(rules);
+    const result = countBagColors(graph, 'shiny gold');
+    console.log(result);
+};
+
+main();

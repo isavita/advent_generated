@@ -1,23 +1,20 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-const counts = Array.from({ length: 12 }, () => [0, 0]);
+function calculatePowerConsumption(filename: string): number {
+    const data = fs.readFileSync(filename, 'utf-8').trim().split('\n');
+    const bitLength = data[0].length;
+    const counts = Array(bitLength).fill(0);
 
-input.forEach((num) => {
-  for (let i = 0; i < num.length; i++) {
-    counts[i][num[i] - '0']++;
-  }
-});
+    data.forEach(line => {
+        for (let i = 0; i < bitLength; i++) {
+            counts[i] += line[i] === '1' ? 1 : -1;
+        }
+    });
 
-let gammaRate = 0;
-let epsilonRate = 0;
+    const gammaRate = parseInt(counts.map(count => (count > 0 ? '1' : '0')).join(''), 2);
+    const epsilonRate = parseInt(counts.map(count => (count < 0 ? '1' : '0')).join(''), 2);
 
-for (let i = 0; i < counts.length; i++) {
-  if (counts[i][0] > counts[i][1]) {
-    gammaRate |= 1 << (counts.length - i - 1);
-  } else {
-    epsilonRate |= 1 << (counts.length - i - 1);
-  }
+    return gammaRate * epsilonRate;
 }
 
-console.log(gammaRate * epsilonRate);
+console.log(calculatePowerConsumption('input.txt'));

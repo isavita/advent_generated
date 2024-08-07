@@ -1,25 +1,40 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const passphrases = data.trim().split('\n');
-let validCount = 0;
+// Function to check if a passphrase is valid
+function isValidPassphrase(passphrase: string): boolean {
+    const words = passphrase.split(' ');
+    const wordSet = new Set(words);
+    return words.length === wordSet.size;
+}
 
-passphrases.forEach(passphrase => {
-  const words = passphrase.split(' ');
-  const wordSet = new Set();
+// Function to read input file and count valid passphrases
+async function countValidPassphrases(filePath: string): Promise<number> {
+    const fileStream = fs.createReadStream(filePath);
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
 
-  let valid = true;
-  for (const word of words) {
-    if (wordSet.has(word)) {
-      valid = false;
-      break;
+    let validPassphrasesCount = 0;
+
+    for await (const line of rl) {
+        if (isValidPassphrase(line)) {
+            validPassphrasesCount++;
+        }
     }
-    wordSet.add(word);
-  }
 
-  if (valid) {
-    validCount++;
-  }
-});
+    return validPassphrasesCount;
+}
 
-console.log(validCount);
+// Main function to execute the program
+(async () => {
+    const filePath = 'input.txt';
+    try {
+        const validPassphrasesCount = await countValidPassphrases(filePath);
+        console.log(`Number of valid passphrases: ${validPassphrasesCount}`);
+    } catch (error) {
+        // Cast error to the Error type to access the message property
+        console.error(`Error reading file: ${(error as Error).message}`);
+    }
+})();

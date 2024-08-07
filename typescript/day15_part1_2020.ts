@@ -1,23 +1,24 @@
-const fs = require('fs');
+import { readFileSync } from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split(',');
+const input = readFileSync('input.txt', 'utf-8').trim();
+const startingNumbers = input.split(',').map(Number);
 
-const lastSpoken = new Map();
-let lastNumber, nextNumber;
+const find2020thNumber = (numbers: number[], turns: number): number => {
+    const lastSpoken: Map<number, number> = new Map();
+    let currentNumber: number = 0; // Initialize to a default value
 
-for (let turn = 1; turn <= 2020; turn++) {
-    if (turn - 1 < input.length) {
-        lastNumber = parseInt(input[turn - 1]);
-        lastSpoken.set(lastNumber, turn);
-        continue;
+    numbers.forEach((num, index) => {
+        lastSpoken.set(num, index + 1);
+        currentNumber = num;
+    });
+
+    for (let turn = numbers.length + 1; turn <= turns; turn++) {
+        const lastTurn = lastSpoken.get(currentNumber);
+        lastSpoken.set(currentNumber, turn - 1);
+        currentNumber = lastTurn === undefined ? 0 : turn - 1 - lastTurn;
     }
-    if (lastSpoken.has(lastNumber) && lastSpoken.get(lastNumber) !== turn - 1) {
-        nextNumber = turn - 1 - lastSpoken.get(lastNumber);
-    } else {
-        nextNumber = 0;
-    }
-    lastSpoken.set(lastNumber, turn - 1);
-    lastNumber = nextNumber;
-}
 
-console.log(lastNumber);
+    return currentNumber;
+};
+
+console.log(find2020thNumber(startingNumbers, 2020));

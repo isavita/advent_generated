@@ -1,15 +1,19 @@
-const fs = require('fs');
+import { readFileSync } from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const steps = parseInt(data.trim());
-let buffer = [0];
-let currentPos = 0;
+const input = parseInt(readFileSync('input.txt', 'utf-8').trim());
 
-for (let i = 1; i <= 2017; i++) {
-    currentPos = (currentPos + steps) % buffer.length;
-    buffer.splice(currentPos + 1, 0, i);
-    currentPos++;
-}
+const spinlock = (steps: number, iterations: number): number => {
+    const buffer: number[] = [0];
+    let currentPosition = 0;
 
-const index = buffer.indexOf(2017);
-console.log(buffer[(index + 1) % buffer.length]);
+    for (let i = 1; i <= iterations; i++) {
+        currentPosition = (currentPosition + steps) % buffer.length;
+        buffer.splice(currentPosition + 1, 0, i);
+        currentPosition++;
+    }
+
+    const indexAfterLast = (buffer.indexOf(iterations) + 1) % buffer.length;
+    return buffer[indexAfterLast];
+};
+
+console.log(spinlock(input, 2017));

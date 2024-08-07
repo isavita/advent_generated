@@ -1,36 +1,44 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const diskLength = 272; // Disk length for the problem
-
-function readInitialState(filename) {
-	const data = fs.readFileSync(filename, 'utf8');
-	return data.trim();
+// Function to generate the dragon curve data
+function generateDragonCurve(data: string, length: number): string {
+    while (data.length < length) {
+        let b = data.split('').reverse().map(c => c === '0' ? '1' : '0').join('');
+        data = data + '0' + b;
+    }
+    return data.slice(0, length);
 }
 
-function generateData(initialState, length) {
-	let data = initialState;
-	while (data.length < length) {
-		let b = '';
-		for (let i = data.length - 1; i >= 0; i--) {
-			b += data[i] === '0' ? '1' : '0';
-		}
-		data = data + '0' + b;
-	}
-	return data.slice(0, length);
+// Function to calculate the checksum
+function calculateChecksum(data: string): string {
+    let checksum = data;
+    while (checksum.length % 2 === 0) {
+        let newChecksum = '';
+        for (let i = 0; i < checksum.length; i += 2) {
+            newChecksum += checksum[i] === checksum[i + 1] ? '1' : '0';
+        }
+        checksum = newChecksum;
+    }
+    return checksum;
 }
 
-function calculateChecksum(data) {
-	while (data.length % 2 === 0) {
-		let b = '';
-		for (let i = 0; i < data.length; i += 2) {
-			b += data[i] === data[i + 1] ? '1' : '0';
-		}
-		data = b;
-	}
-	return data;
+// Main function to read input, process data, and print the checksum
+function main() {
+    const inputFilePath = 'input.txt';
+    const diskLength = 272;
+
+    // Read the initial state from the input file
+    const initialState = fs.readFileSync(inputFilePath, 'utf-8').trim();
+
+    // Generate the dragon curve data
+    const dragonCurveData = generateDragonCurve(initialState, diskLength);
+
+    // Calculate the checksum
+    const checksum = calculateChecksum(dragonCurveData);
+
+    // Print the checksum
+    console.log(checksum);
 }
 
-const initialState = readInitialState('input.txt');
-const data = generateData(initialState, diskLength);
-const checksum = calculateChecksum(data);
-console.log('Checksum:', checksum);
+// Run the main function
+main();

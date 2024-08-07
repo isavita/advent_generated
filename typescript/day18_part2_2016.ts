@@ -1,60 +1,43 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const totalRows = 400000;
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const rows: number = 400000; // Change to 40 for part one
+const initialRow: string = input;
 
-function readFirstRow(filename) {
-    const data = fs.readFileSync(filename, 'utf8');
-    const lines = data.split('\n');
-    return lines[0];
-}
+const nextRow = (prevRow: string): string => {
+    let newRow = '';
+    const length = prevRow.length;
 
-function countSafeTiles(firstRow, totalRows) {
-    let currentRow = firstRow;
-    let safeCount = countChar(currentRow, '.');
+    for (let i = 0; i < length; i++) {
+        const left = i > 0 ? prevRow[i - 1] : '.';
+        const center = prevRow[i];
+        const right = i < length - 1 ? prevRow[i + 1] : '.';
 
-    for (let i = 1; i < totalRows; i++) {
-        let nextRow = '';
-        for (let j = 0; j < currentRow.length; j++) {
-            if (isTrap(j - 1, j, j + 1, currentRow)) {
-                nextRow += '^';
-            } else {
-                nextRow += '.';
-                safeCount++;
-            }
+        if ((left === '^' && center === '^' && right === '.') ||
+            (center === '^' && right === '^' && left === '.') ||
+            (left === '^' && center === '.' && right === '.') ||
+            (left === '.' && center === '.' && right === '^')) {
+            newRow += '^';
+        } else {
+            newRow += '.';
         }
-        currentRow = nextRow;
+    }
+    return newRow;
+};
+
+const countSafeTiles = (initial: string, totalRows: number): number => {
+    let currentRow = initial;
+    let safeCount = 0;
+
+    for (let i = 0; i < totalRows; i++) {
+        safeCount += currentRow.split('').filter(tile => tile === '.').length;
+        currentRow = nextRow(currentRow);
     }
     return safeCount;
-}
+};
 
-function isTrap(left, center, right, row) {
-    const l = safeIfOutOfBounds(left, row);
-    const c = row[center];
-    const r = safeIfOutOfBounds(right, row);
+const partOneResult = countSafeTiles(initialRow, 40);
+console.log(`Safe tiles in 40 rows: ${partOneResult}`);
 
-    return (l === '^' && c === '^' && r === '.') ||
-        (c === '^' && r === '^' && l === '.') ||
-        (l === '^' && c === '.' && r === '.') ||
-        (r === '^' && c === '.' && l === '.');
-}
-
-function safeIfOutOfBounds(index, row) {
-    if (index < 0 || index >= row.length) {
-        return '.';
-    }
-    return row[index];
-}
-
-function countChar(str, char) {
-    let count = 0;
-    for (let i = 0; i < str.length; i++) {
-        if (str[i] === char) {
-            count++;
-        }
-    }
-    return count;
-}
-
-const firstRow = readFirstRow("input.txt");
-const safeTilesCount = countSafeTiles(firstRow, totalRows);
-console.log(safeTilesCount);
+const partTwoResult = countSafeTiles(initialRow, rows);
+console.log(`Safe tiles in 400000 rows: ${partTwoResult}`);

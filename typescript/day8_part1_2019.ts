@@ -1,38 +1,40 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const WIDTH = 25;
+const HEIGHT = 6;
+const LAYER_SIZE = WIDTH * HEIGHT;
 
-const data = fs.readFileSync('input.txt', 'utf8').trim();
-const width = 25;
-const height = 6;
-const layerSize = width * height;
-
-let minZeros = layerSize + 1;
-let result = 0;
-
-for (let i = 0; i < data.length; i += layerSize) {
-    const layer = data.slice(i, Math.min(i + layerSize, data.length));
-    let zeroCount = 0;
-    let oneCount = 0;
-    let twoCount = 0;
-
-    for (const pixel of layer) {
-        switch (pixel) {
-            case '0':
-                zeroCount++;
-                break;
-            case '1':
-                oneCount++;
-                break;
-            case '2':
-                twoCount++;
-                break;
-        }
-    }
-
-    if (zeroCount < minZeros) {
-        minZeros = zeroCount;
-        result = oneCount * twoCount;
-    }
+function main() {
+    const data = fs.readFileSync('input.txt', 'utf-8').trim();
+    const layers = splitIntoLayers(data, LAYER_SIZE);
+    const layerWithFewestZeros = findLayerWithFewestZeros(layers);
+    const result = countDigits(layerWithFewestZeros);
+    console.log(result[1] * result[2]); // Multiply 1s and 2s
 }
 
-console.log(result);
+function splitIntoLayers(data: string, layerSize: number): string[] {
+    const layers: string[] = [];
+    for (let i = 0; i < data.length; i += layerSize) {
+        layers.push(data.slice(i, i + layerSize));
+    }
+    return layers;
+}
+
+function findLayerWithFewestZeros(layers: string[]): string {
+    return layers.reduce((prev, curr) => {
+        return countDigits(prev)[0] <= countDigits(curr)[0] ? prev : curr;
+    });
+}
+
+function countDigits(layer: string): [number, number, number] {
+    const counts: [number, number, number] = [0, 0, 0];
+    for (const char of layer) {
+        const digit = parseInt(char);
+        if (digit >= 0 && digit <= 2) {
+            counts[digit]++;
+        }
+    }
+    return counts;
+}
+
+main();

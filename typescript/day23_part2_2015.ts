@@ -1,34 +1,88 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-const instructions = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const registers = { a: 1, b: 0 };
-
-for (let i = 0; i < instructions.length; i++) {
-  const parts = instructions[i].split(' ');
-  switch (parts[0]) {
-    case 'hlf':
-      registers[parts[1]] /= 2;
-      break;
-    case 'tpl':
-      registers[parts[1]] *= 3;
-      break;
-    case 'inc':
-      registers[parts[1]]++;
-      break;
-    case 'jmp':
-      i += parseInt(parts[1]) - 1;
-      break;
-    case 'jie':
-      if (registers[parts[1][0]] % 2 === 0) {
-        i += parseInt(parts[2]) - 1;
-      }
-      break;
-    case 'jio':
-      if (registers[parts[1][0]] === 1) {
-        i += parseInt(parts[2]) - 1;
-      }
-      break;
-  }
+interface Instruction {
+    type: string;
+    arg1: string;
+    arg2?: string;
 }
 
-console.log(registers.b);
+async function readInstructions(filePath: string): Promise<Instruction[]> {
+    const fileStream = fs.createReadStream(filePath);
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
+
+    const instructions: Instruction[] = [];
+    for await (const line of rl) {
+        const parts = line.split(', ');
+        if (parts.length === 1) {
+            const [type, arg1] = line.split(' ');
+            instructions.push({ type, arg1 });
+        } else {
+            const [typeArg1, arg2] = parts;
+            const [type, arg1] = typeArg1.split(' ');
+            instructions.push({ type, arg1, arg2 });
+        }
+    }
+
+    return instructions;
+}
+
+function executeProgram(instructions: Instruction[], initialA: number = 0): number {
+    let a = initialA;
+    let b = 0;
+    let i = 0;
+
+    while (i >= 0 && i < instructions.length) {
+        const instruction = instructions[i];
+        switch (instruction.type) {
+            case 'hlf':
+                if (instruction.arg1 === 'a') a = Math.floor(a / 2);
+                else b = Math.floor(b / 2);
+                i++;
+                break;
+            case 'tpl':
+                if (instruction.arg1 === 'a') a *= 3;
+                else b *= 3;
+                i++;
+                break;
+            case 'inc':
+                if (instruction.arg1 === 'a') a++;
+                else b++;
+                i++;
+                break;
+            case 'jmp':
+                i += parseInt(instruction.arg1);
+                break;
+            case 'jie':
+                if ((instruction.arg1 === 'a' && a % 2 === 0) || (instruction.arg1 === 'b' && b % 2 === 0)) {
+                    i += parseInt(instruction.arg2!);
+                } else {
+                    i++;
+                }
+                break;
+            case 'jio':
+                if ((instruction.arg1 === 'a' && a === 1) || (instruction.arg1 === 'b' && b === 1)) {
+                    i += parseInt(instruction.arg2!);
+                } else {
+                    i++;
+                }
+                break;
+            default:
+                throw new Error(`Unknown instruction type: ${instruction.type}`);
+        }
+    }
+
+    return b;
+}
+
+(async () => {
+    const instructions = await readInstructions('input.txt');
+    const resultPart1 = executeProgram(instructions);
+    console.log(`Value in register b (Part 1): ${resultPart1}`);
+
+    const resultPart2 = executeProgram(instructions, 1);
+    console.log(`Value in register b (Part 2): ${resultPart2}`);
+})();

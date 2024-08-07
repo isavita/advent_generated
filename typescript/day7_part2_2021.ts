@@ -1,23 +1,51 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const positions = input.split(',').map(Number);
 
-const input = fs.readFileSync('input.txt', 'utf8');
-const positions = input.split(',').map(Number).sort((a, b) => a - b);
+// Part One: Constant fuel cost
+const calculateFuelPartOne = (target: number): number => {
+    return positions.reduce((total, pos) => total + Math.abs(pos - target), 0);
+};
 
-let minFuel = Number.MAX_SAFE_INTEGER;
-for (let i = positions[0]; i <= positions[positions.length - 1]; i++) {
-    let fuel = 0;
-    for (const pos of positions) {
-        fuel += calculateNewFuel(pos, i);
+const findOptimalPositionPartOne = (): number => {
+    const min = Math.min(...positions);
+    const max = Math.max(...positions);
+    let minFuel = Infinity;
+
+    for (let target = min; target <= max; target++) {
+        const fuel = calculateFuelPartOne(target);
+        if (fuel < minFuel) {
+            minFuel = fuel;
+        }
     }
-    if (fuel < minFuel) {
-        minFuel = fuel;
+    return minFuel;
+};
+
+// Part Two: Increasing fuel cost
+const calculateFuelPartTwo = (target: number): number => {
+    return positions.reduce((total, pos) => {
+        const distance = Math.abs(pos - target);
+        return total + (distance * (distance + 1)) / 2; // Sum of first n numbers: n(n + 1) / 2
+    }, 0);
+};
+
+const findOptimalPositionPartTwo = (): number => {
+    const min = Math.min(...positions);
+    const max = Math.max(...positions);
+    let minFuel = Infinity;
+
+    for (let target = min; target <= max; target++) {
+        const fuel = calculateFuelPartTwo(target);
+        if (fuel < minFuel) {
+            minFuel = fuel;
+        }
     }
-}
+    return minFuel;
+};
 
-console.log(minFuel);
+const resultPartOne = findOptimalPositionPartOne();
+const resultPartTwo = findOptimalPositionPartTwo();
 
-function calculateNewFuel(currentPosition, newPosition) {
-    const diff = Math.abs(currentPosition - newPosition);
-    return (diff * (diff + 1)) / 2;
-}
+console.log(`Minimum fuel for part one: ${resultPartOne}`);
+console.log(`Minimum fuel for part two: ${resultPartTwo}`);

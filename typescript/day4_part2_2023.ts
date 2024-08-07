@@ -1,79 +1,66 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Card {
-    constructor() {
-        this.winnings = new Map();
-        this.givens = new Map();
-        this.totalCount = 1;
-    }
+interface Card {
+  winnings: { [key: string]: number };
+  givens: { [key: string]: number };
+  totalCount: number;
 }
 
-function getPointsForCard(card) {
-    let points = 0;
-    for (let [given, count] of card.givens) {
-        if (card.winnings.has(given)) {
-            points += count * card.winnings.get(given);
-        }
+function getPointsForCard(card: Card): number {
+  let points = 0;
+  for (const given in card.givens) {
+    if (card.winnings[given]) {
+      points += card.givens[given] * card.winnings[given];
     }
-    return points;
+  }
+  return points;
 }
 
-function lexLineIntoCard(line) {
-    const [_, cardDataStr, __] = line.split(": ");
-    const cardData = cardDataStr.split(" | ");
-    
-    const re = /[0-9]{1,2}/g;
-    
-    const winnings = new Map();
-    cardData[0].match(re).forEach(point => {
-        winnings.set(point, (winnings.get(point) || 0) + 1);
-    });
-    
-    const givens = new Map();
-    cardData[1].match(re).forEach(point => {
-        givens.set(point, (givens.get(point) || 0) + 1);
-    });
-    
-    const card = new Card();
-    card.winnings = winnings;
-    card.givens = givens;
-    
-    return card;
+function lexLineIntoCard(line: string): Card {
+  const cardDataStr = line.split(': ')[1];
+  const cardData = cardDataStr.split(' | ');
+
+  const winnings: { [key: string]: number } = {};
+  const givens: { [key: string]: number } = {};
+
+  for (const point of cardData[0].match(/[0-9]{1,2}/g)!) {
+    winnings[point] = (winnings[point] || 0) + 1;
+  }
+
+  for (const point of cardData[1].match(/[0-9]{1,2}/g)!) {
+    givens[point] = (givens[point] || 0) + 1;
+  }
+
+  return {
+    winnings,
+    givens,
+    totalCount: 1,
+  };
 }
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error("Error reading file:", err);
-        return;
+fs.readFile('input.txt', 'utf8', (err: NodeJS.ErrnoException | null, input: string) => {
+  if (err) {
+    console.error('Error reading file:', err);
+    return;
+  }
+
+  const lines = input.trim().split('\n');
+  const cards: Card[] = [];
+
+  for (const line of lines) {
+    if (line.trim() === '') continue;
+    cards.push(lexLineIntoCard(line));
+  }
+
+  for (let i = 0; i < cards.length; i++) {
+    const points = getPointsForCard(cards[i]);
+    for (let j = 1; j <= points; j++) {
+      if (i + j < cards.length) {
+        cards[i + j].totalCount += cards[i].totalCount;
+      }
     }
-    
-    const input = data.trim();
-    const lines = input.split("\n");
-    
-    const cards = [];
-    
-    lines.forEach(line => {
-        if (line.length === 0) {
-            return;
-        }
-        const card = lexLineIntoCard(line);
-        cards.push(card);
-    });
-    
-    cards.forEach((card, i) => {
-        const points = getPointsForCard(card);
-        
-        for (let j = 1; j <= points; j++) {
-            if (cards[i+j]) {
-                cards[i+j].totalCount += 1 * card.totalCount;
-            }
-        }
-    });
-    
-    let totalCards = 0;
-    cards.forEach(card => {
-        totalCards += card.totalCount;
-    });
-    
-    console.log(totalCards);
+  }
+
+  const totalCards = cards.reduce((sum, card) => sum + card.totalCount, 0);
+  console.log(totalCards);
 });

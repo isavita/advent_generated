@@ -1,30 +1,43 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+interface Command {
+    direction: string;
+    value: number;
+}
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+const parseInput = (input: string): Command[] => {
+    return input.trim().split('\n').map(line => {
+        const [direction, value] = line.split(' ');
+        return { direction, value: parseInt(value, 10) };
+    });
+};
 
-let horizontalPosition = 0;
-let depth = 0;
-let aim = 0;
+const calculatePositions = (commands: Command[]) => {
+    let horizontal = 0, depth = 0, aim = 0;
 
-input.forEach((line) => {
-  const command = line.split(' ');
-  const direction = command[0];
-  const units = parseInt(command[1]);
+    for (const { direction, value } of commands) {
+        switch (direction) {
+            case 'forward':
+                horizontal += value;
+                depth += aim * value;
+                break;
+            case 'down':
+                aim += value;
+                break;
+            case 'up':
+                aim -= value;
+                break;
+        }
+    }
 
-  switch (direction) {
-    case 'forward':
-      horizontalPosition += units;
-      depth += aim * units;
-      break;
-    case 'down':
-      aim += units;
-      break;
-    case 'up':
-      aim -= units;
-      break;
-  }
-});
+    return horizontal * depth;
+};
 
-const product = horizontalPosition * depth;
-console.log(product);
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const commands = parseInput(input);
+    const result = calculatePositions(commands);
+    console.log(result);
+};
+
+main();

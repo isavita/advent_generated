@@ -1,50 +1,85 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Position {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
+type Direction = 'N' | 'E' | 'S' | 'W';
+type Turn = 'L' | 'R';
+
+interface Instruction {
+  turn: Turn;
+  blocks: number;
 }
 
-function firstRevisitedDistance(instructions) {
-    let pos = new Position(0, 0);
-    let visited = new Map();
-    visited.set(JSON.stringify(pos), true);
-    let directions = [new Position(0, 1), new Position(1, 0), new Position(0, -1), new Position(-1, 0)];
-    let dirIndex = 0;
-
-    for (let instruction of instructions) {
-        let turn = instruction.slice(0, 1);
-        let blocks = parseInt(instruction.slice(1));
-
-        if (turn === "R") {
-            dirIndex = (dirIndex + 1) % 4;
-        } else {
-            dirIndex = (dirIndex - 1 + 4) % 4;
-        }
-
-        for (let i = 0; i < blocks; i++) {
-            pos.x += directions[dirIndex].x;
-            pos.y += directions[dirIndex].y;
-
-            if (visited.has(JSON.stringify(pos))) {
-                return Math.abs(pos.x) + Math.abs(pos.y);
-            }
-            visited.set(JSON.stringify(pos), true);
-        }
-    }
-
-    return -1;
+function parseInstructions(input: string): Instruction[] {
+  return input.trim().split(', ').map(instruction => {
+    const turn = instruction[0] as Turn;
+    const blocks = parseInt(instruction.slice(1), 10);
+    return { turn, blocks };
+  });
 }
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
+function getNewDirection(currentDirection: Direction, turn: Turn): Direction {
+  const directions: Direction[] = ['N', 'E', 'S', 'W'];
+  const currentIndex = directions.indexOf(currentDirection);
+  const turnIndex = turn === 'L' ? -1 : 1;
+  return directions[(currentIndex + turnIndex + 4) % 4];
+}
+
+function getNewPosition(position: [number, number], direction: Direction, blocks: number): [number, number] {
+  const [x, y] = position;
+  switch (direction) {
+    case 'N': return [x, y + blocks];
+    case 'E': return [x + blocks, y];
+    case 'S': return [x, y - blocks];
+    case 'W': return [x - blocks, y];
+  }
+}
+
+function calculateDistance(position: [number, number]): number {
+  const [x, y] = position;
+  return Math.abs(x) + Math.abs(y);
+}
+
+function main() {
+  const input = fs.readFileSync('input.txt', 'utf-8');
+  const instructions = parseInstructions(input);
+
+  let position: [number, number] = [0, 0];
+  let direction: Direction = 'N';
+
+  // Part One: Calculate the shortest path to the destination
+  for (const { turn, blocks } of instructions) {
+    direction = getNewDirection(direction, turn);
+    position = getNewPosition(position, direction, blocks);
+  }
+
+  const distanceToDestination = calculateDistance(position);
+  console.log(`Part One: The shortest path to the destination is ${distanceToDestination} blocks away.`);
+
+  // Part Two: Find the first location visited twice
+  position = [0, 0];
+  direction = 'N';
+  const visited: Set<string> = new Set();
+  let firstRepeatedPosition: [number, number] | null = null;
+
+  visited.add(`${position[0]},${position[1]}`);
+
+  for (const { turn, blocks } of instructions) {
+    direction = getNewDirection(direction, turn);
+    for (let i = 0; i < blocks; i++) {
+      position = getNewPosition(position, direction, 1);
+      const key = `${position[0]},${position[1]}`;
+      if (visited.has(key) && firstRepeatedPosition === null) {
+        firstRepeatedPosition = position;
+      }
+      visited.add(key);
     }
+  }
 
-    const instructions = data.trim().split(', ');
+  if (firstRepeatedPosition) {
+    const distanceToFirstRepeated = calculateDistance(firstRepeatedPosition);
+    console.log(`Part Two: The first location visited twice is ${distanceToFirstRepeated} blocks away.`);
+  } else {
+    console.log('Part Two: No location was visited twice.');
+  }
+}
 
-    console.log(firstRevisitedDistance(instructions));
-});
+main();

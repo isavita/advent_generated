@@ -1,33 +1,56 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const strs = data.trim().split(',');
-const original = strs.map(Number);
+const runIntcode = (program: number[]): number[] => {
+    const memory = [...program];
+    let pointer = 0;
 
-for (let noun = 0; noun <= 99; noun++) {
-    for (let verb = 0; verb <= 99; verb++) {
-        const memory = [...original];
-        memory[1] = noun;
-        memory[2] = verb;
-        if (execute(memory) === 19690720) {
-            console.log(100 * noun + verb);
-            return;
+    while (true) {
+        const opcode = memory[pointer];
+        if (opcode === 99) break;
+
+        const [param1, param2, outputPos] = memory.slice(pointer + 1, pointer + 4);
+        if (opcode === 1) {
+            memory[outputPos] = memory[param1] + memory[param2];
+        } else if (opcode === 2) {
+            memory[outputPos] = memory[param1] * memory[param2];
+        }
+
+        pointer += 4;
+    }
+    return memory;
+};
+
+const findNounAndVerb = (program: number[], target: number): [number, number] => {
+    for (let noun = 0; noun <= 99; noun++) {
+        for (let verb = 0; verb <= 99; verb++) {
+            const modifiedProgram = [...program];
+            modifiedProgram[1] = noun;
+            modifiedProgram[2] = verb;
+            const output = runIntcode(modifiedProgram)[0];
+            if (output === target) {
+                return [noun, verb];
+            }
         }
     }
-}
+    throw new Error('No valid noun and verb found');
+};
 
-function execute(memory) {
-    for (let i = 0; i < memory.length; i += 4) {
-        switch (memory[i]) {
-            case 1:
-                memory[memory[i + 3]] = memory[memory[i + 1]] + memory[memory[i + 2]];
-                break;
-            case 2:
-                memory[memory[i + 3]] = memory[memory[i + 1]] * memory[memory[i + 2]];
-                break;
-            case 99:
-                return memory[0];
-        }
-    }
-    return memory[0];
-}
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const program = input.split(',').map(Number);
+    
+    // Part 1
+    const initialProgram = [...program];
+    initialProgram[1] = 12;
+    initialProgram[2] = 2;
+    const resultPart1 = runIntcode(initialProgram)[0];
+    console.log('Part 1 Result:', resultPart1);
+
+    // Part 2
+    const targetOutput = 19690720;
+    const [noun, verb] = findNounAndVerb(program, targetOutput);
+    const resultPart2 = 100 * noun + verb;
+    console.log('Part 2 Result:', resultPart2);
+};
+
+main();

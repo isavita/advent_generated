@@ -1,27 +1,40 @@
-const fs = require('fs');
-const input = fs.readFileSync('input.txt', 'utf8').split('\n')[0].split('-');
-const start = parseInt(input[0]);
-const end = parseInt(input[1]);
+import * as fs from 'fs';
 
-let count = 0;
-for (let i = start; i <= end; i++) {
-    const s = i.toString();
-    if (hasDoubleAndIncreasingDigits(s)) {
-        count++;
-    }
-}
-
-console.log(count);
-
-function hasDoubleAndIncreasingDigits(s) {
+const isValidPassword = (num: number): boolean => {
+    const str = num.toString();
     let hasDouble = false;
-    for (let i = 0; i < s.length - 1; i++) {
-        if (s[i] === s[i + 1]) {
-            hasDouble = true;
-        }
-        if (s[i] > s[i + 1]) {
-            return false;
+    let nonDecreasing = true;
+
+    for (let i = 0; i < str.length; i++) {
+        if (i > 0) {
+            if (str[i] < str[i - 1]) {
+                nonDecreasing = false;
+                break;
+            }
+            if (str[i] === str[i - 1]) {
+                hasDouble = true;
+            }
         }
     }
-    return hasDouble;
-}
+
+    return hasDouble && nonDecreasing;
+};
+
+const countValidPasswords = (start: number, end: number): number => {
+    let count = 0;
+    for (let i = start; i <= end; i++) {
+        if (isValidPassword(i)) {
+            count++;
+        }
+    }
+    return count;
+};
+
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf8');
+    const [start, end] = input.split('-').map(Number);
+    const result = countValidPasswords(start, end);
+    console.log(result);
+};
+
+main();

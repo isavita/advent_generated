@@ -1,13 +1,26 @@
+import { readFileSync } from 'fs';
 
-const fs = require('fs');
+const findProductOfEntries = (target: number): number => {
+    const expenses = new Set<number>();
+    const data = readFileSync('input.txt', 'utf-8').split('\n').map(Number);
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n').map(Number);
-
-for (let i = 0; i < input.length - 1; i++) {
-  for (let j = i + 1; j < input.length; j++) {
-    if (input[i] + input[j] === 2020) {
-      console.log(input[i] * input[j]);
-      process.exit();
+    for (const entry of data) {
+        const complement = target - entry;
+        if (expenses.has(complement)) {
+            return entry * complement;
+        }
+        expenses.add(entry);
     }
-  }
+    throw new Error("No two entries sum to the target.");
+};
+
+try {
+    const result = findProductOfEntries(2020);
+    console.log(result);
+} catch (error: unknown) {
+    if (error instanceof Error) {
+        console.error(error.message);
+    } else {
+        console.error("An unknown error occurred.");
+    }
 }

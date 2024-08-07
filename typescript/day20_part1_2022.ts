@@ -1,14 +1,22 @@
-const fs = require('fs');
-const data = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+import * as fs from 'fs';
 
-class Num {
-    constructor(pos, val) {
-        this.pos = pos;
-        this.val = val;
-    }
+interface Num {
+    pos: number;
+    val: number;
 }
 
-function mix(nums) {
+function main() {
+    const nums: Num[] = [];
+    const lines = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+    lines.forEach((n, i) => nums.push({ pos: i, val: parseInt(n) }));
+
+    const nums2: Num[] = nums.map(n => ({ pos: n.pos, val: 811589153 * n.val }));
+
+    mix(nums);
+    console.log(coords(nums));
+}
+
+function mix(nums: Num[]) {
     const n = nums.length - 1;
     for (let i = 0; i < nums.length; i++) {
         const oldpos = nums[i].pos;
@@ -31,7 +39,7 @@ function mix(nums) {
     }
 }
 
-function coords(nums) {
+function coords(nums: Num[]): number {
     const l = nums.length;
     let zeroPos = 0;
     for (let i = 0; i < nums.length; i++) {
@@ -49,8 +57,4 @@ function coords(nums) {
     return sum;
 }
 
-const nums = data.map((n, i) => new Num(i, parseInt(n)));
-const nums2 = nums.map(n => new Num(n.pos, 811589153 * n.val));
-
-mix(nums);
-console.log(coords(nums));
+main();

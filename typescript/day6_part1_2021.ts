@@ -1,24 +1,30 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-const fishStrs = input.split(',');
+const simulateLanternfish = (initialTimers: number[], days: number): number => {
+    const fishCount = Array(9).fill(0);
+    initialTimers.forEach(timer => fishCount[timer]++);
 
-const fishes = new Array(9).fill(0);
-
-fishStrs.forEach(fishStr => {
-    const fish = parseInt(fishStr);
-    fishes[fish]++;
-});
-
-for (let day = 1; day <= 80; day++) {
-    const newFish = fishes[0];
-    for (let i = 1; i < fishes.length; i++) {
-        fishes[i - 1] = fishes[i];
+    for (let day = 0; day < days; day++) {
+        const newFishes = fishCount[0];
+        for (let i = 0; i < 8; i++) {
+            fishCount[i] = fishCount[i + 1];
+        }
+        fishCount[6] += newFishes;
+        fishCount[8] = newFishes;
     }
-    fishes[6] += newFish;
-    fishes[8] = newFish;
-}
 
-const totalFish = fishes.reduce((acc, fish) => acc + fish, 0);
+    return fishCount.reduce((sum, count) => sum + count, 0);
+};
 
-console.log(totalFish);
+const readInput = (filename: string): number[] => {
+    const data = fs.readFileSync(filename, 'utf-8');
+    return data.trim().split(',').map(Number);
+};
+
+const main = () => {
+    const initialTimers = readInput('input.txt');
+    const totalFish = simulateLanternfish(initialTimers, 80);
+    console.log(totalFish);
+};
+
+main();

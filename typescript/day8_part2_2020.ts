@@ -1,65 +1,69 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+type Instruction = { operation: string; argument: number };
 
-let instructions = [];
-for (let i = 0; i < input.length; i++) {
-    instructions.push(input[i]);
-}
+const readInstructions = (filePath: string): Instruction[] => {
+    return fs.readFileSync(filePath, 'utf-8')
+        .trim()
+        .split('\n')
+        .map(line => {
+            const [operation, argument] = line.split(' ');
+            return { operation, argument: parseInt(argument) };
+        });
+};
 
-for (let i = 0; i < instructions.length; i++) {
-    let [op, arg] = parseInstruction(instructions[i]);
-    if (op === "acc") {
-        continue;
-    }
-
-    let modifiedInstructions = [...instructions];
-    if (op === "jmp") {
-        modifiedInstructions[i] = `nop ${arg}`;
-    } else {
-        modifiedInstructions[i] = `jmp ${arg}`;
-    }
-
-    let [accumulator, terminated] = executeBootCode(modifiedInstructions);
-    if (terminated) {
-        console.log(accumulator);
-        break;
-    }
-}
-
-function executeBootCode(instructions) {
+const executeInstructions = (instructions: Instruction[]): { accumulator: number, terminated: boolean } => {
     let accumulator = 0;
-    let visited = {};
-    let currentInstruction = 0;
+    const visited = new Set<number>();
+    let pointer = 0;
 
-    while (currentInstruction < instructions.length) {
-        if (visited[currentInstruction]) {
-            return [accumulator, false];
-        }
+    while (pointer < instructions.length) {
+        if (visited.has(pointer)) return { accumulator, terminated: false };
+        visited.add(pointer);
 
-        visited[currentInstruction] = true;
-        let [op, arg] = parseInstruction(instructions[currentInstruction]);
-
-        switch (op) {
-            case "acc":
-                accumulator += arg;
-                currentInstruction++;
+        const { operation, argument } = instructions[pointer];
+        switch (operation) {
+            case 'acc':
+                accumulator += argument;
+                pointer++;
                 break;
-            case "jmp":
-                currentInstruction += arg;
+            case 'jmp':
+                pointer += argument;
                 break;
-            case "nop":
-                currentInstruction++;
+            case 'nop':
+                pointer++;
                 break;
         }
     }
+    return { accumulator, terminated: true };
+};
 
-    return [accumulator, true];
-}
+const findTerminatingModification = (instructions: Instruction[]): number => {
+    for (let i = 0; i < instructions.length; i++) {
+        const original = instructions[i];
+        if (original.operation === 'acc') continue;
 
-function parseInstruction(instruction) {
-    let parts = instruction.split(' ');
-    let op = parts[0];
-    let arg = parseInt(parts[1]);
-    return [op, arg];
-}
+        // Modify the instruction
+        instructions[i] = { operation: original.operation === 'nop' ? 'jmp' : 'nop', argument: original.argument };
+
+        const { accumulator, terminated } = executeInstructions(instructions);
+        if (terminated) {
+            return accumulator;
+        }
+
+        // Revert the modification
+        instructions[i] = original;
+    }
+    return 0; // Should not reach here
+};
+
+const main = () => {
+    const instructions = readInstructions('input.txt');
+    const { accumulator } = executeInstructions(instructions);
+    console.log(`Accumulator before repeat: ${accumulator}`);
+
+    const fixedAccumulator = findTerminatingModification(instructions);
+    console.log(`Accumulator after fixing: ${fixedAccumulator}`);
+};
+
+main();

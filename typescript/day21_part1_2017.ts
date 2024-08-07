@@ -1,102 +1,81 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+type Rule = {
+    input: string;
+    output: string;
+};
 
-const rules = {};
+const rotate = (pattern: string[]): string[] => {
+    const size = pattern.length;
+    return pattern.map((_, i) => pattern.map(row => row[size - 1 - i]).join(''));
+};
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-input.forEach(line => {
-  const parts = line.split(' => ');
-  rules[parts[0]] = parts[1];
-});
+const flip = (pattern: string[]): string[] => {
+    return pattern.map(row => row.split('').reverse().join(''));
+};
 
-let grid = [
-  ".#.",
-  "..#",
-  "###",
-];
+const generateVariations = (pattern: string[]): string[] => {
+    const variations = new Set<string>();
+    let current = pattern;
 
-for (let i = 0; i < 5; i++) {
-  let newSize;
-  let subSize;
-
-  if (grid.length % 2 === 0) {
-    subSize = 2;
-    newSize = grid.length / 2 * 3;
-  } else {
-    subSize = 3;
-    newSize = grid.length / 3 * 4;
-  }
-
-  const newGrid = new Array(newSize).fill('');
-
-  for (let x = 0; x < newSize; x++) {
-    newGrid[x] = '';
-  }
-
-  for (let y = 0; y < grid.length; y += subSize) {
-    for (let x = 0; x < grid.length; x += subSize) {
-      const square = [];
-      for (let dy = 0; dy < subSize; dy++) {
-        square.push(grid[y + dy].substring(x, x + subSize));
-      }
-      const newSquare = enhance(square.join('/'), rules);
-      newSquare.split('/').forEach((row, dy) => {
-        newGrid[y / subSize * (subSize + 1) + dy] += row;
-      });
+    for (let i = 0; i < 4; i++) {
+        current = rotate(current);
+        variations.add(current.join('/'));
+        variations.add(flip(current).join('/'));
     }
-  }
-  grid = newGrid;
-}
 
-let count = 0;
-grid.forEach(row => {
-  row.split('').forEach(pixel => {
-    if (pixel === '#') {
-      count++;
+    return Array.from(variations);
+};
+
+const parseRules = (input: string): Rule[] => {
+    return input.trim().split('\n').map(line => {
+        const [lhs, rhs] = line.split(' => ');
+        return { input: lhs, output: rhs };
+    });
+};
+
+const applyRules = (grid: string[], rules: Map<string, string>): string[] => {
+    const size = grid.length;
+    const newSize = size % 2 === 0 ? size / 2 * 3 : size / 3 * 4;
+    const newGrid = Array.from({ length: newSize }, () => '');
+
+    for (let i = 0; i < size; i += (size % 2 === 0 ? 2 : 3)) {
+        for (let j = 0; j < size; j += (size % 2 === 0 ? 2 : 3)) {
+            const subPattern = grid.slice(i, i + (size % 2 === 0 ? 2 : 3)).map(row => row.slice(j, j + (size % 2 === 0 ? 2 : 3)));
+            const key = subPattern.join('/');
+            const outputPattern = rules.get(key)!;
+
+            const outputRows = outputPattern.split('/');
+            const newRowOffset = (i / (size % 2 === 0 ? 2 : 3)) * (size % 2 === 0 ? 3 : 4);
+            outputRows.forEach((row, rowIndex) => {
+                newGrid[newRowOffset + rowIndex] += row;
+            });
+        }
     }
-  });
-});
-console.log(count);
 
-function enhance(input, rules) {
-  for (let i = 0; i < 4; i++) {
-    if (rules[input]) {
-      return rules[input];
+    return newGrid;
+};
+
+const countOnPixels = (grid: string[]): number => {
+    return grid.join('').split('').filter(pixel => pixel === '#').length;
+};
+
+const main = async () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const rulesArray = parseRules(input);
+    const rules = new Map<string, string>();
+
+    for (const { input, output } of rulesArray) {
+        const variations = generateVariations(input.split('/'));
+        variations.forEach(varPattern => rules.set(varPattern, output));
     }
-    input = rotate(input);
-  }
-  input = flip(input);
-  for (let i = 0; i < 4; i++) {
-    if (rules[input]) {
-      return rules[input];
+
+    let grid = ['.#.', '..#', '###'];
+    for (let iteration = 0; iteration < 5; iteration++) {
+        grid = applyRules(grid, rules);
     }
-    input = rotate(input);
-  }
-  return '';
-}
 
-function rotate(input) {
-  const parts = input.split('/');
-  const size = parts.length;
-  const newParts = new Array(size);
-  for (let x = 0; x < size; x++) {
-    let newRow = '';
-    for (let y = size - 1; y >= 0; y--) {
-      newRow += parts[y][x];
-    }
-    newParts[x] = newRow;
-  }
-  return newParts.join('/');
-}
+    console.log(countOnPixels(grid));
+};
 
-function flip(input) {
-  const parts = input.split('/');
-  parts.forEach((part, i) => {
-    parts[i] = reverse(part);
-  });
-  return parts.join('/');
-}
-
-function reverse(input) {
-  return input.split('').reverse().join('');
-}
+main().catch(console.error);

@@ -1,36 +1,21 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Row {
-    constructor(springs, group) {
-        this.springs = springs;
-        this.group = group;
-    }
+type Row = {
+    springs: string;
+    group: number[];
+};
+
+function parseInput(input: string[]): Row[] {
+    return input.map(line => {
+        const parts = line.split(' ');
+        return {
+            springs: parts[0],
+            group: parts[1].split(',').map(Number),
+        };
+    });
 }
 
-function parseInput(input) {
-    let rows = [];
-    for (let line of input) {
-        let parts = line.split(" ");
-        let springs = parts[0];
-        let ints = parseStringToInts(parts[1]);
-
-        let row = new Row(springs, ints);
-        rows.push(row);
-    }
-    return rows;
-}
-
-function parseStringToInts(numbersLine) {
-    let numbers = [];
-    let numbersParts = numbersLine.split(",");
-    for (let numberStr of numbersParts) {
-        let number = parseInt(numberStr);
-        numbers.push(number);
-    }
-    return numbers;
-}
-
-function countArrangementsRecursive(row, iSprings, iGroup, iContiguousDamaged, cache) {
+function countArrangementsRecursive(row: Row, iSprings: number, iGroup: number, iContiguousDamaged: number, cache: Map<string, number>): number {
     if (iSprings === row.springs.length) {
         if (iGroup === row.group.length && iContiguousDamaged === 0) {
             return 1;
@@ -40,13 +25,13 @@ function countArrangementsRecursive(row, iSprings, iGroup, iContiguousDamaged, c
         return 0;
     }
 
-    let cacheKey = [iSprings, iGroup, iContiguousDamaged];
-    if (cache.hasOwnProperty(cacheKey)) {
-        return cache[cacheKey];
+    const cacheKey = `${iSprings},${iGroup},${iContiguousDamaged}`;
+    if (cache.has(cacheKey)) {
+        return cache.get(cacheKey)!;
     }
 
     let res = 0;
-    let char = row.springs[iSprings];
+    const char = row.springs[iSprings];
     if (char === '.' || char === '?') {
         if (iContiguousDamaged === 0) {
             res += countArrangementsRecursive(row, iSprings + 1, iGroup, iContiguousDamaged, cache);
@@ -60,45 +45,36 @@ function countArrangementsRecursive(row, iSprings, iGroup, iContiguousDamaged, c
         }
     }
 
-    cache[cacheKey] = res;
+    cache.set(cacheKey, res);
     return res;
 }
 
-function countArrangements(row) {
-    return countArrangementsRecursive(row, 0, 0, 0, {});
+function countArrangements(row: Row): number {
+    return countArrangementsRecursive(row, 0, 0, 0, new Map());
 }
 
-function unfoldRow(row, unfoldingFactor) {
-    let newRow = new Row(row.springs, row.group.slice());
+function unfoldRow(row: Row, unfoldingFactor: number): Row {
+    let newSprings = row.springs;
+    let newGroup = [...row.group];
 
     for (let i = 1; i < unfoldingFactor; i++) {
-        newRow.springs += "?" + row.springs;
-        newRow.group = newRow.group.concat(row.group);
+        newSprings += '?' + row.springs;
+        newGroup = newGroup.concat(row.group);
     }
 
-    return newRow;
+    return { springs: newSprings, group: newGroup };
 }
 
-function solve(input) {
-    let rows = parseInput(input);
+function solve(input: string[]): number {
+    const rows = parseInput(input);
+    const unfoldedRows = rows.map(row => unfoldRow(row, 5));
 
-    let unfoldedRows = [];
-    for (let row of rows) {
-        unfoldedRows.push(unfoldRow(row, 5));
-    }
-
-    let res = 0;
-    for (let row of unfoldedRows) {
-        res += countArrangements(row);
-    }
-
-    return res;
+    return unfoldedRows.reduce((acc, row) => acc + countArrangements(row), 0);
 }
 
-function readFile(fileName) {
-    let file = fs.readFileSync(fileName, 'utf8');
-    return file.trim().split("\n");
+function readFile(fileName: string): string[] {
+    return fs.readFileSync(fileName).toString().trim().split('\n');
 }
 
-let input = readFile("input.txt");
+const input = readFile('input.txt');
 console.log(solve(input));

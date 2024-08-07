@@ -1,17 +1,30 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const readInput = (filePath: string): number[] => {
+    return fs.readFileSync(filePath, 'utf-8')
+             .split('\n')
+             .map(Number)
+             .filter(Boolean);
+};
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n').map(Number);
-const adapters = input.sort((a, b) => a - b);
+const calculateJoltageDifferences = (adapters: number[]): number => {
+    const sortedAdapters = [0, ...adapters.sort((a, b) => a - b), Math.max(...adapters) + 3];
+    const differences: { [key: number]: number } = { 1: 0, 3: 0 };
 
-const joltDifferences = { 1: 0, 2: 0, 3: 1 };
-let previousJoltage = 0;
+    for (let i = 1; i < sortedAdapters.length; i++) {
+        const diff = sortedAdapters[i] - sortedAdapters[i - 1];
+        if (diff in differences) {
+            differences[diff]++;
+        }
+    }
 
-adapters.forEach((adapter) => {
-    const diff = adapter - previousJoltage;
-    joltDifferences[diff]++;
-    previousJoltage = adapter;
-});
+    return differences[1] * differences[3];
+};
 
-const product = joltDifferences[1] * joltDifferences[3];
-console.log(product);
+const main = () => {
+    const adapters = readInput('input.txt');
+    const result = calculateJoltageDifferences(adapters);
+    console.log(result);
+};
+
+main();

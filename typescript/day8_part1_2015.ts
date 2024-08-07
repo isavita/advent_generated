@@ -1,33 +1,47 @@
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-
-const file = fs.readFileSync('input.txt', 'utf-8');
-const lines = file.split('\n');
-
-let totalDiff = 0;
-for (const line of lines) {
-  const codeLength = line.length;
-  let memoryLength = 0;
-  let inEscape = false;
-  let hexCount = 0;
-
-  for (let i = 1; i < line.length - 1; i++) {
-    if (hexCount > 0) {
-      hexCount--;
-    } else if (inEscape) {
-      if (line[i] === 'x') {
-        hexCount = 2;
-      }
-      inEscape = false;
-      memoryLength++;
-    } else if (line[i] === '\\') {
-      inEscape = true;
-    } else {
-      memoryLength++;
+// Function to calculate the number of characters in memory for a string literal
+function countInMemoryCharacters(str: string): number {
+    let count = 0;
+    let i = 0;
+    while (i < str.length) {
+        if (str[i] === '\\') {
+            if (str[i + 1] === '\\' || str[i + 1] === '"') {
+                i += 2;
+            } else if (str[i + 1] === 'x') {
+                i += 4;
+            }
+            count++;
+        } else {
+            i++;
+            count++;
+        }
     }
-  }
-
-  totalDiff += codeLength - memoryLength;
+    // Subtract 2 for the surrounding quotes
+    return count - 2;
 }
 
-console.log(totalDiff);
+// Function to calculate the number of characters of code for a string literal
+function countCodeCharacters(str: string): number {
+    return str.length;
+}
+
+// Main function to read input, process it, and print the result
+function main(): void {
+    const filePath = path.join(__dirname, 'input.txt');
+    const input = fs.readFileSync(filePath, 'utf-8').trim().split('\n');
+
+    let totalCodeCharacters = 0;
+    let totalInMemoryCharacters = 0;
+
+    for (const line of input) {
+        totalCodeCharacters += countCodeCharacters(line);
+        totalInMemoryCharacters += countInMemoryCharacters(line);
+    }
+
+    const result = totalCodeCharacters - totalInMemoryCharacters;
+    console.log(result);
+}
+
+main();

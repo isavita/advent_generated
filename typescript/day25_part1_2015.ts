@@ -1,34 +1,36 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').toString();
+const inputFilePath = 'input.txt';
 
-const re = /row (\d+), column (\d+)/;
-const matches = data.match(re);
-
-if (matches && matches.length === 3) {
-    const row = parseInt(matches[1]);
-    const column = parseInt(matches[2]);
-
-    const pos = getPosition(row, column);
-    const code = getCode(pos);
-
-    console.log(code);
-} else {
-    console.log("Invalid input format.");
-}
-
-function getPosition(row, column) {
-    return (row + column - 2) * (row + column - 1) / 2 + column;
-}
-
-function getCode(position) {
-    const startCode = 20151125;
+const getCodeAtPosition = (row: number, col: number): number => {
+    const initialCode = 20151125;
     const multiplier = 252533;
     const modulus = 33554393;
 
-    let code = startCode;
-    for (let i = 1; i < position; i++) {
+    let code = initialCode;
+    let currentRow = 1;
+    let currentCol = 1;
+
+    while (currentRow !== row || currentCol !== col) {
         code = (code * multiplier) % modulus;
+        if (currentRow === 1) {
+            currentRow = currentCol + 1;
+            currentCol = 1;
+        } else {
+            currentRow--;
+            currentCol++;
+        }
     }
+
     return code;
-}
+};
+
+const main = () => {
+    const input = fs.readFileSync(inputFilePath, 'utf-8').trim();
+    const [row, col] = input.match(/\d+/g)?.map(Number) || [1, 1];
+
+    const code = getCodeAtPosition(row, col);
+    console.log(code);
+};
+
+main();

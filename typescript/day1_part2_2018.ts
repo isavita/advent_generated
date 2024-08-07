@@ -1,19 +1,39 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const frequencyChanges = data.trim().split('\n');
-const frequencies = new Set();
-let currentFrequency = 0;
-frequencies.add(currentFrequency);
+const inputFilePath = 'input.txt';
 
-while (true) {
-  for (const change of frequencyChanges) {
-    const frequencyDelta = parseInt(change, 10);
-    currentFrequency += frequencyDelta;
-    if (frequencies.has(currentFrequency)) {
-      console.log(currentFrequency);
-      process.exit();
+const readInput = (filePath: string): number[] => {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return data.split('\n').map(line => parseInt(line, 10)).filter(Boolean);
+};
+
+const calculateFinalFrequency = (changes: number[]): number => {
+    return changes.reduce((acc, change) => acc + change, 0);
+};
+
+const findFirstDuplicateFrequency = (changes: number[]): number => {
+    const seenFrequencies = new Set<number>();
+    let currentFrequency = 0;
+    let index = 0;
+
+    while (true) {
+        if (seenFrequencies.has(currentFrequency)) {
+            return currentFrequency;
+        }
+        seenFrequencies.add(currentFrequency);
+        currentFrequency += changes[index];
+        index = (index + 1) % changes.length;
     }
-    frequencies.add(currentFrequency);
-  }
-}
+};
+
+const main = () => {
+    const changes = readInput(inputFilePath);
+    
+    const finalFrequency = calculateFinalFrequency(changes);
+    console.log(`Final Frequency: ${finalFrequency}`);
+
+    const firstDuplicateFrequency = findFirstDuplicateFrequency(changes);
+    console.log(`First Duplicate Frequency: ${firstDuplicateFrequency}`);
+};
+
+main();

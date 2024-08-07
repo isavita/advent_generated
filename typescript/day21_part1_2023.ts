@@ -1,185 +1,124 @@
-const fs = require('fs');
+import * as fs from 'fs/promises';
 
-class Coord {
-	constructor(x, y) {
-		this.x = x;
-		this.y = y;
-	}
-
-	add(c2) {
-		return new Coord(this.x + c2.x, this.y + c2.y);
-	}
-
-	multiplyByScalar(s) {
-		return new Coord(this.x * s, this.y * s);
-	}
-}
+type Coord = { x: number, y: number };
 
 class Grid {
-	constructor(width, height, data) {
-		this.width = width;
-		this.height = height;
-		this.data = data;
-	}
+    width: number;
+    height: number;
+    data: Map<string, string>;
 
-	toString() {
-		let res = "";
-		for (let y = 0; y < this.height; y++) {
-			for (let x = 0; x < this.width; x++) {
-				if (this.data[`${x},${y}`]) {
-					res += this.data[`${x},${y}`];
-				} else {
-					res += '.';
-				}
-			}
-			res += "\n";
-		}
-		return res;
-	}
+    constructor(width: number, height: number, data: Map<string, string>) {
+        this.width = width;
+        this.height = height;
+        this.data = data;
+    }
+
+    toString(): string {
+        let res = "";
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const key = `${x},${y}`;
+                res += this.data.has(key) ? this.data.get(key) : '.';
+            }
+            res += "\n";
+        }
+        return res;
+    }
 }
 
-const North = new Coord(0, -1);
-const West = new Coord(-1, 0);
-const South = new Coord(0, 1);
-const East = new Coord(1, 0);
+const North = { x: 0, y: -1 };
+const West = { x: -1, y: 0 };
+const South = { x: 0, y: 1 };
+const East = { x: 1, y: 0 };
 
 const Empty = '.';
 const Rock = '#';
 const Start = 'S';
 
-function isInBounds(grid, coord) {
-	return coord.x >= 0 && coord.x < grid.width && coord.y >= 0 && coord.y < grid.height;
+function add(c1: Coord, c2: Coord): Coord {
+    return { x: c1.x + c2.x, y: c1.y + c2.y };
 }
 
-function parseInput(input) {
-	let data = {};
-	let height = input.length;
-	let width = input[0].length;
-
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-			if (input[y][x] !== Empty) {
-				data[`${x},${y}`] = input[y][x];
-			}
-		}
-	}
-
-	return new Grid(width, height, data);
+function multiplyByScalar(c: Coord, s: number): Coord {
+    return { x: c.x * s, y: c.y * s };
 }
 
-function findStart(grid) {
-	for (let coordStr in grid.data) {
-		if (grid.data[coordStr] === Start) {
-			let [x, y] = coordStr.split(',').map(Number);
-			return new Coord(x, y);
-		}
-	}
-	throw new Error("No start found.");
+function isInBounds(grid: Grid, coord: Coord): boolean {
+    return 0 <= coord.x && coord.x < grid.width && 0 <= coord.y && coord.y < grid.height;
 }
 
-function neighbors4(grid, coord) {
-	const neighbors = [
-		coord.add(North),
-		coord.add(South),
-		coord.add(East),
-		coord.add(West),
-	];
+function parseInput(input: string[]): Grid {
+    const data = new Map<string, string>();
+    const width = input[0].length;
+    const height = input.length;
 
-	const validNeighbors = [];
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const char = input[y][x];
+            if (char !== Empty) {
+                data.set(`${x},${y}`, char);
+            }
+        }
+    }
 
-	for (let neighbor of neighbors) {
-		if (isInBounds(grid, neighbor) && grid.data[`${neighbor.x},${neighbor.y}`] !== Rock) {
-			validNeighbors.push(neighbor);
-		}
-	}
-
-	return validNeighbors;
+    return new Grid(width, height, data);
 }
 
-function breadthFirstSearch(grid, start, neighborFunc) {
-	let frontier = [start];
-	let reached = { [`${start.x},${start.y}`]: true };
-	let cameFrom = { [`${start.x},${start.y}`]: start };
-	let distances = { [`${start.x},${start.y}`]: 0 };
-
-	while (frontier.length > 0) {
-		let current = frontier.shift();
-
-		for (let next of neighborFunc(grid, current)) {
-			let nextStr = `${next.x},${next.y}`;
-			if (!reached[nextStr]) {
-				frontier.push(next);
-				reached[nextStr] = true;
-				cameFrom[nextStr] = current;
-				distances[nextStr] = distances[`${current.x},${current.y}`] + 1;
-			}
-		}
-	}
-
-	return distances;
+function findStart(grid: Grid): Coord {
+    for (const [key, char] of grid.data) {
+        if (char === Start) {
+            const [x, y] = key.split(',').map(Number);
+            return { x, y };
+        }
+    }
+    throw new Error("No start found.");
 }
 
-function distancesFromExtremities(grid) {
-	let distances = {};
-
-	const extremities = [
-		new Coord(0, 0),
-		new Coord(Math.floor(grid.width / 2), 0),
-		new Coord(grid.width, 0),
-		new Coord(grid.width, Math.floor(grid.height / 2)),
-		new Coord(grid.width, grid.height),
-		new Coord(Math.floor(grid.width / 2), grid.height),
-		new Coord(0, grid.height),
-		new Coord(0, Math.floor(grid.height / 2)),
-	];
-
-	for (let start of extremities) {
-		distances[`${start.x},${start.y}`] = breadthFirstSearch(grid, start, neighbors4);
-	}
-
-	return distances;
+function neighbors4(grid: Grid, coord: Coord): Coord[] {
+    const neighbors = [add(coord, North), add(coord, South), add(coord, East), add(coord, West)];
+    return neighbors.filter(neighbor => isInBounds(grid, neighbor) && grid.data.get(`${neighbor.x},${neighbor.y}`) !== Rock);
 }
 
-function neighbors8(grid, coord) {
-	const neighbors = [
-		coord.add(North),
-		coord.add(South),
-		coord.add(East),
-		coord.add(West),
-		coord.add(North).add(East),
-		coord.add(North).add(West),
-		coord.add(South).add(East),
-		coord.add(South).add(West),
-	];
+function breadthFirstSearch(grid: Grid, start: Coord, neighborFunc: (grid: Grid, coord: Coord) => Coord[]): Map<string, number> {
+    const frontier: Coord[] = [start];
+    const reached = new Set<string>([`${start.x},${start.y}`]);
+    const distances = new Map<string, number>([[`${start.x},${start.y}`, 0]]);
 
-	return neighbors;
+    while (frontier.length > 0) {
+        const current = frontier.shift()!;
+        for (const next of neighborFunc(grid, current)) {
+            const nextKey = `${next.x},${next.y}`;
+            if (!reached.has(nextKey)) {
+                frontier.push(next);
+                reached.add(nextKey);
+                distances.set(nextKey, distances.get(`${current.x},${current.y}`)! + 1);
+            }
+        }
+    }
+
+    return distances;
 }
 
-function solve(input, numSteps) {
-	const grid = parseInput(input);
+function solve(input: string[], numSteps: number): number {
+    const grid = parseInput(input);
+    const start = findStart(grid);
+    const distances = breadthFirstSearch(grid, start, neighbors4);
 
-	const start = findStart(grid);
-	const distances = breadthFirstSearch(grid, start, neighbors4);
-
-	let cnt = 0;
-	for (let coordStr in distances) {
-		let dist = distances[coordStr];
-		let [x, y] = coordStr.split(',').map(Number);
-		if (dist <= numSteps && dist % 2 === 0) {
-			cnt++;
-		}
-	}
-	return cnt;
+    let cnt = 0;
+    for (const dist of distances.values()) {
+        if (dist <= numSteps && dist % 2 === 0) {
+            cnt++;
+        }
+    }
+    return cnt;
 }
 
-function readFile(fileName) {
-	try {
-		const data = fs.readFileSync(fileName, 'utf8');
-		return data.trim().split('\n');
-	} catch (err) {
-		throw err;
-	}
+async function readFile(fileName: string): Promise<string[]> {
+    const data = await fs.readFile(fileName, 'utf-8');
+    return data.trim().split('\n');
 }
 
-const input = readFile("input.txt");
-console.log(solve(input, 64));
+(async () => {
+    const input = await readFile("input.txt");
+    console.log(solve(input, 64));
+})();

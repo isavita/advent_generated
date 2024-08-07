@@ -1,41 +1,46 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-let score = 0;
-let depth = 0;
-let inGarbage = false;
-let cancelNext = false;
+async function processLineByLine() {
+    const fileStream = fs.createReadStream('input.txt');
 
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
 
-data.forEach(line => {
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (cancelNext) {
-      cancelNext = false;
-      continue;
+    let totalScore = 0;
+    let currentScore = 0;
+    let inGarbage = false;
+    let ignoreNext = false;
+
+    for await (const line of rl) {
+        for (const char of line) {
+            if (ignoreNext) {
+                ignoreNext = false;
+                continue;
+            }
+
+            if (inGarbage) {
+                if (char === '>') {
+                    inGarbage = false;
+                } else if (char === '!') {
+                    ignoreNext = true;
+                }
+            } else {
+                if (char === '{') {
+                    currentScore++;
+                    totalScore += currentScore;
+                } else if (char === '}') {
+                    currentScore--;
+                } else if (char === '<') {
+                    inGarbage = true;
+                }
+            }
+        }
     }
 
-    if (inGarbage) {
-      if (ch === '!') {
-        cancelNext = true;
-      } else if (ch === '>') {
-        inGarbage = false;
-      }
-    } else {
-      switch (ch) {
-        case '{':
-          depth++;
-          break;
-        case '}':
-          score += depth;
-          depth--;
-          break;
-        case '<':
-          inGarbage = true;
-          break;
-      }
-    }
-  }
-});
+    console.log(`Total score for all groups: ${totalScore}`);
+}
 
-console.log(score);
+processLineByLine().catch(console.error);

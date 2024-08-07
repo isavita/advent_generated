@@ -1,45 +1,26 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Claim {
-  constructor(id, left, top, width, height) {
-    this.id = id;
-    this.left = left;
-    this.top = top;
-    this.width = width;
-    this.height = height;
-  }
-}
+const fabricSize = 1000;
+const fabric: number[][] = Array.from({ length: fabricSize }, () => Array(fabricSize).fill(0));
 
-function parseClaim(s) {
-  const [id, left, top, width, height] = s.match(/\d+/g).map(Number);
-  return new Claim(id, left, top, width, height);
-}
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
 
-function readClaims(filename) {
-  const input = fs.readFileSync(filename, 'utf8').trim().split('\n');
-  return input.map(parseClaim);
-}
+input.forEach(line => {
+    const match = line.match(/#\d+ @ (\d+),(\d+): (\d+)x(\d+)/);
+    if (match) {
+        const left = parseInt(match[1]);
+        const top = parseInt(match[2]);
+        const width = parseInt(match[3]);
+        const height = parseInt(match[4]);
 
-function countOverlappingInches(claims) {
-  const fabric = new Map();
-  claims.forEach(claim => {
-    for (let i = claim.left; i < claim.left + claim.width; i++) {
-      for (let j = claim.top; j < claim.top + claim.height; j++) {
-        const coord = `${i},${j}`;
-        fabric.set(coord, (fabric.get(coord) || 0) + 1);
-      }
+        for (let i = top; i < top + height; i++) {
+            for (let j = left; j < left + width; j++) {
+                fabric[i][j]++;
+            }
+        }
     }
-  });
+});
 
-  let overlapping = 0;
-  for (const count of fabric.values()) {
-    if (count > 1) {
-      overlapping++;
-    }
-  }
-  return overlapping;
-}
+const overlappingArea = fabric.flat().filter(count => count > 1).length;
 
-const claims = readClaims('input.txt');
-const overlapping = countOverlappingInches(claims);
-console.log(overlapping);
+console.log(overlappingArea);

@@ -1,20 +1,11 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const groups = input.split('\n\n');
 
-let totalCount = 0;
-let groupAnswers = new Set();
+const totalYesCount = groups.reduce((sum, group) => {
+    const uniqueQuestions = new Set(group.replace(/\n/g, '').split(''));
+    return sum + uniqueQuestions.size;
+}, 0);
 
-for (const line of data) {
-    if (line === '') {
-        totalCount += groupAnswers.size;
-        groupAnswers = new Set();
-    } else {
-        for (const question of line) {
-            groupAnswers.add(question);
-        }
-    }
-}
-
-totalCount += groupAnswers.size;
-console.log(totalCount);
+console.log(totalYesCount);

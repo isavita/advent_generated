@@ -1,42 +1,101 @@
+import * as fs from 'fs';
+import * as path from 'path';
 
-const fs = require('fs');
-
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-const root = [''];
-const dirs = {};
-const files = {};
-let curr = [];
-
-input.forEach(line => {
-    const txt = line.split(' ');
-    if (txt[0] === '$') {
-        if (txt[1] === 'cd') {
-            if (txt[2] === '/') {
-                curr = root;
-            } else if (txt[2] === '..') {
-                curr = curr.slice(0, curr.length - 1);
-            } else {
-                curr = curr.concat(txt[2]);
-            }
-            dirs[curr.join('/')] = 0;
-        }
-    } else {
-        if (txt[0] !== 'dir') {
-            files[curr.concat(txt[1]).join('/')] = parseInt(txt[0], 10);
-        }
-    }
-});
-
-for (const f in files) {
-    const path = f.split('/');
-    for (let i = 1; i < path.length; i++) {
-        dirs[path.slice(0, i).join('/')] += files[f];
-    }
+interface Node {
+    name: string;
+    size: number; // size of files
+    children: Node[];
 }
 
-const sortedSizes = Object.values(dirs).sort((a, b) => a - b);
+const parseInput = (input: string): Node => {
+    const root: Node = { name: '/', size: 0, children: [] };
+    const stack: Node[] = [root];
+    let currentDir = root;
 
-const total = 70000000;
-const want = 30000000;
-const available = total - dirs[''];
-console.log(sortedSizes.find(s => s >= want - available));
+    input.split('\n').forEach(line => {
+        if (line.startsWith('$')) {
+            const command = line.split(' ').slice(1);
+            if (command[0] === 'cd') {
+                if (command[1] === '..') {
+                    stack.pop();
+                    currentDir = stack[stack.length - 1];
+                } else if (command[1] === '/') {
+                    currentDir = root;
+                    stack.length = 1; // reset stack
+                } else {
+                    const newDir = currentDir.children.find(child => child.name === command[1]);
+                    if (newDir) {
+                        stack.push(newDir);
+                        currentDir = newDir;
+                    }
+                }
+            }
+        } else if (line.startsWith('dir')) {
+            const dirName = line.split(' ')[1];
+            const newDir: Node = { name: dirName, size: 0, children: [] };
+            currentDir.children.push(newDir);
+        } else {
+            const [sizeStr, fileName] = line.split(' ');
+            const size = parseInt(sizeStr);
+            currentDir.children.push({ name: fileName, size, children: [] });
+            currentDir.size += size;
+        }
+    });
+
+    return root;
+};
+
+const calculateSizes = (node: Node): number => {
+    let totalSize = node.size;
+    for (const child of node.children) {
+        if (child.children.length > 0) {
+            totalSize += calculateSizes(child);
+        }
+    }
+    node.size = totalSize;
+    return totalSize;
+};
+
+const findSmallDirectories = (node: Node, limit: number, smallDirs: number[]): void => {
+    if (node.size <= limit) {
+        smallDirs.push(node.size);
+    }
+    for (const child of node.children) {
+        if (child.children.length > 0) {
+            findSmallDirectories(child, limit, smallDirs);
+        }
+    }
+};
+
+const findSmallestDirToDelete = (node: Node, neededSpace: number, minSize: number): number => {
+    let result = minSize;
+    if (node.size >= neededSpace && node.size < result) {
+        result = node.size;
+    }
+    for (const child of node.children) {
+        if (child.children.length > 0) {
+            result = Math.min(result, findSmallestDirToDelete(child, neededSpace, result));
+        }
+    }
+    return result;
+};
+
+const main = () => {
+    const input = fs.readFileSync(path.join(__dirname, 'input.txt'), 'utf-8');
+    const root = parseInput(input);
+    calculateSizes(root);
+
+    const smallDirs: number[] = [];
+    findSmallDirectories(root, 100000, smallDirs);
+    const partOneResult = smallDirs.reduce((sum, size) => sum + size, 0);
+    console.log(`Part One: ${partOneResult}`);
+
+    const totalSpace = 70000000;
+    const requiredSpace = 30000000;
+    const usedSpace = root.size;
+    const neededSpace = requiredSpace - (totalSpace - usedSpace);
+    const partTwoResult = findSmallestDirToDelete(root, neededSpace, Infinity);
+    console.log(`Part Two: ${partTwoResult}`);
+};
+
+main();

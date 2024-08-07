@@ -1,71 +1,62 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
+type Grid = boolean[][];
+
+const filePath = 'input.txt';
 const gridSize = 100;
 const steps = 100;
 
-function countOnNeighbors(grid, x, y) {
-    let on = 0;
-    for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-            if (dx === 0 && dy === 0) {
-                continue;
-            }
-            let nx = x + dx;
-            let ny = y + dy;
-            if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && grid[nx][ny]) {
-                on++;
-            }
-        }
-    }
-    return on;
+function readInput(filePath: string): Grid {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const lines = data.split('\n').filter(line => line.trim() !== '');
+    const grid: Grid = lines.map(line => line.split('').map(char => char === '#'));
+    return grid;
 }
 
-function step(grid) {
-    let newGrid = Array.from({ length: gridSize }, () => Array(gridSize).fill(false));
-
-    for (let x = 0; x < gridSize; x++) {
-        for (let y = 0; y < gridSize; y++) {
-            let onNeighbors = countOnNeighbors(grid, x, y);
-            if (grid[x][y]) {
-                newGrid[x][y] = onNeighbors === 2 || onNeighbors === 3;
-            } else {
-                newGrid[x][y] = onNeighbors === 3;
+function countNeighbors(grid: Grid, x: number, y: number): number {
+    let count = 0;
+    for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+            if (i === 0 && j === 0) continue;
+            const nx = x + i;
+            const ny = y + j;
+            if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && grid[nx][ny]) {
+                count++;
             }
         }
     }
+    return count;
+}
 
+function nextState(grid: Grid): Grid {
+    const newGrid: Grid = Array.from({ length: gridSize }, () => new Array(gridSize).fill(false));
+    for (let x = 0; x < gridSize; x++) {
+        for (let y = 0; y < gridSize; y++) {
+            const neighbors = countNeighbors(grid, x, y);
+            if (grid[x][y]) {
+                newGrid[x][y] = neighbors === 2 || neighbors === 3;
+            } else {
+                newGrid[x][y] = neighbors === 3;
+            }
+        }
+    }
     return newGrid;
 }
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error('Error reading file:', err);
-        return;
+function countLightsOn(grid: Grid): number {
+    return grid.reduce((count, row) => count + row.filter(light => light).length, 0);
+}
+
+function main() {
+    const initialGrid = readInput(filePath);
+    let currentGrid = initialGrid;
+
+    for (let step = 0; step < steps; step++) {
+        currentGrid = nextState(currentGrid);
     }
 
-    let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(false));
+    const lightsOn = countLightsOn(currentGrid);
+    console.log(`Lights on after ${steps} steps: ${lightsOn}`);
+}
 
-    let lines = data.trim().split('\n');
-    let y = 0;
-    lines.forEach((line) => {
-        for (let x = 0; x < gridSize; x++) {
-            grid[x][y] = line[x] === '#';
-        }
-        y++;
-    });
-
-    for (let i = 0; i < steps; i++) {
-        grid = step(grid);
-    }
-
-    let onCount = 0;
-    grid.forEach((row) => {
-        row.forEach((light) => {
-            if (light) {
-                onCount++;
-            }
-        });
-    });
-
-    console.log(onCount);
-});
+main();

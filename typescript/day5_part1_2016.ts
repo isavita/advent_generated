@@ -1,23 +1,32 @@
-const fs = require('fs');
-const crypto = require('crypto');
+import * as fs from 'fs';
+import * as crypto from 'crypto';
 
-const doorID = fs.readFileSync('input.txt', 'utf8').trim();
+function findPassword(doorId: string): string {
+    let password = '';
+    let index = 0;
 
-function findPassword(doorID) {
-  let password = '';
-  for (let i = 0; password.length < 8; i++) {
-    const hash = md5Hash(doorID + i);
-    if (hash.startsWith('00000')) {
-      password += hash[5];
+    while (password.length < 8) {
+        const hash = crypto.createHash('md5').update(doorId + index).digest('hex');
+        if (hash.startsWith('00000')) {
+            password += hash[5];
+        }
+        index++;
     }
-  }
-  return password;
+
+    return password;
 }
 
-function md5Hash(input) {
-  const hash = crypto.createHash('md5');
-  hash.update(input);
-  return hash.digest('hex');
+function main() {
+    fs.readFile('input.txt', 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading file:', err);
+            return;
+        }
+
+        const doorId = data.trim();
+        const password = findPassword(doorId);
+        console.log(`The password is: ${password}`);
+    });
 }
 
-console.log(findPassword(doorID));
+main();

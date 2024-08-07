@@ -1,85 +1,113 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Bot {
-    constructor() {
-        this.lowTo = '';
-        this.highTo = '';
-        this.chips = [];
-    }
+interface Bot {
+    low: number | null;
+    high: number | null;
+    lowTarget: string | null;
+    highTarget: string | null;
+    lowTargetType: 'bot' | 'output' | null;
+    highTargetType: 'bot' | 'output' | null;
 }
 
-function minMax(a, b) {
-    if (a < b) {
-        return [a, b];
-    }
-    return [b, a];
-}
+const bots: { [key: number]: Bot } = {};
+const outputs: { [key: number]: number } = {};
+const instructions: string[] = [];
 
-function giveChip(bots, outputs, target, value) {
-    if (target.startsWith('bot')) {
-        if (!bots[target]) {
-            bots[target] = new Bot();
-        }
-        bots[target].chips.push(value);
-    } else if (target.startsWith('output')) {
-        outputs[target] = value;
-    }
-}
-
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-
-    const bots = {};
-    const outputs = {};
-    const valueRegex = /value (\d+) goes to (bot \d+)/;
-    const givesRegex = /(bot \d+) gives low to (bot \d+|output \d+) and high to (bot \d+|output \d+)/;
-
+function parseInput(filename: string): void {
+    const data = fs.readFileSync(filename, 'utf-8');
     data.split('\n').forEach(line => {
-        if (valueRegex.test(line)) {
-            const matches = line.match(valueRegex);
-            const value = parseInt(matches[1]);
-            const botID = matches[2];
-
-            if (!bots[botID]) {
-                bots[botID] = new Bot();
+        if (line.startsWith('value')) {
+            const [, value, bot] = line.match(/value (\d+) goes to bot (\d+)/)!;
+            const botNum = parseInt(bot, 10);
+            const valueNum = parseInt(value, 10);
+            if (!bots[botNum]) {
+                bots[botNum] = { low: null, high: null, lowTarget: null, highTarget: null, lowTargetType: null, highTargetType: null };
             }
-            bots[botID].chips.push(value);
-
-        } else if (givesRegex.test(line)) {
-            const matches = line.match(givesRegex);
-            const botID = matches[1];
-            const lowTo = matches[2];
-            const highTo = matches[3];
-
-            if (!bots[botID]) {
-                bots[botID] = new Bot();
+            if (bots[botNum].low === null || valueNum < bots[botNum].low!) {
+                bots[botNum].high = bots[botNum].low;
+                bots[botNum].low = valueNum;
+            } else {
+                bots[botNum].high = valueNum;
             }
-            bots[botID].lowTo = lowTo;
-            bots[botID].highTo = highTo;
+            processBot(botNum);
+        } else {
+            instructions.push(line);
         }
     });
+}
 
-    while (true) {
-        let action = false;
-        for (const key in bots) {
-            const b = bots[key];
-            if (b.chips.length === 2) {
-                action = true;
-                const [low, high] = minMax(b.chips[0], b.chips[1]);
-                b.chips = [];
-
-                giveChip(bots, outputs, b.lowTo, low);
-                giveChip(bots, outputs, b.highTo, high);
-            }
+function processBot(botNum: number): void {
+    const bot = bots[botNum];
+    if (bot.low !== null && bot.high !== null && bot.lowTarget !== null && bot.highTarget !== null) {
+        if (bot.lowTargetType === 'bot') {
+            giveValueToBot(parseInt(bot.lowTarget, 10), bot.low);
+        } else if (bot.lowTargetType === 'output') {
+            outputs[parseInt(bot.lowTarget, 10)] = bot.low;
         }
-        if (!action) {
-            break;
+        if (bot.highTargetType === 'bot') {
+            giveValueToBot(parseInt(bot.highTarget, 10), bot.high);
+        } else if (bot.highTargetType === 'output') {
+            outputs[parseInt(bot.highTarget, 10)] = bot.high;
+        }
+        bot.low = null;
+        bot.high = null;
+    }
+}
+
+function giveValueToBot(botNum: number, value: number): void {
+    if (!bots[botNum]) {
+        bots[botNum] = { low: null, high: null, lowTarget: null, highTarget: null, lowTargetType: null, highTargetType: null };
+    }
+    if (bots[botNum].low === null || value < bots[botNum].low!) {
+        bots[botNum].high = bots[botNum].low;
+        bots[botNum].low = value;
+    } else {
+        bots[botNum].high = value;
+    }
+    processBot(botNum);
+}
+
+function parseInstructions(): void {
+    instructions.forEach(line => {
+        const [, bot, lowTargetType, lowTarget, highTargetType, highTarget] = line.match(/bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)/)!;
+        const botNum = parseInt(bot, 10);
+        if (!bots[botNum]) {
+            bots[botNum] = { low: null, high: null, lowTarget: null, highTarget: null, lowTargetType: null, highTargetType: null };
+        }
+        bots[botNum].lowTarget = lowTarget;
+        bots[botNum].highTarget = highTarget;
+        bots[botNum].lowTargetType = lowTargetType as 'bot' | 'output';
+        bots[botNum].highTargetType = highTargetType as 'bot' | 'output';
+        processBot(botNum);
+    });
+}
+
+function findBotComparingValues(value1: number, value2: number): number | null {
+    for (const botNum in bots) {
+        const bot = bots[botNum];
+        if (bot.low === value1 && bot.high === value2) {
+            return parseInt(botNum, 10);
+        }
+        if (bot.low === value2 && bot.high === value1) {
+            return parseInt(botNum, 10);
         }
     }
+    return null;
+}
 
-    const result = outputs['output 0'] * outputs['output 1'] * outputs['output 2'];
-    console.log(result);
-});
+function main(): void {
+    parseInput('input.txt');
+    parseInstructions();
+
+    const botNumber = findBotComparingValues(61, 17);
+    if (botNumber !== null) {
+        console.log(`The bot responsible for comparing value-61 microchips with value-17 microchips is bot ${botNumber}.`);
+    } else {
+        console.log('No bot found comparing value-61 microchips with value-17 microchips.');
+    }
+
+    const outputProduct = outputs[0] * outputs[1] * outputs[2];
+    console.log(`The product of the values in outputs 0, 1, and 2 is ${outputProduct}.`);
+}
+
+main();

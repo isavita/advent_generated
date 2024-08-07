@@ -1,33 +1,30 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function countOrbits(orbitMap, start, depth) {
-  const orbits = orbitMap[start];
-  if (!orbits) {
-    return depth;
-  }
-  let count = depth;
-  for (const orbit of orbits) {
-    count += countOrbits(orbitMap, orbit, depth + 1);
-  }
-  return count;
-}
+const calculateOrbits = (input: string): number => {
+    const orbits = input.trim().split('\n').map(line => line.split(')'));
+    const orbitMap = new Map<string, string>();
+
+    orbits.forEach(([center, orbiter]) => {
+        orbitMap.set(orbiter, center);
+    });
+
+    const countOrbits = (object: string): number => {
+        let count = 0;
+        while (orbitMap.has(object)) {
+            object = orbitMap.get(object)!;
+            count++;
+        }
+        return count;
+    };
+
+    return Array.from(orbitMap.keys()).reduce((total, orbiter) => total + countOrbits(orbiter), 0);
+};
 
 fs.readFile('input.txt', 'utf8', (err, data) => {
-  if (err) {
-    console.error(err);
-    return;
-  }
-
-  const lines = data.trim().split('\n');
-  const orbitMap = {};
-  for (const line of lines) {
-    const [center, orbiter] = line.split(')');
-    if (!orbitMap[center]) {
-      orbitMap[center] = [];
+    if (err) {
+        console.error(err);
+        return;
     }
-    orbitMap[center].push(orbiter);
-  }
-
-  const totalOrbits = countOrbits(orbitMap, 'COM', 0);
-  console.log(totalOrbits);
+    const totalOrbits = calculateOrbits(data);
+    console.log(totalOrbits);
 });

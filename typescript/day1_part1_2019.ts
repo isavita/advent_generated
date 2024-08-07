@@ -1,41 +1,19 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const masses = [];
-let total = 0;
+const calculateFuel = (mass: number): number => Math.floor(mass / 3) - 2;
 
-function processLine(line) {
-    const m = parseInt(line.trim());
-    if (isNaN(m)) {
-        console.log("Error parsing line");
-        return;
-    }
+const totalFuelRequirement = (masses: number[]): number => 
+  masses.reduce((total, mass) => total + calculateFuel(mass), 0);
 
-    masses.push(m);
-}
+const readInput = (filePath: string): number[] => {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return content.split('\n').map(line => parseInt(line, 10)).filter(Boolean);
+};
 
-function getTotal() {
-    let tempTotal = 0;
+const main = () => {
+  const masses = readInput('input.txt');
+  const totalFuel = totalFuelRequirement(masses);
+  console.log(totalFuel);
+};
 
-    masses.forEach(m => {
-        tempTotal += (Math.floor(m / 3) - 2);
-    });
-
-    total = tempTotal;
-    return;
-}
-
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error("Error while reading file");
-        return;
-    }
-
-    const lines = data.split('\n');
-    lines.forEach(line => {
-        processLine(line);
-    });
-
-    getTotal();
-
-    console.log(total);
-});
+main();

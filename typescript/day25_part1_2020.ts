@@ -1,35 +1,38 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function transform(subjectNumber, loopSize) {
+const MODULUS = 20201227;
+const SUBJECT_NUMBER = 7;
+
+function transform(subject: number, loopSize: number): number {
     let value = 1;
     for (let i = 0; i < loopSize; i++) {
-        value *= subjectNumber;
-        value %= 20201227;
+        value = (value * subject) % MODULUS;
     }
     return value;
 }
 
-function findLoopSize(publicKey) {
+function findLoopSize(publicKey: number): number {
     let value = 1;
     let loopSize = 0;
     while (value !== publicKey) {
-        value *= 7;
-        value %= 20201227;
+        value = (value * SUBJECT_NUMBER) % MODULUS;
         loopSize++;
     }
     return loopSize;
 }
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
+function calculateEncryptionKey(publicKey: number, loopSize: number): number {
+    return transform(publicKey, loopSize);
+}
 
-    const [cardPublicKey, doorPublicKey] = data.trim().split('\n').map(Number);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n').map(Number);
+    const [cardPublicKey, doorPublicKey] = input;
 
     const cardLoopSize = findLoopSize(cardPublicKey);
-    const encryptionKey = transform(doorPublicKey, cardLoopSize);
+    const encryptionKey = calculateEncryptionKey(doorPublicKey, cardLoopSize);
 
     console.log(encryptionKey);
-});
+}
+
+main();

@@ -1,63 +1,85 @@
-const fs = require('fs');
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+import * as fs from 'fs';
 
-const gridSize = 100;
-const steps = 100;
-
-let grid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(false));
-
-for (let y = 0; y < input.length; y++) {
-  for (let x = 0; x < input[y].length; x++) {
-    grid[x][y] = input[y][x] === '#';
-  }
+// Function to read the input file and return the initial grid
+function readInput(filePath: string): string[][] {
+    const data = fs.readFileSync(filePath, 'utf-8').trim().split('\n');
+    return data.map(line => line.split(''));
 }
 
-grid[0][0] = true;
-grid[0][gridSize-1] = true;
-grid[gridSize-1][0] = true;
-grid[gridSize-1][gridSize-1] = true;
-
-for (let i = 0; i < steps; i++) {
-  grid = step(grid);
+// Function to count the number of lights that are on
+function countLightsOn(grid: string[][]): number {
+    return grid.flat().filter(light => light === '#').length;
 }
 
-let onCount = 0;
-for (let x = 0; x < gridSize; x++) {
-  for (let y = 0; y < gridSize; y++) {
-    if (grid[x][y]) {
-      onCount++;
-    }
-  }
-}
-
-console.log(onCount);
-
-function step(grid) {
-  const newGrid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(false));
-
-  for (let x = 0; x < gridSize; x++) {
-    for (let y = 0; y < gridSize; y++) {
-      let onNeighbors = 0;
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          if (dx === 0 && dy === 0) {
-            continue;
-          }
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && grid[nx][ny]) {
-            onNeighbors++;
-          }
+// Function to get the number of neighbors that are on
+function countNeighborsOn(grid: string[][], x: number, y: number): number {
+    const directions = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],          [0, 1],
+        [1, -1], [1, 0], [1, 1]
+    ];
+    let count = 0;
+    for (const [dx, dy] of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length && grid[nx][ny] === '#') {
+            count++;
         }
-      }
-      newGrid[x][y] = (grid[x][y] && (onNeighbors === 2 || onNeighbors === 3)) || (!grid[x][y] && onNeighbors === 3);
     }
-  }
-
-  newGrid[0][0] = true;
-  newGrid[0][gridSize-1] = true;
-  newGrid[gridSize-1][0] = true;
-  newGrid[gridSize-1][gridSize-1] = true;
-
-  return newGrid;
+    return count;
 }
+
+// Function to update the grid based on the game of life rules
+function updateGrid(grid: string[][]): string[][] {
+    const newGrid = grid.map(row => row.slice());
+    for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[0].length; j++) {
+            const neighborsOn = countNeighborsOn(grid, i, j);
+            if (grid[i][j] === '#') {
+                if (neighborsOn === 2 || neighborsOn === 3) {
+                    newGrid[i][j] = '#';
+                } else {
+                    newGrid[i][j] = '.';
+                }
+            } else {
+                if (neighborsOn === 3) {
+                    newGrid[i][j] = '#';
+                } else {
+                    newGrid[i][j] = '.';
+                }
+            }
+        }
+    }
+    return newGrid;
+}
+
+// Function to run the game of life for a given number of steps
+function runGameOfLife(grid: string[][], steps: number, cornersStuckOn: boolean = false): number {
+    for (let step = 0; step < steps; step++) {
+        grid = updateGrid(grid);
+        if (cornersStuckOn) {
+            grid[0][0] = grid[0][grid[0].length - 1] = '#';
+            grid[grid.length - 1][0] = grid[grid.length - 1][grid[0].length - 1] = '#';
+        }
+    }
+    return countLightsOn(grid);
+}
+
+// Main function
+function main() {
+    const grid = readInput('input.txt');
+
+    // Part 1
+    const part1Grid = JSON.parse(JSON.stringify(grid));
+    const lightsOnPart1 = runGameOfLife(part1Grid, 100);
+    console.log(`Part 1: ${lightsOnPart1} lights are on after 100 steps.`);
+
+    // Part 2
+    const part2Grid = JSON.parse(JSON.stringify(grid));
+    part2Grid[0][0] = part2Grid[0][part2Grid[0].length - 1] = '#';
+    part2Grid[part2Grid.length - 1][0] = part2Grid[part2Grid.length - 1][part2Grid[0].length - 1] = '#';
+    const lightsOnPart2 = runGameOfLife(part2Grid, 100, true);
+    console.log(`Part 2: ${lightsOnPart2} lights are on after 100 steps with corners stuck on.`);
+}
+
+main();

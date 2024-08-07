@@ -1,45 +1,45 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function itemPriority(item) {
-    if (item >= 'a' && item <= 'z') {
-        return item.charCodeAt(0) - 'a'.charCodeAt(0) + 1;
-    }
-    return item.charCodeAt(0) - 'A'.charCodeAt(0) + 27;
-}
+const calculatePriority = (char: string): number => {
+    const code = char.charCodeAt(0);
+    return code >= 97 ? code - 96 : code - 64 + 26;
+};
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error("Error opening file:", err);
-        return;
-    }
+const partOne = (lines: string[]): number => {
+    return lines.reduce((sum, line) => {
+        const mid = line.length / 2;
+        const firstCompartment = new Set(line.slice(0, mid));
+        const secondCompartment = line.slice(mid);
+        const commonItem = [...firstCompartment].find(item => secondCompartment.includes(item));
+        return sum + (commonItem ? calculatePriority(commonItem) : 0);
+    }, 0);
+};
 
+const partTwo = (lines: string[]): number => {
     let sum = 0;
-    let groupLineCounter = 0;
-    let groupItems = [{}, {}, {}];
-    let lines = data.split('\n');
-
-    for (let line of lines) {
-        let itemsMap = {};
-        for (let item of line) {
-            itemsMap[item] = (itemsMap[item] || 0) + 1;
-        }
-        groupItems[groupLineCounter] = itemsMap;
-        groupLineCounter++;
-
-        if (groupLineCounter === 3) {
-            let commonItems = {};
-            for (let item in groupItems[0]) {
-                if (groupItems[1][item] > 0 && groupItems[2][item] > 0) {
-                    commonItems[item] = 1;
-                }
-            }
-            for (let item in commonItems) {
-                sum += itemPriority(item);
-                break; // Since we need only one common item per group
-            }
-            groupLineCounter = 0;
+    for (let i = 0; i < lines.length; i += 3) {
+        const group = lines.slice(i, i + 3);
+        const commonItems = group.reduce((acc, line) => {
+            const currentSet = new Set(line);
+            return acc.filter(item => currentSet.has(item));
+        }, [...group[0]]);
+        const badgeItem = commonItems[0];
+        if (badgeItem) {
+            sum += calculatePriority(badgeItem);
         }
     }
+    return sum;
+};
 
-    console.log(sum);
-});
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf8');
+    const lines = input.split('\n').filter(Boolean);
+    
+    const resultPartOne = partOne(lines);
+    console.log(`Part One: ${resultPartOne}`);
+    
+    const resultPartTwo = partTwo(lines);
+    console.log(`Part Two: ${resultPartTwo}`);
+};
+
+main();

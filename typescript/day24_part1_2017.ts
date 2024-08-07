@@ -1,46 +1,38 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Component {
-  constructor(a, b) {
-    this.a = a;
-    this.b = b;
-  }
+interface Component {
+    port1: number;
+    port2: number;
 }
 
-let maxStrength = 0;
+const readComponents = (filename: string): Component[] => {
+    const data = fs.readFileSync(filename, 'utf-8');
+    return data.trim().split('\n').map(line => {
+        const [port1, port2] = line.split('/').map(Number);
+        return { port1, port2 };
+    });
+};
 
-function findStrongestBridge(components, used, port, strength) {
-  if (strength > maxStrength) {
-    maxStrength = strength;
-  }
+const findStrongestBridge = (components: Component[], currentPort: number, used: boolean[]): number => {
+    let maxStrength = 0;
 
-  components.forEach((c, i) => {
-    if (used[i]) {
-      return;
+    for (let i = 0; i < components.length; i++) {
+        if (!used[i] && (components[i].port1 === currentPort || components[i].port2 === currentPort)) {
+            used[i] = true;
+            const nextPort = components[i].port1 === currentPort ? components[i].port2 : components[i].port1;
+            const strength = components[i].port1 + components[i].port2;
+            maxStrength = Math.max(maxStrength, strength + findStrongestBridge(components, nextPort, used));
+            used[i] = false;
+        }
     }
 
-    if (c.a === port || c.b === port) {
-      used[i] = true;
-      const nextPort = c.a === port ? c.b : c.a;
-      findStrongestBridge(components, used, nextPort, strength + c.a + c.b);
-      used[i] = false;
-    }
-  });
-}
+    return maxStrength;
+};
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-  if (err) {
-    console.error(err);
-    return;
-  }
+const main = () => {
+    const components = readComponents('input.txt');
+    const strongestBridgeStrength = findStrongestBridge(components, 0, new Array(components.length).fill(false));
+    console.log(strongestBridgeStrength);
+};
 
-  const components = data.trim().split('\n').map(line => {
-    const [a, b] = line.split('/').map(Number);
-    return new Component(a, b);
-  });
-
-  const used = new Array(components.length).fill(false);
-  findStrongestBridge(components, used, 0, 0);
-
-  console.log(maxStrength);
-});
+main();

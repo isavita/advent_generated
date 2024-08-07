@@ -1,32 +1,22 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const fileContent = fs.readFileSync('input.txt', 'utf8');
-const lines = fileContent.split('\n');
+function sumCalibrationValues(filePath: string): number {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const lines = data.split('\n').filter(line => line.trim() !== '');
 
-let sum = 0;
+    let totalSum = 0;
 
-lines.forEach((line) => {
-  if (line === '') {
-    return;
-  }
+    for (const line of lines) {
+        const firstDigit = line.match(/\d/)?.[0];
+        const lastDigit = line.match(/\d(?=[^0-9]*$)/)?.[0];
 
-  let firstDigit = -1;
-  let lastDigit = -1;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line.charAt(i);
-    if (!isNaN(parseInt(char))) {
-      if (firstDigit === -1) {
-        firstDigit = parseInt(char);
-      }
-      lastDigit = parseInt(char);
+        if (firstDigit && lastDigit) {
+            totalSum += parseInt(firstDigit + lastDigit, 10);
+        }
     }
-  }
 
-  if (firstDigit !== -1 && lastDigit !== -1) {
-    const value = parseInt(`${firstDigit}${lastDigit}`);
-    sum += value;
-  }
-});
+    return totalSum;
+}
 
-console.log(sum);
+const result = sumCalibrationValues('input.txt');
+console.log(result);

@@ -1,28 +1,40 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
-const readline = require('readline');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
 
-async function main() {
-  const fileStream = fs.createReadStream('input.txt');
+const parseRange = (range: string): [number, number] => {
+    const [start, end] = range.split('-').map(Number);
+    return [start, end];
+};
 
-  const rl = readline.createInterface({
-    input: fileStream,
-    crlfDelay: Infinity
-  });
+const contains = (range1: [number, number], range2: [number, number]): boolean => {
+    return range1[0] <= range2[0] && range1[1] >= range2[1];
+};
 
-  let count = 0;
+const overlaps = (range1: [number, number], range2: [number, number]): boolean => {
+    return range1[0] <= range2[1] && range2[0] <= range1[1];
+};
 
-  for await (const line of rl) {
-    const [pair1, pair2] = line.split(',');
-    const [range1Start, range1End] = pair1.split('-').map(n => parseInt(n));
-    const [range2Start, range2End] = pair2.split('-').map(n => parseInt(n));
+const countPairs = (input: string[]) => {
+    let fullyContainedCount = 0;
+    let overlapCount = 0;
 
-    if (range1Start <= range2End && range1End >= range2Start) {
-      count++;
+    for (const line of input) {
+        const [range1Str, range2Str] = line.split(',');
+        const range1 = parseRange(range1Str);
+        const range2 = parseRange(range2Str);
+
+        if (contains(range1, range2) || contains(range2, range1)) {
+            fullyContainedCount++;
+        }
+        if (overlaps(range1, range2)) {
+            overlapCount++;
+        }
     }
-  }
 
-  console.log(count);
-}
+    return { fullyContainedCount, overlapCount };
+};
 
-main();
+const { fullyContainedCount, overlapCount } = countPairs(input);
+console.log(`Fully contained pairs: ${fullyContainedCount}`);
+console.log(`Overlapping pairs: ${overlapCount}`);

@@ -1,82 +1,89 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function main() {
-    const input = fs.readFileSync('input.txt', 'utf8').trim();
-    console.log(solve(input));
-}
+function parseInput(input: string): [Map<string, string[]>, string[]] {
+  const blocks = input.split('\n\n');
+  const startingMaterial = splitMolecules(blocks[1]);
+  const graph: Map<string, string[]> = new Map();
 
-function parseInput(input) {
-    const blocks = input.split("\n\n");
-    const startingMaterial = splitMolecules(blocks[1]);
-
-    const graph = {};
-
-    blocks[0].split("\n").forEach(l => {
-        const parts = l.split(" => ");
-        if (!graph[parts[0]]) {
-            graph[parts[0]] = [];
-        }
-        graph[parts[0]].push(parts[1]);
-    });
-
-    return { graph, startingMaterial };
-}
-
-function splitMolecules(input) {
-    const molecules = [];
-    let i = 0;
-    while (i < input.length) {
-        if (input[i] >= 'A' && input[i] <= 'Z') {
-            molecules.push(input[i]);
-            i++;
-        } else {
-            molecules[molecules.length - 1] += input[i];
-            i++;
-        }
+  for (const line of blocks[0].split('\n')) {
+    const parts = line.split(' => ');
+    if (!graph.has(parts[0])) {
+      graph.set(parts[0], []);
     }
-    return molecules;
+    graph.get(parts[0])!.push(parts[1]);
+  }
+
+  return [graph, startingMaterial];
 }
 
-function solve(input) {
-    const { graph, startingMaterial } = parseInput(input);
+function splitMolecules(input: string): string[] {
+  const molecules: string[] = [];
+  let currentMolecule = '';
 
-    const productToReactant = {};
-    for (const react in graph) {
-        graph[react].forEach(prod => {
-            if (productToReactant[prod]) {
-                throw new Error("dup found");
-            }
-            productToReactant[prod] = react;
-        });
+  for (const char of input) {
+    if (char >= 'A' && char <= 'Z') {
+      if (currentMolecule) {
+        molecules.push(currentMolecule);
+      }
+      currentMolecule = char;
+    } else {
+      currentMolecule += char;
     }
+  }
 
-    const allProducts = Object.keys(productToReactant);
+  if (currentMolecule) {
+    molecules.push(currentMolecule);
+  }
 
-    let start = startingMaterial.join("");
-    let mol = start;
+  return molecules;
+}
 
-    let steps = 0;
-    while (mol !== "e") {
-        let changeMade = false;
-        for (const prod of allProducts) {
-            const count = mol.split(prod).length - 1;
-            if (count <= 0) {
-                continue;
-            }
-            changeMade = true;
-            steps += count;
-            mol = mol.replace(new RegExp(prod, 'g'), productToReactant[prod]);
-            break;
-        }
+function solve(input: string): number {
+  const [reverseGraph, startingMols] = parseInput(input);
+  const productToReactant: Map<string, string> = new Map();
 
-        if (!changeMade) {
-            allProducts.sort(() => Math.random() - 0.5);
-            mol = start;
-            steps = 0;
-        }
+  for (const [react, products] of reverseGraph) {
+    for (const product of products) {
+      if (productToReactant.has(product)) {
+        throw new Error('Duplicate product found');
+      }
+      productToReactant.set(product, react);
+    }
+  }
+
+  const allProducts = Array.from(productToReactant.keys());
+  let start = startingMols.join('');
+  let mol = start;
+  let steps = 0;
+
+  while (mol !== 'e') {
+    let changeMade = false;
+
+    for (const product of allProducts) {
+      const count = mol.split(product).length - 1;
+      if (count <= 0) {
+        continue;
+      }
+      changeMade = true;
+      steps += count;
+      mol = mol.replace(new RegExp(product, 'g'), productToReactant.get(product)!);
+
+      break;
     }
 
-    return steps;
+    if (!changeMade) {
+      allProducts.sort(() => Math.random() - 0.5);
+      mol = start;
+      steps = 0;
+    }
+  }
+
+  return steps;
 }
 
-main();
+fs.readFile('input.txt', 'utf8', (err, data) => {
+  if (err) {
+    throw err;
+  }
+  console.log(solve(data));
+});

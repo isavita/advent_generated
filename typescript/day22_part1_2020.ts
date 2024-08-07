@@ -1,37 +1,29 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-
-let player1Deck = [];
-let player2Deck = [];
-let currentDeck = player1Deck;
-
-for (const line of input) {
-    if (line === '') {
-        currentDeck = player2Deck;
-        continue;
-    }
-    if (line.includes('Player')) {
-        continue;
-    }
-    currentDeck.push(parseInt(line));
+function readDecks(filename: string): [number[], number[]] {
+    const data = fs.readFileSync(filename, 'utf-8').trim().split('\n\n');
+    const player1 = data[0].split('\n').slice(1).map(Number);
+    const player2 = data[1].split('\n').slice(1).map(Number);
+    return [player1, player2];
 }
 
-while (player1Deck.length > 0 && player2Deck.length > 0) {
-    const card1 = player1Deck.shift();
-    const card2 = player2Deck.shift();
-    if (card1 > card2) {
-        player1Deck.push(card1, card2);
-    } else {
-        player2Deck.push(card2, card1);
+function calculateScore(deck: number[]): number {
+    return deck.reduce((score, card, index) => score + card * (deck.length - index), 0);
+}
+
+function playGame(deck1: number[], deck2: number[]): number {
+    while (deck1.length && deck2.length) {
+        const card1 = deck1.shift()!;
+        const card2 = deck2.shift()!;
+        if (card1 > card2) {
+            deck1.push(card1, card2);
+        } else {
+            deck2.push(card2, card1);
+        }
     }
+    return deck1.length > 0 ? calculateScore(deck1) : calculateScore(deck2);
 }
 
-let winningDeck = player1Deck.length > 0 ? player1Deck : player2Deck;
-
-let score = 0;
-for (let i = 0; i < winningDeck.length; i++) {
-    score += winningDeck[i] * (winningDeck.length - i);
-}
-
+const [deck1, deck2] = readDecks('input.txt');
+const score = playGame(deck1, deck2);
 console.log(score);

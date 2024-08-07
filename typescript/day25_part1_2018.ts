@@ -1,65 +1,43 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Point {
-  constructor(x, y, z, t) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.t = t;
-  }
-}
+type Point = number[];
 
-function abs(x) {
-  return x < 0 ? -x : x;
-}
+const readInput = (filename: string): Point[] => {
+    const data = fs.readFileSync(filename, 'utf-8');
+    return data.trim().split('\n').map(line => line.split(',').map(Number) as Point);
+};
 
-function manhattanDistance(a, b) {
-  return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) + abs(a.t - b.t);
-}
+const manhattanDistance = (a: Point, b: Point): number => {
+    return a.reduce((sum, val, index) => sum + Math.abs(val - b[index]), 0);
+};
 
-class UnionFind {
-  constructor(size) {
-    this.parent = new Array(size).fill().map((_, i) => i);
-  }
+const findConstellations = (points: Point[]): number => {
+    const visited = new Set<number>();
+    let constellations = 0;
 
-  find(x) {
-    if (this.parent[x] !== x) {
-      this.parent[x] = this.find(this.parent[x]);
+    const dfs = (index: number) => {
+        visited.add(index);
+        for (let i = 0; i < points.length; i++) {
+            if (!visited.has(i) && manhattanDistance(points[index], points[i]) <= 3) {
+                dfs(i);
+            }
+        }
+    };
+
+    for (let i = 0; i < points.length; i++) {
+        if (!visited.has(i)) {
+            dfs(i);
+            constellations++;
+        }
     }
-    return this.parent[x];
-  }
 
-  union(x, y) {
-    const rootX = this.find(x);
-    const rootY = this.find(y);
-    if (rootX !== rootY) {
-      this.parent[rootX] = rootY;
-    }
-  }
-}
+    return constellations;
+};
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const points = input.map(line => {
-  const [x, y, z, t] = line.split(',').map(Number);
-  return new Point(x, y, z, t);
-});
+const main = () => {
+    const points = readInput('input.txt');
+    const result = findConstellations(points);
+    console.log(result);
+};
 
-const uf = new UnionFind(points.length);
-
-for (let i = 0; i < points.length; i++) {
-  for (let j = 0; j < points.length; j++) {
-    if (manhattanDistance(points[i], points[j]) <= 3) {
-      uf.union(i, j);
-    }
-  }
-}
-
-let constellationCount = 0;
-
-for (let i = 0; i < uf.parent.length; i++) {
-  if (i === uf.parent[i]) {
-    constellationCount++;
-  }
-}
-
-console.log(constellationCount);
+main();

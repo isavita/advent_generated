@@ -1,59 +1,53 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
-
-let sumOfSectorIDs = 0;
-
-for (let i = 0; i < data.length; i++) {
-    const line = data[i];
-    if (isRealRoom(line)) {
-        sumOfSectorIDs += getSectorID(line);
-    }
+// Function to read the input file
+function readInputFile(filename: string): string[] {
+    return fs.readFileSync(filename, 'utf-8').split('\n');
 }
 
-console.log(sumOfSectorIDs);
+// Function to validate if a room is real
+function isRealRoom(room: string): boolean {
+    const match = room.match(/^(.*)-(\d+)\[([a-z]+)\]$/);
+    if (!match) return false;
 
-function isRealRoom(room) {
-    const parts = room.split("[");
-    const checksum = parts[1].replace("]", "");
-    let encryptedName = parts[0].split("-");
-    encryptedName = encryptedName.slice(0, encryptedName.length - 1);
+    const [, encryptedName, sectorIdStr, checksum] = match;
+    const name = encryptedName.replace(/-/g, '');
+    const sectorId = parseInt(sectorIdStr, 10);
 
-    const letterCounts = new Map();
-    for (let part of encryptedName) {
-        for (let letter of part) {
-            if (letterCounts.has(letter)) {
-                letterCounts.set(letter, letterCounts.get(letter) + 1);
-            } else {
-                letterCounts.set(letter, 1);
-            }
-        }
+    // Count the frequency of each letter in the encrypted name
+    const letterCounts: { [key: string]: number } = {};
+    for (const char of name) {
+        letterCounts[char] = (letterCounts[char] || 0) + 1;
     }
 
-    let counts = [];
-    letterCounts.forEach((count, letter) => {
-        counts.push({ letter, count });
+    // Sort letters by frequency and then alphabetically
+    const sortedLetters = Object.keys(letterCounts).sort((a, b) => {
+        if (letterCounts[b] !== letterCounts[a]) {
+            return letterCounts[b] - letterCounts[a];
+        }
+        return a.localeCompare(b);
     });
 
-    counts.sort((a, b) => {
-        if (a.count === b.count) {
-            return a.letter < b.letter ? -1 : 1;
-        }
-        return b.count - a.count;
-    });
+    // Generate the checksum from the sorted letters
+    const generatedChecksum = sortedLetters.slice(0, 5).join('');
 
-    for (let i = 0; i < checksum.length; i++) {
-        if (checksum[i] !== counts[i].letter) {
-            return false;
+    // Check if the generated checksum matches the provided checksum
+    return generatedChecksum === checksum;
+}
+
+// Main function to process the input and calculate the sum of sector IDs
+function main() {
+    const inputLines = readInputFile('input.txt');
+    let sumOfSectorIds = 0;
+
+    for (const line of inputLines) {
+        if (isRealRoom(line)) {
+            const sectorId = parseInt(line.match(/\d+/)![0], 10);
+            sumOfSectorIds += sectorId;
         }
     }
 
-    return true;
+    console.log(sumOfSectorIds);
 }
 
-function getSectorID(room) {
-    const parts = room.split("-");
-    const sectorIDPart = parts[parts.length - 1];
-    const sectorID = parseInt(sectorIDPart.split("[")[0]);
-    return sectorID;
-}
+main();

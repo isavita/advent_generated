@@ -1,46 +1,59 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+type Food = {
+  ingredients: Set<string>;
+  allergens: Set<string>;
+};
 
-const allergenMap = {};
-const ingredientCount = {};
-const safeIngredients = {};
+const parseInput = (data: string): Food[] => {
+  return data.trim().split('\n').map(line => {
+    const [ingredientsPart, allergensPart] = line.split(' (contains ');
+    const ingredients = new Set(ingredientsPart.split(' '));
+    const allergens = new Set(allergensPart.slice(0, -1).split(', '));
+    return { ingredients, allergens };
+  });
+};
 
-for (const line of data) {
-    const parts = line.split(' (contains ');
-    const ingredients = parts[0].split(' ');
-    const allergens = parts.length > 1 ? parts[1].slice(0, -1).split(', ') : [];
+const findSafeIngredientsCount = (foods: Food[]): number => {
+  const allergenMap = new Map<string, Set<string>>();
+  const allIngredients = new Set<string>();
 
-    for (const ingredient of ingredients) {
-        ingredientCount[ingredient] = (ingredientCount[ingredient] || 0) + 1;
-        safeIngredients[ingredient] = true;
-    }
-
-    for (const allergen of allergens) {
-        if (!allergenMap[allergen]) {
-            allergenMap[allergen] = {};
-            for (const ingredient of ingredients) {
-                allergenMap[allergen][ingredient] = true;
-            }
-        } else {
-            for (const ingredient in allergenMap[allergen]) {
-                if (!ingredients.includes(ingredient)) {
-                    delete allergenMap[allergen][ingredient];
-                }
-            }
+  foods.forEach(({ ingredients, allergens }) => {
+    ingredients.forEach(ingredient => allIngredients.add(ingredient));
+    allergens.forEach(allergen => {
+      if (!allergenMap.has(allergen)) {
+        allergenMap.set(allergen, new Set(ingredients));
+      } else {
+        const existingIngredients = allergenMap.get(allergen)!;
+        for (const ing of existingIngredients) {
+          if (!ingredients.has(ing)) {
+            existingIngredients.delete(ing);
+          }
         }
+      }
+    });
+  });
+
+  const unsafeIngredients = new Set<string>();
+  allergenMap.forEach(ingredients => {
+    ingredients.forEach(ingredient => unsafeIngredients.add(ingredient));
+  });
+
+  let safeCount = 0;
+  allIngredients.forEach(ingredient => {
+    if (!unsafeIngredients.has(ingredient)) {
+      safeCount += foods.reduce((count, { ingredients }) => count + (ingredients.has(ingredient) ? 1 : 0), 0);
     }
-}
+  });
 
-for (const ingredients of Object.values(allergenMap)) {
-    for (const ingredient in ingredients) {
-        delete safeIngredients[ingredient];
-    }
-}
+  return safeCount;
+};
 
-let count = 0;
-for (const ingredient in safeIngredients) {
-    count += ingredientCount[ingredient];
-}
+const main = async () => {
+  const data = fs.readFileSync('input.txt', 'utf-8');
+  const foods = parseInput(data);
+  const result = findSafeIngredientsCount(foods);
+  console.log(result);
+};
 
-console.log(count);
+main().catch(console.error);

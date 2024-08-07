@@ -1,70 +1,49 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const ipBind = +input[0].split(' ')[1];
-const instructions = input.slice(1).map(instruction => instruction.split(' '));
+type Instruction = (a: number, b: number, c: number, registers: number[]) => void;
 
-const registers = [0, 0, 0, 0, 0, 0];
+const operations: Record<string, Instruction> = {
+    addr: (a, b, c, r) => r[c] = r[a] + r[b],
+    addi: (a, b, c, r) => r[c] = r[a] + b,
+    mulr: (a, b, c, r) => r[c] = r[a] * r[b],
+    muli: (a, b, c, r) => r[c] = r[a] * b,
+    banr: (a, b, c, r) => r[c] = r[a] & r[b],
+    bani: (a, b, c, r) => r[c] = r[a] & b,
+    borr: (a, b, c, r) => r[c] = r[a] | r[b],
+    bori: (a, b, c, r) => r[c] = r[a] | b,
+    setr: (a, _, c, r) => r[c] = r[a],
+    seti: (a, _, c, r) => r[c] = a,
+    gtir: (a, b, c, r) => r[c] = a > r[b] ? 1 : 0,
+    gtri: (a, b, c, r) => r[c] = r[a] > b ? 1 : 0,
+    gtrr: (a, b, c, r) => r[c] = r[a] > r[b] ? 1 : 0,
+    eqir: (a, b, c, r) => r[c] = a === r[b] ? 1 : 0,
+    eqri: (a, b, c, r) => r[c] = r[a] === b ? 1 : 0,
+    eqrr: (a, b, c, r) => r[c] = r[a] === r[b] ? 1 : 0,
+};
 
-for (let ip = 0; ip < instructions.length; ip++) {
-    registers[ipBind] = ip;
-    const [opcode, a, b, c] = instructions[ip].map((x, i) => i === 0 ? x : +x);
+const runProgram = (instructions: string[], ipBinding: number) => {
+    const registers = Array(6).fill(0);
+    let ip = 0;
 
-    switch (opcode) {
-        case "addr":
-            registers[c] = registers[a] + registers[b];
-            break;
-        case "addi":
-            registers[c] = registers[a] + b;
-            break;
-        case "mulr":
-            registers[c] = registers[a] * registers[b];
-            break;
-        case "muli":
-            registers[c] = registers[a] * b;
-            break;
-        case "banr":
-            registers[c] = registers[a] & registers[b];
-            break;
-        case "bani":
-            registers[c] = registers[a] & b;
-            break;
-        case "borr":
-            registers[c] = registers[a] | registers[b];
-            break;
-        case "bori":
-            registers[c] = registers[a] | b;
-            break;
-        case "setr":
-            registers[c] = registers[a];
-            break;
-        case "seti":
-            registers[c] = a;
-            break;
-        case "gtir":
-            registers[c] = +(a > registers[b]);
-            break;
-        case "gtri":
-            registers[c] = +(registers[a] > b);
-            break;
-        case "gtrr":
-            registers[c] = +(registers[a] > registers[b]);
-            break;
-        case "eqir":
-            registers[c] = +(a === registers[b]);
-            break;
-        case "eqri":
-            registers[c] = +(registers[a] === b);
-            break;
-        case "eqrr":
-            registers[c] = +(registers[a] === registers[b]);
-            break;
+    while (ip >= 0 && ip < instructions.length) {
+        registers[ipBinding] = ip;
+        const [opcode, aStr, bStr, cStr] = instructions[ip].split(' ');
+        const a = parseInt(aStr);
+        const b = parseInt(bStr);
+        const c = parseInt(cStr);
+        operations[opcode](a, b, c, registers);
+        ip = registers[ipBinding] + 1;
     }
 
-    ip = registers[ipBind];
-    if (ip < 0 || ip >= instructions.length) {
-        break;
-    }
-}
+    return registers[0];
+};
 
-console.log(registers[0]);
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+    const ipBinding = parseInt(input[0].split(' ')[1]);
+    const instructions = input.slice(1);
+    const result = runProgram(instructions, ipBinding);
+    console.log(result);
+};
+
+main();

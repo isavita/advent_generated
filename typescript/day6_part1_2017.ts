@@ -1,23 +1,44 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split(/\s+/).map(Number);
-
-const seen = new Set();
-let cycles = 0;
-
-while (true) {
-  const state = JSON.stringify(input);
-  if (seen.has(state)) break;
-  seen.add(state);
-
-  const maxIndex = input.indexOf(Math.max(...input));
-  const blocks = input[maxIndex];
-  input[maxIndex] = 0;
-  for (let i = 1; i <= blocks; i++) {
-    input[(maxIndex + i) % input.length]++;
-  }
-
-  cycles++;
+function readInput(filePath: string): number[] {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    return fileContent.split(/\s+/).map(Number);
 }
 
-console.log(`It takes ${cycles} redistribution cycles to reach a repeated configuration.`);
+function redistribute(banks: number[]): number[] {
+    const maxBlocks = Math.max(...banks);
+    const maxIndex = banks.indexOf(maxBlocks);
+    const blocksToRedistribute = banks[maxIndex];
+
+    banks[maxIndex] = 0;
+    for (let i = 1; i <= blocksToRedistribute; i++) {
+        banks[(maxIndex + i) % banks.length]++;
+    }
+
+    return banks;
+}
+
+function findRedistributionCycles(banks: number[]): number {
+    const seenConfigurations = new Set<string>();
+    let cycles = 0;
+    let currentConfig = banks.join(',');
+
+    while (!seenConfigurations.has(currentConfig)) {
+        seenConfigurations.add(currentConfig);
+        banks = redistribute(banks);
+        currentConfig = banks.join(',');
+        cycles++;
+    }
+
+    return cycles;
+}
+
+function main() {
+    const filePath = path.join(__dirname, 'input.txt');
+    const initialBanks = readInput(filePath);
+    const cycles = findRedistributionCycles(initialBanks);
+    console.log(cycles);
+}
+
+main();

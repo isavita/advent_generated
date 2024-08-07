@@ -1,19 +1,33 @@
-const fs = require('fs');
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
+import * as fs from 'fs';
 
-let count = 0;
-for (let i = 0; i < data.length; i++) {
-    const parts = data[i].split(' | ');
-    const output = parts[1];
-    output.split(' ').forEach(digit => {
-        switch (digit.length) {
-            case 2:
-            case 4:
-            case 3:
-            case 7:
+const countUniqueSegments = (input: string): number => {
+    const lines = input.trim().split('\n');
+    let count = 0;
+
+    for (const line of lines) {
+        const parts = line.split(' | ');
+        const outputValues = parts[1].split(' ');
+
+        for (const value of outputValues) {
+            const length = value.length;
+            if (length === 2 || length === 3 || length === 4 || length === 7) {
                 count++;
+            }
         }
-    });
-}
+    }
 
-console.log(count);
+    return count;
+};
+
+const main = () => {
+    fs.readFile('input.txt', 'utf8', (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        const result = countUniqueSegments(data);
+        console.log(result);
+    });
+};
+
+main();

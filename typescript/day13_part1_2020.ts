@@ -1,22 +1,18 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-const earliestDeparture = Number(input[0]);
-const busIDs = input[1].split(',');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+const earliestTimestamp = Number(input[0]);
+const busIDs = input[1].split(',').filter(id => id !== 'x').map(Number);
 
 let earliestBusID = 0;
-let minWaitTime = earliestDeparture;
+let minWaitTime = Infinity;
 
-for (const id of busIDs) {
-  if (id === 'x') {
-    continue;
-  }
-  const busID = Number(id);
-  const waitTime = busID - (earliestDeparture % busID);
-  if (waitTime < minWaitTime) {
-    minWaitTime = waitTime;
-    earliestBusID = busID;
-  }
+for (const busID of busIDs) {
+    const waitTime = busID - (earliestTimestamp % busID);
+    if (waitTime < minWaitTime) {
+        minWaitTime = waitTime;
+        earliestBusID = busID;
+    }
 }
 
 console.log(earliestBusID * minWaitTime);

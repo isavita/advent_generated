@@ -1,62 +1,65 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-class Reindeer {
-    constructor(speed, flyTime, restTime) {
-        this.speed = speed;
-        this.flyTime = flyTime;
-        this.restTime = restTime;
-        this.distance = 0;
-        this.flying = true;
-        this.timeInMode = 0;
-    }
+interface Reindeer {
+    name: string;
+    speed: number;
+    flyTime: number;
+    restTime: number;
 }
 
-function readReindeerDetails(filename) {
-    const reindeers = [];
-    const input = fs.readFileSync(filename, 'utf8').split('\n');
-    for (let line of input) {
-        const parts = line.split(' ');
-        const speed = parseInt(parts[3]);
-        const flyTime = parseInt(parts[6]);
-        const restTime = parseInt(parts[13]);
-        reindeers.push(new Reindeer(speed, flyTime, restTime));
+function parseReindeer(line: string): Reindeer {
+    const match = line.match(/(\w+) can fly (\d+) km\/s for (\d+) seconds, but then must rest for (\d+) seconds./);
+    if (!match) {
+        throw new Error(`Invalid input line: ${line}`);
     }
-    return reindeers;
+    return {
+        name: match[1],
+        speed: parseInt(match[2], 10),
+        flyTime: parseInt(match[3], 10),
+        restTime: parseInt(match[4], 10),
+    };
 }
 
-function simulateRace(reindeers, totalSeconds) {
-    for (let i = 0; i < totalSeconds; i++) {
-        for (let j = 0; j < reindeers.length; j++) {
-            const reindeer = reindeers[j];
-            if (reindeer.flying) {
-                reindeer.distance += reindeer.speed;
-                reindeer.timeInMode++;
-                if (reindeer.timeInMode === reindeer.flyTime) {
-                    reindeer.flying = false;
-                    reindeer.timeInMode = 0;
-                }
-            } else {
-                reindeer.timeInMode++;
-                if (reindeer.timeInMode === reindeer.restTime) {
-                    reindeer.flying = true;
-                    reindeer.timeInMode = 0;
-                }
-            }
-        }
+function calculateDistance(reindeer: Reindeer, time: number): number {
+    const cycleTime = reindeer.flyTime + reindeer.restTime;
+    const fullCycles = Math.floor(time / cycleTime);
+    const remainingTime = time % cycleTime;
+
+    let distance = fullCycles * reindeer.flyTime * reindeer.speed;
+    if (remainingTime > reindeer.flyTime) {
+        distance += reindeer.flyTime * reindeer.speed;
+    } else {
+        distance += remainingTime * reindeer.speed;
     }
+
+    return distance;
 }
 
-function findMaxDistance(reindeers) {
+async function main() {
+    const fileStream = fs.createReadStream('input.txt');
+    const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+    });
+
+    const reindeers: Reindeer[] = [];
+
+    for await (const line of rl) {
+        reindeers.push(parseReindeer(line));
+    }
+
+    const raceTime = 2503;
     let maxDistance = 0;
-    for (let reindeer of reindeers) {
-        if (reindeer.distance > maxDistance) {
-            maxDistance = reindeer.distance;
+
+    for (const reindeer of reindeers) {
+        const distance = calculateDistance(reindeer, raceTime);
+        if (distance > maxDistance) {
+            maxDistance = distance;
         }
     }
-    return maxDistance;
+
+    console.log(`The winning reindeer has traveled ${maxDistance} km after ${raceTime} seconds.`);
 }
 
-const reindeers = readReindeerDetails("input.txt");
-simulateRace(reindeers, 2503);
-const maxDistance = findMaxDistance(reindeers);
-console.log(maxDistance);
+main().catch(console.error);

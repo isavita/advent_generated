@@ -1,18 +1,26 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-let floor = 0;
-let position = 0;
-for (let i = 0; i < input.length; i++) {
-    const c = input[i];
-    if (c === '(') {
-        floor++;
-    } else if (c === ')') {
-        floor--;
+function main() {
+    const filePath = 'input.txt';
+    const data = fs.readFileSync(filePath, 'utf-8').trim();
+
+    let floor = 0;
+    let basementPosition = -1;
+
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] === '(') {
+            floor++;
+        } else if (data[i] === ')') {
+            floor--;
+        }
+
+        if (floor === -1 && basementPosition === -1) {
+            basementPosition = i + 1;
+        }
     }
-    if (floor === -1) {
-        position = i + 1;
-        break;
-    }
+
+    console.log(`Final floor: ${floor}`);
+    console.log(`Position of first character that causes him to enter the basement: ${basementPosition}`);
 }
-console.log(position);
+
+main();

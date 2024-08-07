@@ -1,56 +1,58 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n').map(line => line.split('').map(Number));
+const rows = input.length;
+const cols = input[0].length;
 
-const heightmap = input.map(row => row.split('').map(Number));
+const directions = [
+    [-1, 0], // up
+    [1, 0],  // down
+    [0, -1], // left
+    [0, 1]   // right
+];
 
-const basinSizes = [];
-const visited = new Map();
+const isLowPoint = (x: number, y: number): boolean => {
+    const height = input[x][y];
+    return directions.every(([dx, dy]) => {
+        const nx = x + dx, ny = y + dy;
+        return nx < 0 || nx >= rows || ny < 0 || ny >= cols || input[nx][ny] > height;
+    });
+};
 
-function isLowPoint(heightmap, x, y) {
-    const height = heightmap[y][x];
-    if (x > 0 && heightmap[y][x - 1] <= height) {
-        return false;
-    }
-    if (x < heightmap[y].length - 1 && heightmap[y][x + 1] <= height) {
-        return false;
-    }
-    if (y > 0 && heightmap[y - 1][x] <= height) {
-        return false;
-    }
-    if (y < heightmap.length - 1 && heightmap[y + 1][x] <= height) {
-        return false;
-    }
-    return true;
-}
-
-function exploreBasin(heightmap, x, y, visited) {
-    if (visited.has(`${x},${y}`) || heightmap[y][x] === 9) {
-        return 0;
-    }
-    visited.set(`${x},${y}`, true);
+const getBasinSize = (x: number, y: number, visited: boolean[][]): number => {
+    if (x < 0 || x >= rows || y < 0 || y >= cols || visited[x][y] || input[x][y] === 9) return 0;
+    visited[x][y] = true;
     let size = 1;
-
-    const directions = [[0, -1], [-1, 0], [0, 1], [1, 0]];
-    for (const dir of directions) {
-        const newX = x + dir[0];
-        const newY = y + dir[1];
-        if (newX >= 0 && newX < heightmap[0].length && newY >= 0 && newY < heightmap.length) {
-            size += exploreBasin(heightmap, newX, newY, visited);
-        }
+    for (const [dx, dy] of directions) {
+        size += getBasinSize(x + dx, y + dy, visited);
     }
     return size;
+};
+
+const lowPoints: number[] = [];
+const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+        if (isLowPoint(i, j)) {
+            lowPoints.push(input[i][j] + 1);
+        }
+    }
 }
 
-heightmap.forEach((row, y) => {
-    row.forEach((_, x) => {
-        if (isLowPoint(heightmap, x, y)) {
-            const size = exploreBasin(heightmap, x, y, visited);
-            basinSizes.push(size);
+const riskLevelSum = lowPoints.reduce((sum, level) => sum + level, 0);
+console.log('Sum of risk levels:', riskLevelSum);
+
+const basinSizes: number[] = [];
+
+for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+        if (!visited[i][j] && input[i][j] !== 9) {
+            basinSizes.push(getBasinSize(i, j, visited));
         }
-    });
-});
+    }
+}
 
 basinSizes.sort((a, b) => b - a);
-const result = basinSizes[0] * basinSizes[1] * basinSizes[2];
-console.log(result);
+const largestBasinsProduct = basinSizes.slice(0, 3).reduce((product, size) => product * size, 1);
+console.log('Product of the sizes of the three largest basins:', largestBasinsProduct);

@@ -1,33 +1,25 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const file = fs.readFileSync('input.txt', 'utf8');
-const lines = file.trim().split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const groups = input.split('\n\n');
 
-let totalCount = 0;
-let groupAnswers = {};
-let groupSize = 0;
+const countYesAnswers = (groups: string[], all: boolean): number => {
+    return groups.reduce((total, group) => {
+        const answers = group.split('\n').map(person => new Set(person.split('')));
+        const combinedAnswers = all ? answers.reduce((acc, curr) => {
+            curr.forEach(answer => acc.add(answer));
+            return acc;
+        }, new Set<string>()) : answers.reduce((acc, curr) => {
+            curr.forEach(answer => acc.add(answer));
+            return acc;
+        }, new Set<string>());
+        
+        return total + (all ? [...combinedAnswers].filter(answer => answers.every(set => set.has(answer))).length : combinedAnswers.size);
+    }, 0);
+};
 
-lines.forEach((line) => {
-  if (line === '') {
-    Object.values(groupAnswers).forEach((count) => {
-      if (count === groupSize) {
-        totalCount++;
-      }
-    });
-    groupAnswers = {};
-    groupSize = 0;
-  } else {
-    groupSize++;
-    for (const question of line) {
-      groupAnswers[question] = (groupAnswers[question] || 0) + 1;
-    }
-  }
-});
+const partOneResult = countYesAnswers(groups, false);
+const partTwoResult = countYesAnswers(groups, true);
 
-Object.values(groupAnswers).forEach((count) => {
-  if (count === groupSize) {
-    totalCount++;
-  }
-});
-
-console.log(totalCount);
+console.log(`Part One: ${partOneResult}`);
+console.log(`Part Two: ${partTwoResult}`);

@@ -1,39 +1,29 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function itemPriority(item) {
-  if (item >= 'a' && item <= 'z') {
-    return item.charCodeAt(0) - 'a'.charCodeAt(0) + 1;
-  }
-  return item.charCodeAt(0) - 'A'.charCodeAt(0) + 27;
+function getPriority(item: string): number {
+    const code = item.charCodeAt(0);
+    return code >= 97 ? code - 96 : code - 64 + 26;
 }
 
-function solve(input) {
-  let sum = 0;
-  const lines = input.split('\n');
-  for (const line of lines) {
-    const half = Math.floor(line.length / 2);
-    const firstCompartment = line.slice(0, half);
-    const secondCompartment = line.slice(half);
+function calculatePrioritySum(filename: string): number {
+    const data = fs.readFileSync(filename, 'utf-8').trim().split('\n');
+    let totalPriority = 0;
 
-    const compartmentMap = {};
-    for (const item of firstCompartment) {
-      compartmentMap[item] = (compartmentMap[item] || 0) + 1;
-    }
-    for (const item of secondCompartment) {
-      if (compartmentMap[item]) {
-        sum += itemPriority(item);
-        break;
-      }
-    }
-  }
+    for (const line of data) {
+        const mid = line.length / 2;
+        const firstCompartment = new Set(line.slice(0, mid));
+        const secondCompartment = line.slice(mid);
 
-  console.log(sum);
+        for (const item of secondCompartment) {
+            if (firstCompartment.has(item)) {
+                totalPriority += getPriority(item);
+                break;
+            }
+        }
+    }
+
+    return totalPriority;
 }
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-  if (err) {
-    console.error('Error reading file:', err);
-    return;
-  }
-  solve(data);
-});
+const prioritySum = calculatePrioritySum('input.txt');
+console.log(prioritySum);

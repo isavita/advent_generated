@@ -1,17 +1,19 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const countIncreases = (depths: number[]): number => {
+    return depths.reduce((count, depth, index) => {
+        if (index > 0 && depth > depths[index - 1]) {
+            return count + 1;
+        }
+        return count;
+    }, 0);
+};
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n').map(Number);
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const depths = input.split('\n').map(Number).filter(Boolean);
+    const increaseCount = countIncreases(depths);
+    console.log(increaseCount);
+};
 
-let prev = 0;
-let count = 0;
-
-for (let i = 0; i < input.length; i++) {
-    const current = input[i];
-    if (prev !== 0 && current > prev) {
-        count++;
-    }
-    prev = current;
-}
-
-console.log(count);
+main();

@@ -1,92 +1,108 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
+
+type Point = { x: number, y: number };
+type Map = string[][];
+
+function readInput(filePath: string): string[] {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    return fileContent.split('\n').map(line => line.trim());
+}
+
+function parseMap(lines: string[]): { map: Map, points: { [key: string]: Point } } {
+    const map: Map = lines.map(line => line.split(''));
+    const points: { [key: string]: Point } = {};
+
+    for (let y = 0; y < map.length; y++) {
+        for (let x = 0; x < map[y].length; x++) {
+            const cell = map[y][x];
+            if (cell >= '0' && cell <= '9') {
+                points[cell] = { x, y };
+            }
+        }
+    }
+
+    return { map, points };
+}
+
+function bfs(map: Map, start: Point, end: Point): number {
+    const queue: [Point, number][] = [[start, 0]];
+    const visited = new Set<string>();
+    const directions = [
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 }
+    ];
+
+    while (queue.length > 0) {
+        const [current, steps] = queue.shift()!;
+        if (current.x === end.x && current.y === end.y) {
+            return steps;
+        }
+
+        for (const dir of directions) {
+            const next: Point = { x: current.x + dir.x, y: current.y + dir.y };
+            const key = `${next.x},${next.y}`;
+            if (visited.has(key) || map[next.y][next.x] === '#') {
+                continue;
+            }
+            visited.add(key);
+            queue.push([next, steps + 1]);
+        }
+    }
+
+    return -1;
+}
+
+function findShortestPath(map: Map, points: { [key: string]: Point }): number {
+    const pointKeys = Object.keys(points).filter(key => key !== '0');
+    const n = pointKeys.length;
+    const allPaths: number[][] = [];
+
+    for (let i = 0; i < n; i++) {
+        allPaths[i] = [];
+        for (let j = 0; j < n; j++) {
+            if (i !== j) {
+                allPaths[i][j] = bfs(map, points[pointKeys[i]], points[pointKeys[j]]);
+            }
+        }
+    }
+
+    const startPoint = points['0'];
+    const startPaths: number[] = [];
+    for (let i = 0; i < n; i++) {
+        startPaths[i] = bfs(map, startPoint, points[pointKeys[i]]);
+    }
+
+    let minPathLength = Infinity;
+    const permute = (arr: number[]) => {
+        if (arr.length === n) {
+            let pathLength = startPaths[arr[0]];
+            for (let i = 1; i < n; i++) {
+                pathLength += allPaths[arr[i - 1]][arr[i]];
+            }
+            minPathLength = Math.min(minPathLength, pathLength);
+            return;
+        }
+
+        for (let i = 0; i < n; i++) {
+            if (!arr.includes(i)) {
+                permute([...arr, i]);
+            }
+        }
+    };
+
+    permute([]);
+    return minPathLength;
+}
 
 function main() {
-  const input = fs.readFileSync('./input.txt', 'utf8').trim();
-  const n = cleaningRobot(input);
-  console.log(n);
-}
-
-function cleaningRobot(input) {
-  const grid = input.split('\n').map(row => row.split(''));
-
-  let graph = [];
-  grid.forEach((row, r) => {
-    row.forEach((cell, c) => {
-      if (/[0-9]/.test(cell)) {
-        const poi = cell;
-        const distancesFromPOI = bfsGetEdgeWeights(grid, [r, c]);
-
-        if (!graph.length) {
-          for (let i = 0; i < distancesFromPOI.length; i++) {
-            graph.push(new Array(distancesFromPOI.length).fill(0));
-          }
-        }
-        const index = parseInt(poi);
-        graph[index] = distancesFromPOI;
-      }
-    });
-  });
-
-  return dfs(graph, 0, {0: true}, false);
-}
-
-function bfsGetEdgeWeights(grid, start) {
-  const poiToDistance = {
-    [grid[start[0]][start[1]]]: 0,
-  };
-
-  const queue = [{row: start[0], col: start[1], distance: 0}];
-  const visited = {};
-  while (queue.length) {
-    const front = queue.shift();
-
-    if (visited[`${front.row},${front.col}`]) {
-      continue;
-    }
-    visited[`${front.row},${front.col}`] = true;
-
-    if (/[0-9]/.test(grid[front.row][front.col])) {
-      poiToDistance[grid[front.row][front.col]] = front.distance;
-    }
-    for (const [dx, dy] of [[0, -1], [0, 1], [1, 0], [-1, 0]]) {
-      const nextRow = front.row + dx;
-      const nextCol = front.col + dy;
-
-      if (grid[nextRow][nextCol] !== '#') {
-        queue.push({row: nextRow, col: nextCol, distance: front.distance + 1});
-      }
-    }
-  }
-
-  const distances = Array.from({length: Object.keys(poiToDistance).length}, () => 0);
-  for (const [numStr, dist] of Object.entries(poiToDistance)) {
-    const n = parseInt(numStr);
-    distances[n] = dist;
-  }
-  return distances;
-}
-
-function dfs(graph, entryIndex, visited, returnToZero) {
-  if (graph.length === Object.keys(visited).length) {
-    if (returnToZero) {
-      return graph[entryIndex][0];
-    }
-    return 0;
-  }
-
-  let minDistance = Number.MAX_SAFE_INTEGER;
-  for (const [i, val] of graph[entryIndex].entries()) {
-    if (!visited[i]) {
-      visited[i] = true;
-
-      const dist = val + dfs(graph, i, visited, returnToZero);
-      minDistance = Math.min(minDistance, dist);
-
-      delete visited[i];
-    }
-  }
-
-  return minDistance;
+    const filePath = path.join(__dirname, 'input.txt');
+    const lines = readInput(filePath);
+    const { map, points } = parseMap(lines);
+    const shortestPath = findShortestPath(map, points);
+    console.log(shortestPath);
 }
 
 main();

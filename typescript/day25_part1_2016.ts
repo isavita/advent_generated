@@ -1,29 +1,25 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+function main() {
+    const instructions = fs.readFileSync('input.txt', 'utf-8').split('\n');
 
-const instructions = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-
-let a = 1;
-
-while (true) {
-    if (producesClockSignal(a, instructions)) {
-        console.log(a);
-        break;
+    for (let a = 1; ; a++) {
+        if (producesClockSignal(a, instructions)) {
+            console.log(a);
+            break;
+        }
     }
-    a++;
 }
 
-function producesClockSignal(a, instructions) {
-    const registers = { a, b: 0, c: 0, d: 0 };
-    let lastOutput = 0;
-    let outputCount = 0;
+function producesClockSignal(a: number, instructions: string[]): boolean {
+    const registers: { [key: string]: number } = { a, b: 0, c: 0, d: 0 };
+    let lastOutput = 0, outputCount = 0;
 
-    for (let i = 0; i < instructions.length;) {
+    for (let i = 0; i < instructions.length; ) {
         const parts = instructions[i].split(' ');
         switch (parts[0]) {
             case 'cpy':
-                const copyVal = getValue(parts[1], registers);
-                registers[parts[2]] = copyVal;
+                registers[parts[2]] = getValue(parts[1], registers);
                 break;
             case 'inc':
                 registers[parts[1]]++;
@@ -32,26 +28,19 @@ function producesClockSignal(a, instructions) {
                 registers[parts[1]]--;
                 break;
             case 'jnz':
-                const jumpVal = getValue(parts[1], registers);
-                if (jumpVal !== 0) {
-                    const jump = parseInt(parts[2]);
-                    i += jump;
+                const val1 = getValue(parts[1], registers);
+                if (val1 !== 0) {
+                    i += parseInt(parts[2]);
                     continue;
                 }
                 break;
             case 'out':
-                const outputVal = getValue(parts[1], registers);
-                if (outputVal !== 0 && outputVal !== 1) {
-                    return false;
-                }
-                if (outputCount > 0 && outputVal === lastOutput) {
-                    return false;
-                }
-                lastOutput = outputVal;
+                const val2 = getValue(parts[1], registers);
+                if (val2 !== 0 && val2 !== 1) return false;
+                if (outputCount > 0 && val2 === lastOutput) return false;
+                lastOutput = val2;
                 outputCount++;
-                if (outputCount > 50) {
-                    return true;
-                }
+                if (outputCount > 50) return true;
                 break;
         }
         i++;
@@ -59,10 +48,9 @@ function producesClockSignal(a, instructions) {
     return false;
 }
 
-function getValue(s, registers) {
+function getValue(s: string, registers: { [key: string]: number }): number {
     const val = parseInt(s);
-    if (isNaN(val)) {
-        return registers[s];
-    }
-    return val;
+    return isNaN(val) ? registers[s] : val;
 }
+
+main();

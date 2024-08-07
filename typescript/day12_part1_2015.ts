@@ -1,28 +1,40 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8');
-const jsonData = JSON.parse(data);
+// Function to read the content of input.txt
+function readInputFile(filePath: string): string {
+    return fs.readFileSync(filePath, 'utf-8');
+}
 
-const sumNumbers = (data) => {
+// Function to traverse the JSON structure and sum all numbers
+function sumNumbers(obj: any): number {
     let sum = 0;
-    switch (typeof data) {
-        case 'object':
-            if (Array.isArray(data)) {
-                data.forEach((v) => {
-                    sum += sumNumbers(v);
-                });
-            } else {
-                Object.values(data).forEach((v) => {
-                    sum += sumNumbers(v);
-                });
-            }
-            break;
-        case 'number':
-            sum += data;
-            break;
-    }
-    return sum;
-};
 
-const sum = sumNumbers(jsonData);
-console.log(sum);
+    if (typeof obj === 'number') {
+        sum += obj;
+    } else if (Array.isArray(obj)) {
+        for (const item of obj) {
+            sum += sumNumbers(item);
+        }
+    } else if (typeof obj === 'object' && obj !== null) {
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                sum += sumNumbers(obj[key]);
+            }
+        }
+    }
+
+    return sum;
+}
+
+// Main function to execute the program
+function main() {
+    const filePath = 'input.txt';
+    const inputContent = readInputFile(filePath);
+    const jsonObj = JSON.parse(inputContent);
+    const totalSum = sumNumbers(jsonObj);
+
+    console.log(totalSum);
+}
+
+// Run the main function
+main();

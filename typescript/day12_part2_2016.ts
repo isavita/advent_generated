@@ -1,60 +1,70 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
-const readline = require('readline');
+type Instruction = {
+    op: string;
+    x: string;
+    y?: string;
+};
 
-const file = fs.createReadStream('input.txt');
-const rl = readline.createInterface({
-  input: file,
-  output: process.stdout,
-  terminal: false
-});
+function readInput(filename: string): string[] {
+    return fs.readFileSync(filename, 'utf8').split('\n');
+}
 
-const instructions = [];
-let registers = {a: 0, b: 0, c: 1, d: 0};
-
-rl.on('line', (line) => {
-  instructions.push(line);
-});
-
-rl.on('close', () => {
-  executeInstructions(instructions, registers);
-  console.log(registers["a"]);
-});
-
-function executeInstructions(instructions, registers) {
-  for (let i = 0; i < instructions.length;) {
-    const parts = instructions[i].split(' ');
-    switch (parts[0]) {
-      case "cpy":
-        const copyVal = getValue(parts[1], registers);
-        registers[parts[2]] = copyVal;
-        i++;
-        break;
-      case "inc":
-        registers[parts[1]]++;
-        i++;
-        break;
-      case "dec":
-        registers[parts[1]]--;
-        i++;
-        break;
-      case "jnz":
-        const jumpVal = getValue(parts[1], registers);
-        if (jumpVal !== 0) {
-          const jump = parseInt(parts[2]);
-          i += jump;
+function parseInstructions(lines: string[]): Instruction[] {
+    return lines.map(line => {
+        const parts = line.split(' ');
+        if (parts.length === 2) {
+            return { op: parts[0], x: parts[1] };
         } else {
-          i++;
+            return { op: parts[0], x: parts[1], y: parts[2] };
         }
-        break;
-    }
-  }
+    });
 }
 
-function getValue(s, registers) {
-  const val = parseInt(s);
-  if (isNaN(val)) {
-    return registers[s];
-  }
-  return val;
+function executeInstructions(instructions: Instruction[], initialC: number = 0): number {
+    const registers: { [key: string]: number } = { a: 0, b: 0, c: initialC, d: 0 };
+    let ip = 0;
+
+    while (ip < instructions.length) {
+        const { op, x, y } = instructions[ip];
+        const xVal = isNaN(Number(x)) ? registers[x] : Number(x);
+        const yVal = y ? (isNaN(Number(y)) ? registers[y] : Number(y)) : 0;
+
+        switch (op) {
+            case 'cpy':
+                if (y !== undefined) {
+                    registers[y] = xVal;
+                }
+                break;
+            case 'inc':
+                registers[x]++;
+                break;
+            case 'dec':
+                registers[x]--;
+                break;
+            case 'jnz':
+                if (xVal !== 0) {
+                    ip += yVal - 1; // -1 to counteract the ip++ at the end of the loop
+                }
+                break;
+        }
+        ip++;
+    }
+
+    return registers['a'];
 }
+
+function main() {
+    const input = readInput('input.txt');
+    const instructions = parseInstructions(input);
+
+    // Part One
+    const resultPartOne = executeInstructions(instructions);
+    console.log(`Part One: ${resultPartOne}`);
+
+    // Part Two
+    const resultPartTwo = executeInstructions(instructions, 1);
+    console.log(`Part Two: ${resultPartTwo}`);
+}
+
+main();

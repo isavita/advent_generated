@@ -1,28 +1,56 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const replacements = [];
-let molecule;
-
-for (const line of input) {
-  if (!line) continue;
-  if (line.includes(' => ')) {
-    replacements.push(line);
-  } else {
-    molecule = line;
-  }
+// Function to read input from file
+function readInput(filePath: string): string {
+    return fs.readFileSync(filePath, 'utf-8');
 }
 
-const molecules = new Set();
+// Function to parse the input into replacement rules and the medicine molecule
+function parseInput(input: string): { replacements: Map<string, string[]>, molecule: string } {
+    const lines = input.split('\n').filter(line => line.trim() !== '');
+    const replacements = new Map<string, string[]>();
+    let molecule = '';
 
-for (const replacement of replacements) {
-  const [from, to] = replacement.split(' => ');
-  for (let i = 0; i < molecule.length; i++) {
-    if (molecule.startsWith(from, i)) {
-      const newMolecule = molecule.slice(0, i) + to + molecule.slice(i + from.length);
-      molecules.add(newMolecule);
+    lines.forEach(line => {
+        if (line.includes('=>')) {
+            const [from, to] = line.split(' => ');
+            if (!replacements.has(from)) {
+                replacements.set(from, []);
+            }
+            replacements.get(from)!.push(to);
+        } else {
+            molecule = line;
+        }
+    });
+
+    return { replacements, molecule };
+}
+
+// Function to generate distinct molecules after one replacement
+function generateDistinctMolecules(replacements: Map<string, string[]>, molecule: string): Set<string> {
+    const distinctMolecules = new Set<string>();
+
+    for (let [from, tos] of replacements) {
+        for (let to of tos) {
+            let index = 0;
+            while ((index = molecule.indexOf(from, index)) !== -1) {
+                const newMolecule = molecule.slice(0, index) + to + molecule.slice(index + from.length);
+                distinctMolecules.add(newMolecule);
+                index += from.length;
+            }
+        }
     }
-  }
+
+    return distinctMolecules;
 }
 
-console.log(molecules.size);
+// Main function to execute the program
+function main() {
+    const input = readInput('input.txt');
+    const { replacements, molecule } = parseInput(input);
+    const distinctMolecules = generateDistinctMolecules(replacements, molecule);
+    console.log(distinctMolecules.size);
+}
+
+// Execute the main function
+main();

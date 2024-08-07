@@ -1,90 +1,98 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Coordinate {
-    constructor(q, r) {
-        this.q = q;
-        this.r = r;
-    }
-}
+type Tile = { x: number; y: number };
 
-const directions = {
-    "e": { q: 1, r: 0 },
-    "se": { q: 0, r: 1 },
-    "sw": { q: -1, r: 1 },
-    "w": { q: -1, r: 0 },
-    "nw": { q: 0, r: -1 },
-    "ne": { q: 1, r: -1 },
+const directions: { [key: string]: Tile } = {
+    e: { x: 1, y: 0 },
+    se: { x: 0, y: 1 },
+    sw: { x: -1, y: 1 },
+    w: { x: -1, y: 0 },
+    nw: { x: 0, y: -1 },
+    ne: { x: 1, y: -1 }
 };
 
-function getNeighbors(tile) {
-    const neighbors = [];
-    for (const dir in directions) {
-        const { q, r } = directions[dir];
-        neighbors.push(new Coordinate(tile.q + q, tile.r + r));
-    }
-    return neighbors;
-}
+const flipTiles = (instructions: string[]): Set<string> => {
+    const blackTiles = new Set<string>();
 
-fs.readFile('input.txt', 'utf8', (err, data) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
+    for (const instruction of instructions) {
+        let pos: Tile = { x: 0, y: 0 };
+        let i = 0;
 
-    const blackTiles = new Map();
-    const lines = data.trim().split('\n');
-
-    lines.forEach((line) => {
-        const coord = new Coordinate(0, 0);
-        for (let i = 0; i < line.length; i++) {
-            let dir = '';
-            switch (line[i]) {
-                case 'e':
-                case 'w':
-                    dir = line[i];
-                    break;
-                case 'n':
-                case 's':
-                    dir = line.slice(i, i + 2);
-                    i++;
-                    break;
+        while (i < instruction.length) {
+            if (instruction[i] === 's' || instruction[i] === 'n') {
+                const dir = instruction[i] + instruction[i + 1];
+                pos.x += directions[dir].x;
+                pos.y += directions[dir].y;
+                i += 2;
+            } else {
+                pos.x += directions[instruction[i]].x;
+                pos.y += directions[instruction[i]].y;
+                i += 1;
             }
-            const move = directions[dir];
-            coord.q += move.q;
-            coord.r += move.r;
         }
-        blackTiles.set(JSON.stringify(coord), !blackTiles.get(JSON.stringify(coord)));
-    });
 
-    for (let day = 0; day < 100; day++) {
-        const tilesToCheck = new Map();
-        blackTiles.forEach((value, tile) => {
-            if (value) {
-                tilesToCheck.set(tile, true);
-                getNeighbors(JSON.parse(tile)).forEach((neighbor) => {
-                    tilesToCheck.set(JSON.stringify(neighbor), true);
-                });
-            }
-        });
-
-        const newBlackTiles = new Map();
-        tilesToCheck.forEach((_, tile) => {
-            const blackNeighborCount = getNeighbors(JSON.parse(tile)).reduce((count, neighbor) => {
-                return count + (blackTiles.get(JSON.stringify(neighbor)) ? 1 : 0);
-            }, 0);
-
-            if (blackTiles.get(tile) && (blackNeighborCount === 1 || blackNeighborCount === 2)) {
-                newBlackTiles.set(tile, true);
-            } else if (!blackTiles.get(tile) && blackNeighborCount === 2) {
-                newBlackTiles.set(tile, true);
-            }
-        });
-
-        blackTiles.clear();
-        newBlackTiles.forEach((_, tile) => {
-            blackTiles.set(tile, true);
-        });
+        const key = `${pos.x},${pos.y}`;
+        if (blackTiles.has(key)) {
+            blackTiles.delete(key);
+        } else {
+            blackTiles.add(key);
+        }
     }
 
-    console.log(blackTiles.size);
-});
+    return blackTiles;
+};
+
+const countAdjacentBlackTiles = (tile: Tile, blackTiles: Set<string>): number => {
+    return Object.keys(directions).reduce((count, dir) => {
+        const neighbor = { x: tile.x + directions[dir].x, y: tile.y + directions[dir].y };
+        return count + (blackTiles.has(`${neighbor.x},${neighbor.y}`) ? 1 : 0);
+    }, 0);
+};
+
+const simulateDays = (blackTiles: Set<string>, days: number): number => {
+    for (let day = 0; day < days; day++) {
+        const newBlackTiles = new Set<string>();
+        const candidates = new Set<string>();
+
+        blackTiles.forEach(tile => candidates.add(tile));
+
+        blackTiles.forEach(tile => {
+            const [x, y] = tile.split(',').map(Number);
+            const tileObj: Tile = { x, y };
+            for (const dir of Object.keys(directions)) {
+                const neighbor = { x: tileObj.x + directions[dir].x, y: tileObj.y + directions[dir].y };
+                candidates.add(`${neighbor.x},${neighbor.y}`);
+            }
+        });
+
+        candidates.forEach(tile => {
+            const [x, y] = tile.split(',').map(Number);
+            const tileObj: Tile = { x, y };
+            const adjacentBlackCount = countAdjacentBlackTiles(tileObj, blackTiles);
+
+            if (blackTiles.has(tile) && (adjacentBlackCount === 0 || adjacentBlackCount > 2)) {
+                return; // Tile flips to white, do not add
+            }
+
+            if (!blackTiles.has(tile) && adjacentBlackCount === 2) {
+                newBlackTiles.add(tile); // Tile flips to black
+            }
+
+            if (blackTiles.has(tile)) {
+                newBlackTiles.add(tile); // Stay black
+            }
+        });
+
+        blackTiles = newBlackTiles;
+    }
+    return blackTiles.size;
+};
+
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+    const blackTiles = flipTiles(input);
+    const result = simulateDays(blackTiles, 100);
+    console.log(result);
+};
+
+main();

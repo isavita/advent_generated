@@ -1,69 +1,65 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Monkey {
-  constructor() {
-    this.items = [];
-    this.operation = null;
-    this.div = 0;
-    this.next = [0, 0];
-    this.inspections = 0;
-  }
+interface Monkey {
+    items: number[];
+    operation: (old: number) => number;
+    test: number;
+    trueMonkey: number;
+    falseMonkey: number;
+    inspectedCount: number;
 }
 
-function parse(s) {
-  const m = new Monkey();
-  const lines = s.split('\n');
-  
-  lines[1].split(': ')[1].split(', ').forEach(item => {
-    m.items.push(parseInt(item));
-  });
+function parseInput(input: string): Monkey[] {
+    const monkeys: Monkey[] = [];
+    const lines = input.trim().split('\n\n');
 
-  const f = lines[2].split('= ')[1].split(' ');
-  switch (f[1]) {
-    case '+':
-      m.operation = f[2] === 'old' ? old => old + old : old => old + parseInt(f[2]);
-      break;
-    case '*':
-      m.operation = f[2] === 'old' ? old => old * old : old => old * parseInt(f[2]);
-      break;
-  }
+    for (const block of lines) {
+        const lines = block.split('\n');
+        const items = lines[1].match(/\d+/g)!.map(Number);
+        const operationLine = lines[2].split('=')[1].trim();
+        const operation = new Function('old', `return ${operationLine}`) as (old: number) => number;
+        const test = Number(lines[3].match(/\d+/)![0]);
+        const trueMonkey = Number(lines[4].match(/\d+/)![0]);
+        const falseMonkey = Number(lines[5].match(/\d+/)![0]);
 
-  m.div = parseInt(lines[3].match(/(\d+)/)[0]);
-  m.next[0] = parseInt(lines[4].match(/(\d+)/)[0]);
-  m.next[1] = parseInt(lines[5].match(/(\d+)/)[0]);
+        monkeys.push({ items, operation, test, trueMonkey, falseMonkey, inspectedCount: 0 });
+    }
 
-  return m;
+    return monkeys;
 }
 
-function monkeyBusiness(monkeys, rounds, worry) {
-  let div = 1;
-  monkeys.forEach(m => div *= m.div);
+function simulateMonkeys(monkeys: Monkey[], rounds: number) {
+    const modulo = monkeys.reduce((acc, monkey) => acc * monkey.test, 1);
 
-  for (let i = 0; i < rounds; i++) {
-    monkeys.forEach(m => {
-      while (m.items.length > 0) {
-        m.inspections++;
-        let item = m.operation(m.items[0]);
-        if (worry) {
-          item %= div;
-        } else {
-          item /= 3;
+    for (let round = 0; round < rounds; round++) {
+        for (const monkey of monkeys) {
+            while (monkey.items.length > 0) {
+                const item = monkey.items.shift()!;
+                monkey.inspectedCount++;
+                const newWorryLevel = monkey.operation(item) % modulo;
+
+                if (newWorryLevel % monkey.test === 0) {
+                    monkeys[monkey.trueMonkey].items.push(newWorryLevel);
+                } else {
+                    monkeys[monkey.falseMonkey].items.push(newWorryLevel);
+                }
+            }
         }
-        if (item % m.div === 0) {
-          monkeys[m.next[0]].items.push(item);
-        } else {
-          monkeys[m.next[1]].items.push(item);
-        }
-        m.items.shift();
-      }
-    });
-  }
-
-  const inspections = monkeys.map(m => m.inspections);
-  inspections.sort((a, b) => b - a);
-  return inspections[0] * inspections[1];
+    }
 }
 
-const input = fs.readFileSync('input.txt', 'utf8');
-const monkeys = input.split('\n\n').map(m => parse(m));
-console.log(monkeyBusiness(monkeys, 10000, true));
+function calculateMonkeyBusiness(monkeys: Monkey[]): number {
+    const inspectionCounts = monkeys.map(m => m.inspectedCount);
+    inspectionCounts.sort((a, b) => b - a);
+    return inspectionCounts[0] * inspectionCounts[1];
+}
+
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const monkeys = parseInput(input);
+    simulateMonkeys(monkeys, 10000);
+    const monkeyBusinessLevel = calculateMonkeyBusiness(monkeys);
+    console.log(monkeyBusinessLevel);
+}
+
+main();

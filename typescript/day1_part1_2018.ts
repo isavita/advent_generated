@@ -1,26 +1,14 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function readInput() {
-  const input = fs.readFileSync('input.txt', 'utf8');
-  return input.trim().split('\n');
-}
+const calculateFrequency = (changes: string[]): number => {
+    return changes.reduce((total, change) => total + parseInt(change), 0);
+};
 
-function parseChange(change) {
-  const sign = change[0] === '-' ? -1 : 1;
-  const num = parseInt(change.slice(1));
-  if (isNaN(num)) {
-    throw new Error(`invalid frequency change: ${change}`);
-  }
-  return sign * num;
-}
-
-function main() {
-  const freqChanges = readInput();
-  let freq = 0;
-  for (const change of freqChanges) {
-    freq += parseChange(change);
-  }
-  console.log(freq);
-}
+const main = () => {
+    const data = fs.readFileSync('input.txt', 'utf-8');
+    const changes = data.split('\n').filter(line => line.trim() !== '');
+    const result = calculateFrequency(changes);
+    console.log(result);
+};
 
 main();

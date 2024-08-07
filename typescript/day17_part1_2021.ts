@@ -1,64 +1,54 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const targetArea = parseTargetArea(input);
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const parts = input[0].split(', ');
-const xRange = parts[0].slice(15).split('..');
-const yRange = parts[1].slice(2).split('..');
-const xMin = parseInt(xRange[0]);
-const xMax = parseInt(xRange[1]);
-const yMin = parseInt(yRange[0]);
-const yMax = parseInt(yRange[1]);
+function parseTargetArea(input: string): { xRange: [number, number], yRange: [number, number] } {
+    const match = input.match(/x=(\d+)\.\.(\d+), y=([-]?\d+)\.\.([-]?\d+)/);
+    if (!match) throw new Error('Invalid input format');
+    return {
+        xRange: [parseInt(match[1]), parseInt(match[2])],
+        yRange: [parseInt(match[3]), parseInt(match[4])]
+    };
+}
 
-let maxY = -1 << 30;
-for (let xVel = -1000; xVel <= 1000; xVel++) {
-    for (let yVel = -1000; yVel <= 1000; yVel++) {
-        let xPos = 0;
-        let yPos = 0;
-        let curXVel = xVel;
-        let curYVel = yVel;
-        let highestY = yPos;
+function isWithinTargetArea(x: number, y: number, target: { xRange: [number, number], yRange: [number, number] }): boolean {
+    return x >= target.xRange[0] && x <= target.xRange[1] && y >= target.yRange[0] && y <= target.yRange[1];
+}
 
-        while (true) {
-            xPos += curXVel;
-            yPos += curYVel;
+function simulateProbe(vx: number, vy: number, target: { xRange: [number, number], yRange: [number, number] }): number | null {
+    let x = 0, y = 0;
+    let maxY = 0;
 
-            if (xPos >= xMin && xPos <= xMax && yPos >= yMin && yPos <= yMax) {
-                if (highestY > maxY) {
-                    maxY = highestY;
-                }
-                break;
-            }
+    while (x <= target.xRange[1] && y >= target.yRange[0]) {
+        x += vx;
+        y += vy;
+        maxY = Math.max(maxY, y);
 
-            if (isMovingAway(xPos, yPos, curXVel, curYVel, xMin, xMax, yMin, yMax)) {
-                break;
-            }
+        if (isWithinTargetArea(x, y, target)) {
+            return maxY;
+        }
 
-            if (curXVel > 0) {
-                curXVel--;
-            } else if (curXVel < 0) {
-                curXVel++;
-            }
+        vx = Math.max(0, vx - 1);
+        vy -= 1;
+    }
+    return null;
+}
 
-            curYVel--;
-            if (yPos > highestY) {
-                highestY = yPos;
+function findHighestY(target: { xRange: [number, number], yRange: [number, number] }): number {
+    let highestY = 0;
+
+    for (let vx = 1; vx <= target.xRange[1]; vx++) {
+        for (let vy = target.yRange[0]; vy <= Math.abs(target.yRange[0]); vy++) {
+            const maxY = simulateProbe(vx, vy, target);
+            if (maxY !== null) {
+                highestY = Math.max(highestY, maxY);
             }
         }
     }
+
+    return highestY;
 }
 
-console.log(maxY);
-
-function isMovingAway(xPos, yPos, xVel, yVel, xMin, xMax, yMin, yMax) {
-    if (xPos < xMin && xVel < 0) {
-        return true;
-    }
-    if (xPos > xMax && xVel > 0) {
-        return true;
-    }
-    if (yPos < yMin && yVel < 0) {
-        return true;
-    }
-    return false;
-}
+const highestYPosition = findHighestY(targetArea);
+console.log(highestYPosition);

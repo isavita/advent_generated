@@ -1,29 +1,32 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const readAll = (path) => {
-  return fs.readFileSync(path, 'utf8');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+
+let X = 1;
+let cycle = 0;
+const signalStrengths: number[] = [];
+const interestingCycles = new Set([20, 60, 100, 140, 180, 220]);
+
+const processInstruction = (instruction: string) => {
+    const [command, value] = instruction.split(' ');
+    if (command === 'noop') {
+        cycle++;
+        recordSignalStrength();
+    } else if (command === 'addx') {
+        cycle++;
+        recordSignalStrength();
+        cycle++;
+        recordSignalStrength();
+        X += Number(value);
+    }
 };
 
-const input = readAll('input.txt').split('\n');
+const recordSignalStrength = () => {
+    if (interestingCycles.has(cycle)) {
+        signalStrengths.push(cycle * X);
+    }
+};
 
-let x = [1];
-input.forEach((line) => {
-  switch (line) {
-    case 'noop':
-      x.push(x[x.length - 1]);
-      break;
-    default:
-      const n = parseInt(line.split(' ')[1]);
-      x.push(x[x.length - 1]);
-      x.push(x[x.length - 1] + n);
-  }
-});
-
-let sum = 0;
-x.forEach((value, index) => {
-  if ((index - 19) % 40 === 0) {
-    sum += (index + 1) * value;
-  }
-});
-
-console.log(sum);
+input.forEach(processInstruction);
+const totalSignalStrength = signalStrengths.reduce((sum, strength) => sum + strength, 0);
+console.log(totalSignalStrength);

@@ -1,57 +1,60 @@
-const fs = require('fs');
+import * as fs from 'fs';
+
+interface Player {
+    score: number;
+}
 
 class Marble {
-    constructor(value) {
+    value: number;
+    prev: Marble | null;
+    next: Marble | null;
+
+    constructor(value: number) {
         this.value = value;
         this.prev = null;
         this.next = null;
     }
 }
 
-function readInput(filename) {
-    const input = fs.readFileSync(filename, 'utf8').trim().split('\n');
-    const parts = input[0].split(' ');
-    const players = parseInt(parts[0]);
-    const lastMarble = parseInt(parts[6]);
-    return [players, lastMarble];
-}
+function playMarbleGame(numPlayers: number, lastMarble: number): number {
+    const players: Player[] = Array.from({ length: numPlayers }, () => ({ score: 0 }));
+    const firstMarble = new Marble(0);
+    firstMarble.prev = firstMarble;
+    firstMarble.next = firstMarble;
 
-function playMarbleGame(players, lastMarble) {
-    const scores = new Array(players).fill(0);
-    let current = new Marble(0);
-    current.next = current;
-    current.prev = current;
+    let currentMarble: Marble = firstMarble;
+    let currentPlayer = 0;
 
     for (let marble = 1; marble <= lastMarble; marble++) {
         if (marble % 23 === 0) {
-            const player = marble % players;
+            players[currentPlayer].score += marble;
             for (let i = 0; i < 7; i++) {
-                current = current.prev;
+                currentMarble = currentMarble.prev!;
             }
-            scores[player] += marble + current.value;
-            current.prev.next = current.next;
-            current.next.prev = current.prev;
-            current = current.next;
+            players[currentPlayer].score += currentMarble.value;
+            currentMarble.prev!.next = currentMarble.next;
+            currentMarble.next!.prev = currentMarble.prev;
+            currentMarble = currentMarble.next!;
         } else {
-            current = current.next;
+            currentMarble = currentMarble.next!;
             const newMarble = new Marble(marble);
-            newMarble.prev = current;
-            newMarble.next = current.next;
-            current.next.prev = newMarble;
-            current.next = newMarble;
-            current = newMarble;
+            newMarble.prev = currentMarble;
+            newMarble.next = currentMarble.next;
+            currentMarble.next!.prev = newMarble;
+            currentMarble.next = newMarble;
+            currentMarble = newMarble;
         }
+        currentPlayer = (currentPlayer + 1) % numPlayers;
     }
 
-    let maxScore = 0;
-    for (const score of scores) {
-        if (score > maxScore) {
-            maxScore = score;
-        }
-    }
-    return maxScore;
+    return Math.max(...players.map(p => p.score));
 }
 
-const [players, lastMarble] = readInput('input.txt');
-const result = playMarbleGame(players, lastMarble * 100);
-console.log(result);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim();
+    const [numPlayers, lastMarble] = input.match(/\d+/g)!.map(Number);
+    
+    console.log(playMarbleGame(numPlayers, lastMarble * 100));
+}
+
+main();

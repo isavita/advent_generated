@@ -1,35 +1,54 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
-
-const file = fs.readFileSync('input.txt', 'utf8');
-const instructions = file.split('\n');
-
-const keypad = [
+// Define the keypad layout
+const keypad: number[][] = [
   [1, 2, 3],
   [4, 5, 6],
   [7, 8, 9]
 ];
-let x = 1, y = 1;
-let code = '';
 
-instructions.forEach(instruction => {
-  instruction.split('').forEach(move => {
-    switch (move) {
-      case 'U':
-        if (x > 0) x--;
-        break;
-      case 'D':
-        if (x < 2) x++;
-        break;
-      case 'L':
-        if (y > 0) y--;
-        break;
-      case 'R':
-        if (y < 2) y++;
-        break;
+// Define the movements
+const moves = {
+  U: [-1, 0],
+  D: [1, 0],
+  L: [0, -1],
+  R: [0, 1]
+};
+
+// Function to get the new position after a move
+function getNewPosition(current: [number, number], move: string): [number, number] {
+  const [dx, dy] = moves[move as keyof typeof moves];
+  const [x, y] = current;
+  const newX = x + dx;
+  const newY = y + dy;
+
+  if (newX >= 0 && newX < keypad.length && newY >= 0 && newY < keypad[newX].length) {
+    return [newX, newY];
+  }
+
+  return current;
+}
+
+// Function to get the bathroom code
+function getBathroomCode(instructions: string[]): string {
+  let position: [number, number] = [1, 1]; // Start at '5'
+  let code = '';
+
+  for (const line of instructions) {
+    for (const move of line) {
+      position = getNewPosition(position, move);
     }
-  });
-  code += keypad[x][y];
-});
+    code += keypad[position[0]][position[1]];
+  }
 
-console.log(code);
+  return code;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+
+// Get the bathroom code
+const bathroomCode = getBathroomCode(input);
+
+// Print the output
+console.log(bathroomCode);

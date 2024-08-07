@@ -1,102 +1,75 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function solve(input) {
-    const { nums, boards } = parseInput(input);
+type Board = {
+    numbers: number[][];
+    marked: boolean[][];
+};
 
-    let lastWinningScore = -1;
-    const alreadyWon = {};
-    nums.forEach(n => {
-        boards.forEach((b, bi) => {
-            if (alreadyWon[bi]) {
-                return;
-            }
-            const didWin = b.PickNum(n);
-            if (didWin) {
-                lastWinningScore = b.Score() * n;
-                alreadyWon[bi] = true;
-            }
-        });
-    });
-
-    return lastWinningScore;
-}
-
-class BoardState {
-    constructor(board) {
-        this.board = board;
-        this.picked = Array.from({ length: board.length }, () => Array.from({ length: board[0].length }, () => false));
+const readInput = (filename: string): { draws: number[], boards: Board[] } => {
+    const data = fs.readFileSync(filename, 'utf-8').trim().split('\n');
+    const draws = data[0].split(',').map(Number);
+    const boards: Board[] = [];
+    
+    for (let i = 2; i < data.length; i += 6) {
+        const board: Board = {
+            numbers: [],
+            marked: Array.from({ length: 5 }, () => Array(5).fill(false))
+        };
+        for (let j = 0; j < 5; j++) {
+            board.numbers.push(data[i + j].trim().split(/\s+/).map(Number));
+        }
+        boards.push(board);
     }
+    
+    return { draws, boards };
+};
 
-    PickNum(num) {
-        this.board.forEach((rows, r) => {
-            rows.forEach((v, c) => {
-                if (v === num) {
-                    this.picked[r][c] = true;
+const checkWin = (board: Board): boolean => {
+    for (let i = 0; i < 5; i++) {
+        if (board.marked[i].every(Boolean) || board.marked.map(row => row[i]).every(Boolean)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+const calculateScore = (board: Board, lastDraw: number): number => {
+    const unmarkedSum = board.numbers.flatMap((row, i) => 
+        row.filter((_, j) => !board.marked[i][j])
+    ).reduce((sum, num) => sum + num, 0);
+    return unmarkedSum * lastDraw;
+};
+
+const findLastWinningBoard = (draws: number[], boards: Board[]): number => {
+    const winningBoards = new Set<number>();
+
+    for (const draw of draws) {
+        for (let i = 0; i < boards.length; i++) {
+            if (!winningBoards.has(i)) {
+                const board = boards[i];
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        if (board.numbers[row][col] === draw) {
+                            board.marked[row][col] = true;
+                        }
+                    }
                 }
-            });
-        });
-
-        for (let i = 0; i < this.board.length; i++) {
-            let isFullRow = true;
-            let isFullCol = true;
-
-            for (let j = 0; j < this.board.length; j++) {
-                if (!this.picked[i][j]) {
-                    isFullRow = false;
+                if (checkWin(board)) {
+                    winningBoards.add(i);
+                    if (winningBoards.size === boards.length) {
+                        return calculateScore(board, draw);
+                    }
                 }
-
-                if (!this.picked[j][i]) {
-                    isFullCol = false;
-                }
-            }
-            if (isFullRow || isFullCol) {
-                return true;
             }
         }
-
-        return false;
     }
+    return 0;
+};
 
-    Score() {
-        let score = 0;
-        this.board.forEach((rows, r) => {
-            rows.forEach((v, c) => {
-                if (!this.picked[r][c]) {
-                    score += v;
-                }
-            });
-        });
+const main = () => {
+    const { draws, boards } = readInput('input.txt');
+    const lastWinningScore = findLastWinningBoard(draws, boards);
+    console.log(lastWinningScore);
+};
 
-        return score;
-    }
-}
-
-function parseInput(input) {
-    const lines = input.split("\n\n");
-    const nums = lines[0].split(",").map(toInt);
-    const boards = lines.slice(1).map(grid => {
-        const b = grid.split("\n").map(line => {
-            line = line.replace(/  /g, " ");
-            while (line[0] === ' ') {
-                line = line.slice(1);
-            }
-            const parts = line.split(" ");
-            return parts.map(toInt);
-        });
-        return new BoardState(b);
-    });
-
-    return { nums, boards };
-}
-
-function toInt(s) {
-    const n = parseInt(s);
-    if (isNaN(n)) {
-        throw new Error("Invalid number: " + s);
-    }
-    return n;
-}
-
-const input = fs.readFileSync("input.txt", "utf8").trim();
-const result = solve(input);
-console.log(result);
+main();

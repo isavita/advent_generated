@@ -1,83 +1,81 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Item {
-    constructor(cost, damage = 0, armor = 0) {
-        this.cost = cost;
-        this.damage = damage;
-        this.armor = armor;
-    }
-}
-
-class Character {
-    constructor(hitPoints, damage, armor) {
-        this.hitPoints = hitPoints;
-        this.damage = damage;
-        this.armor = armor;
-    }
-}
-
-function parseStat(line) {
-    return parseInt(line.split(": ")[1]);
-}
-
-function playerWins(player, boss) {
-    const playerDamage = Math.max(1, player.damage - boss.armor);
-    const bossDamage = Math.max(1, boss.damage - player.armor);
-
-    const playerTurns = Math.ceil(boss.hitPoints / playerDamage);
-    const bossTurns = Math.ceil(player.hitPoints / bossDamage);
-
-    return playerTurns <= bossTurns;
-}
-
-const data = fs.readFileSync("input.txt", "utf8");
-const lines = data.split("\n");
-
-const boss = new Character(parseStat(lines[0]), parseStat(lines[1]), parseStat(lines[2]));
-
+// Define the weapons, armor, and rings available in the shop
 const weapons = [
-    new Item(8, 4),
-    new Item(10, 5),
-    new Item(25, 6),
-    new Item(40, 7),
-    new Item(74, 8)
+    { name: 'Dagger', cost: 8, damage: 4, armor: 0 },
+    { name: 'Shortsword', cost: 10, damage: 5, armor: 0 },
+    { name: 'Warhammer', cost: 25, damage: 6, armor: 0 },
+    { name: 'Longsword', cost: 40, damage: 7, armor: 0 },
+    { name: 'Greataxe', cost: 74, damage: 8, armor: 0 },
 ];
 
 const armors = [
-    new Item(0, 0),
-    new Item(13, 0, 1),
-    new Item(31, 0, 2),
-    new Item(53, 0, 3),
-    new Item(75, 0, 4),
-    new Item(102, 0, 5)
+    { name: 'Leather', cost: 13, damage: 0, armor: 1 },
+    { name: 'Chainmail', cost: 31, damage: 0, armor: 2 },
+    { name: 'Splintmail', cost: 53, damage: 0, armor: 3 },
+    { name: 'Bandedmail', cost: 75, damage: 0, armor: 4 },
+    { name: 'Platemail', cost: 102, damage: 0, armor: 5 },
+    { name: 'None', cost: 0, damage: 0, armor: 0 }, // No armor option
 ];
 
 const rings = [
-    new Item(0),
-    new Item(25, 1),
-    new Item(50, 2),
-    new Item(100, 3),
-    new Item(20, 0, 1),
-    new Item(40, 0, 2),
-    new Item(80, 0, 3)
+    { name: 'Damage +1', cost: 25, damage: 1, armor: 0 },
+    { name: 'Damage +2', cost: 50, damage: 2, armor: 0 },
+    { name: 'Damage +3', cost: 100, damage: 3, armor: 0 },
+    { name: 'Defense +1', cost: 20, damage: 0, armor: 1 },
+    { name: 'Defense +2', cost: 40, damage: 0, armor: 2 },
+    { name: 'Defense +3', cost: 80, damage: 0, armor: 3 },
+    { name: 'None', cost: 0, damage: 0, armor: 0 }, // No ring option
 ];
 
-let minCost = Number.MAX_SAFE_INTEGER;
+// Function to simulate the fight
+function simulateFight(player: { hp: number, damage: number, armor: number }, boss: { hp: number, damage: number, armor: number }): boolean {
+    while (player.hp > 0 && boss.hp > 0) {
+        // Player attacks
+        boss.hp -= Math.max(1, player.damage - boss.armor);
+        if (boss.hp <= 0) return true;
 
-weapons.forEach(w => {
-    armors.forEach(a => {
-        for (let ri = 0; ri < rings.length; ri++) {
-            for (let rj = ri + 1; rj < rings.length; rj++) {
-                const player = new Character(100, w.damage, a.armor);
-                player.damage += rings[ri].damage + rings[rj].damage;
-                player.armor += rings[ri].armor + rings[rj].armor;
-                const cost = w.cost + a.cost + rings[ri].cost + rings[rj].cost;
-                if (playerWins(player, boss) && cost < minCost) {
-                    minCost = cost;
+        // Boss attacks
+        player.hp -= Math.max(1, boss.damage - player.armor);
+        if (player.hp <= 0) return false;
+    }
+    return false;
+}
+
+// Function to find the least amount of gold to win
+function findLeastGoldToWin(boss: { hp: number, damage: number, armor: number }): number {
+    let minGold = Number.MAX_SAFE_INTEGER;
+
+    for (const weapon of weapons) {
+        for (const armor of armors) {
+            for (let i = 0; i < rings.length; i++) {
+                for (let j = i + 1; j < rings.length; j++) {
+                    const ring1 = rings[i];
+                    const ring2 = rings[j];
+
+                    const totalCost = weapon.cost + armor.cost + ring1.cost + ring2.cost;
+                    const totalDamage = weapon.damage + armor.damage + ring1.damage + ring2.damage;
+                    const totalArmor = weapon.armor + armor.armor + ring1.armor + ring2.armor;
+
+                    const player = { hp: 100, damage: totalDamage, armor: totalArmor };
+                    if (simulateFight(player, { ...boss })) {
+                        minGold = Math.min(minGold, totalCost);
+                    }
                 }
             }
         }
-    });
-});
+    }
 
-console.log(minCost);
+    return minGold;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf-8');
+const [hp, damage, armor] = input.split('\n').map(line => parseInt(line.split(': ')[1], 10));
+
+// Boss stats
+const boss = { hp, damage, armor };
+
+// Find and print the least amount of gold to win
+const leastGold = findLeastGoldToWin(boss);
+console.log(leastGold);

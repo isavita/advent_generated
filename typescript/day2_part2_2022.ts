@@ -1,57 +1,46 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').split('\n');
+const shapeScores: Record<string, number> = { 'X': 1, 'Y': 2, 'Z': 3 };
+const outcomeScores: Record<string, number> = { 'win': 6, 'draw': 3, 'lose': 0 };
+const opponentShapes: Record<string, string> = { 'A': 'X', 'B': 'Y', 'C': 'Z' };
 
-let totalScore = 0;
+const calculateScore = (opponent: keyof typeof opponentShapes, outcome: string): number => {
+    const playerShape = determineShape(opponent, outcome);
+    const shapeScore = shapeScores[playerShape];
+    const outcomeScore = getOutcomeScore(opponent, playerShape);
+    return shapeScore + outcomeScore;
+};
 
-for (let i = 0; i < data.length; i++) {
-    const line = data[i];
-    const opponent = line[0];
-    const roundEnd = line[2];
+const determineShape = (opponent: keyof typeof opponentShapes, outcome: string): string => {
+    if (outcome === 'Y') return opponentShapes[opponent]; // Draw
+    if (outcome === 'X') return loseShape(opponent); // Lose
+    return winShape(opponent); // Win
+};
 
-    let yourMove = ' ';
-    if (roundEnd === 'X') {
-        if (opponent === 'A') {
-            yourMove = 'Z';
-        } else if (opponent === 'B') {
-            yourMove = 'X';
-        } else {
-            yourMove = 'Y';
-        }
-    } else if (roundEnd === 'Y') {
-        if (opponent === 'A') {
-            yourMove = 'X';
-        } else if (opponent === 'B') {
-            yourMove = 'Y';
-        } else {
-            yourMove = 'Z';
-        }
-    } else {
-        if (opponent === 'A') {
-            yourMove = 'Y';
-        } else if (opponent === 'B') {
-            yourMove = 'Z';
-        } else {
-            yourMove = 'X';
-        }
+const loseShape = (opponent: keyof typeof opponentShapes): string => {
+    return opponent === 'A' ? 'Z' : opponent === 'B' ? 'X' : 'Y';
+};
+
+const winShape = (opponent: keyof typeof opponentShapes): string => {
+    return opponent === 'A' ? 'Y' : opponent === 'B' ? 'Z' : 'X';
+};
+
+const getOutcomeScore = (opponent: keyof typeof opponentShapes, player: string): number => {
+    if (opponentShapes[opponent] === player) return outcomeScores.draw;
+    if ((opponent === 'A' && player === 'Y') || (opponent === 'B' && player === 'Z') || (opponent === 'C' && player === 'X')) {
+        return outcomeScores.win;
     }
+    return outcomeScores.lose;
+};
 
-    let score = 0;
-    if (yourMove === 'X') {
-        score = 1;
-    } else if (yourMove === 'Y') {
-        score = 2;
-    } else if (yourMove === 'Z') {
-        score = 3;
-    }
+const main = () => {
+    const data = fs.readFileSync('input.txt', 'utf-8');
+    const rounds = data.trim().split('\n');
+    const totalScore = rounds.reduce((score, round) => {
+        const [opponent, outcome] = round.split(' ') as [keyof typeof opponentShapes, string];
+        return score + calculateScore(opponent, outcome);
+    }, 0);
+    console.log(totalScore);
+};
 
-    if ((opponent === 'A' && yourMove === 'Y') || (opponent === 'B' && yourMove === 'Z') || (opponent === 'C' && yourMove === 'X')) {
-        score += 6;
-    } else if ((opponent === 'A' && yourMove === 'X') || (opponent === 'B' && yourMove === 'Y') || (opponent === 'C' && yourMove === 'Z')) {
-        score += 3;
-    }
-
-    totalScore += score;
-}
-
-console.log(totalScore);
+main();

@@ -1,43 +1,48 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Node {
-    constructor(used, avail) {
-        this.used = used;
-        this.avail = avail;
-    }
+interface Node {
+    x: number;
+    y: number;
+    size: number;
+    used: number;
+    avail: number;
+    usePercent: number;
 }
 
-function readNodes(filename) {
-    const data = fs.readFileSync(filename, 'utf8');
-    const lines = data.split('\n');
-    const nodes = [];
-    const nodeRegex = /node-x\d+-y\d+\s+\d+T\s+(\d+)T\s+(\d+)T\s+\d+%/;
-    
-    lines.forEach(line => {
-        const matches = line.match(nodeRegex);
-        if (matches) {
-            const used = parseInt(matches[1]);
-            const avail = parseInt(matches[2]);
-            nodes.push(new Node(used, avail));
-        }
-    });
-    
+function parseInput(input: string): Node[] {
+    const lines = input.trim().split('\n').slice(2);
+    const nodes: Node[] = [];
+
+    for (const line of lines) {
+        const [, x, y, size, used, avail, usePercent] = line.match(
+            /\/dev\/grid\/node-x(\d+)-y(\d+)\s+(\d+)T\s+(\d+)T\s+(\d+)T\s+(\d+)%/
+        )!.map(Number);
+
+        nodes.push({ x, y, size, used, avail, usePercent });
+    }
+
     return nodes;
 }
 
-function countViablePairs(nodes) {
-    let count = 0;
-    nodes.forEach((a, i) => {
-        nodes.forEach((b, j) => {
-            if (i !== j && a.used > 0 && a.used <= b.avail) {
-                count++;
+function countViablePairs(nodes: Node[]): number {
+    let viablePairsCount = 0;
+
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = 0; j < nodes.length; j++) {
+            if (i !== j && nodes[i].used > 0 && nodes[i].used <= nodes[j].avail) {
+                viablePairsCount++;
             }
-        });
-    });
-    
-    return count;
+        }
+    }
+
+    return viablePairsCount;
 }
 
-const nodes = readNodes('input.txt');
-const viablePairs = countViablePairs(nodes);
-console.log(viablePairs);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const nodes = parseInput(input);
+    const viablePairsCount = countViablePairs(nodes);
+    console.log(viablePairsCount);
+}
+
+main();

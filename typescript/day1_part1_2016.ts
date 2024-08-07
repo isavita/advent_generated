@@ -1,31 +1,47 @@
-const fs = require('fs');
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+import * as fs from 'fs';
 
-class Position {
-  constructor(x, y, dirIndex) {
-    this.x = x;
-    this.y = y;
-    this.dirIndex = dirIndex;
-  }
+// Function to read input from file
+function readInput(filePath: string): string[] {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return data.split(', ');
 }
 
-const instructions = input[0].split(', ');
+// Function to calculate the Manhattan distance
+function calculateDistance(instructions: string[]): number {
+    let x = 0;
+    let y = 0;
+    let direction = 0; // 0: North, 1: East, 2: South, 3: West
 
-const pos = new Position(0, 0, 0);
-const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    for (const instruction of instructions) {
+        const turn = instruction[0];
+        const distance = parseInt(instruction.slice(1), 10);
 
-for (let instruction of instructions) {
-  const turn = instruction[0];
-  const blocks = parseInt(instruction.substring(1));
+        if (turn === 'R') {
+            direction = (direction + 1) % 4;
+        } else if (turn === 'L') {
+            direction = (direction + 3) % 4;
+        }
 
-  if (turn === 'R') {
-    pos.dirIndex = (pos.dirIndex + 1) % 4;
-  } else {
-    pos.dirIndex = (pos.dirIndex - 1 + 4) % 4;
-  }
+        if (direction === 0) {
+            y += distance;
+        } else if (direction === 1) {
+            x += distance;
+        } else if (direction === 2) {
+            y -= distance;
+        } else if (direction === 3) {
+            x -= distance;
+        }
+    }
 
-  pos.x += directions[pos.dirIndex][0] * blocks;
-  pos.y += directions[pos.dirIndex][1] * blocks;
+    return Math.abs(x) + Math.abs(y);
 }
 
-console.log(Math.abs(pos.x) + Math.abs(pos.y));
+// Main function
+function main() {
+    const instructions = readInput('input.txt');
+    const distance = calculateDistance(instructions);
+    console.log(`The shortest path to the destination is ${distance} blocks away.`);
+}
+
+// Run the main function
+main();

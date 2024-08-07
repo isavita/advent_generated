@@ -1,25 +1,22 @@
-const fs = require('fs');
+import { readFileSync } from 'fs';
 
-const data = fs.readFileSync('input.txt', 'utf8').trim();
-const target = parseInt(data);
+const calculateSteps = (input: number): number => {
+    if (input === 1) return 0;
 
-let sideLength = Math.ceil(Math.sqrt(target));
-if (sideLength % 2 === 0) {
-  sideLength++;
-}
+    let layer = Math.ceil((Math.sqrt(input) - 1) / 2);
+    let maxInLayer = (2 * layer + 1) ** 2;
+    let sideLength = 2 * layer;
+    let offset = (maxInLayer - input) % sideLength;
 
-const maxValue = sideLength * sideLength;
-const stepsFromEdge = (sideLength - 1) / 2;
-let distanceToMiddle = Infinity;
+    let distanceToCenter = Math.abs(offset - layer);
+    return layer + distanceToCenter;
+};
 
-for (let i = 0; i < 4; i++) {
-  const middlePoint = maxValue - stepsFromEdge - (sideLength - 1) * i;
-  const distance = Math.abs(target - middlePoint);
-  if (distance < distanceToMiddle || i === 0) {
-    distanceToMiddle = distance;
-  }
-}
+const main = () => {
+    const data = readFileSync('input.txt', 'utf-8').trim();
+    const input = parseInt(data, 10);
+    const steps = calculateSteps(input);
+    console.log(steps);
+};
 
-const manhattanDistance = stepsFromEdge + distanceToMiddle;
-
-console.log(manhattanDistance);
+main();

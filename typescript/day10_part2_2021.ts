@@ -1,61 +1,74 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
 
-let scores = [];
+const openChars = new Map<string, string>([
+    ['(', ')'],
+    ['[', ']'],
+    ['{', '}'],
+    ['<', '>']
+]);
 
-for (let line of input) {
-    const [score, incomplete] = checkAndCompleteLine(line);
-    if (incomplete) {
-        scores.push(score);
+const errorPoints = new Map<string, number>([
+    [')', 3],
+    [']', 57],
+    ['}', 1197],
+    ['>', 25137]
+]);
+
+const autocompletePoints = new Map<string, number>([
+    [')', 1],
+    [']', 2],
+    ['}', 3],
+    ['>', 4]
+]);
+
+function isCorrupted(line: string): [boolean, string | null] {
+    const stack: string[] = [];
+    for (const char of line) {
+        if (openChars.has(char)) {
+            stack.push(openChars.get(char)!);
+        } else {
+            const expected = stack.pop();
+            if (expected !== char) {
+                return [true, char]; // Found a corruption
+            }
+        }
     }
+    return [false, null]; // Not corrupted
 }
 
-scores.sort((a, b) => a - b);
-const middleScore = scores[Math.floor(scores.length / 2)];
-console.log(middleScore);
-
-function checkAndCompleteLine(line) {
-    const pairings = { ')': '(', ']': '[', '}': '{', '>': '<' };
-    const scoreValues = { ')': 1, ']': 2, '}': 3, '>': 4 };
-    const opening = "([{<";
-    const closing = ")]}>";
-    let stack = [];
-
-    for (let char of line) {
-        if (opening.includes(char)) {
-            stack.push(char);
-        } else if (closing.includes(char)) {
-            if (stack.length === 0 || stack[stack.length - 1] !== pairings[char]) {
-                return [0, false];
-            }
+function autocomplete(line: string): string {
+    const stack: string[] = [];
+    for (const char of line) {
+        if (openChars.has(char)) {
+            stack.push(openChars.get(char)!);
+        } else {
             stack.pop();
         }
     }
-
-    if (stack.length === 0) {
-        return [0, false];
-    }
-
-    let score = 0;
-    for (let i = stack.length - 1; i >= 0; i--) {
-        score *= 5;
-        score += scoreValues[getClosingChar(stack[i])];
-    }
-    return [score, true];
+    return stack.reverse().join('');
 }
 
-function getClosingChar(openingChar) {
-    switch (openingChar) {
-        case '(':
-            return ')';
-        case '[':
-            return ']';
-        case '{':
-            return '}';
-        case '<':
-            return '>';
-        default:
-            return ' ';
+let totalSyntaxErrorScore = 0;
+const autocompleteScores: number[] = [];
+
+for (const line of input) {
+    const [corrupted, char] = isCorrupted(line);
+    if (corrupted) {
+        totalSyntaxErrorScore += errorPoints.get(char!)!;
+    } else {
+        const completionString = autocomplete(line);
+        let score = 0;
+        for (const char of completionString) {
+            score = score * 5 + autocompletePoints.get(char)!;
+        }
+        autocompleteScores.push(score);
     }
 }
+
+console.log(`Total Syntax Error Score: ${totalSyntaxErrorScore}`);
+
+autocompleteScores.sort((a, b) => a - b);
+const middleScore = autocompleteScores[Math.floor(autocompleteScores.length / 2)];
+console.log(`Middle Autocomplete Score: ${middleScore}`);

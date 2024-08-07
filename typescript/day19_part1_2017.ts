@@ -1,57 +1,64 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as readline from 'readline';
 
-const grid = fs.readFileSync('input.txt', 'utf8').split('\n').map(line => line.split(''));
+(async () => {
+    const fileStream = fs.createReadStream('input.txt');
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
 
-let x = 0;
-let y = 0;
-for (let i = 0; i < grid[0].length; i++) {
-  if (grid[0][i] === '|') {
-    x = i;
-    break;
-  }
-}
-
-let dx = 0;
-let dy = 1;
-const letters = [];
-
-while (true) {
-  if (x < 0 || x >= grid[0].length || y < 0 || y >= grid.length) {
-    break;
-  }
-
-  const cell = grid[y][x];
-
-  if (cell === ' ') {
-    break;
-  }
-
-  if (cell >= 'A' && cell <= 'Z') {
-    letters.push(cell);
-  }
-
-  if (cell === '+') {
-    if (dx === 0) {
-      if (x > 0 && (grid[y][x - 1] === '-' || (grid[y][x - 1] >= 'A' && grid[y][x - 1] <= 'Z'))) {
-        dx = -1;
-        dy = 0;
-      } else {
-        dx = 1;
-        dy = 0;
-      }
-    } else {
-      if (y > 0 && (grid[y - 1][x] === '|' || (grid[y - 1][x] >= 'A' && grid[y - 1][x] <= 'Z'))) {
-        dx = 0;
-        dy = -1;
-      } else {
-        dx = 0;
-        dy = 1;
-      }
+    const grid: string[][] = [];
+    for await (const line of rl) {
+        grid.push(line.split(''));
     }
-  }
 
-  x += dx;
-  y += dy;
-}
+    let x = 0, y = 0;
+    for (let i = 0; i < grid[0].length; i++) {
+        if (grid[0][i] === '|') {
+            x = i;
+            break;
+        }
+    }
 
-console.log(letters.join(''));
+    let dx = 0, dy = 1;
+    const letters: string[] = [];
+
+    while (true) {
+        if (x < 0 || x >= grid[0].length || y < 0 || y >= grid.length) {
+            break;
+        }
+
+        const cell = grid[y][x];
+
+        if (cell === ' ') {
+            break;
+        }
+
+        if (cell >= 'A' && cell <= 'Z') {
+            letters.push(cell);
+        }
+
+        if (cell === '+') {
+            if (dx === 0) {
+                if (x > 0 && (grid[y][x - 1] === '-' || (grid[y][x - 1] >= 'A' && grid[y][x - 1] <= 'Z'))) {
+                    dx = -1;
+                    dy = 0;
+                } else {
+                    dx = 1;
+                    dy = 0;
+                }
+            } else {
+                if (y > 0 && (grid[y - 1][x] === '|' || (grid[y - 1][x] >= 'A' && grid[y - 1][x] <= 'Z'))) {
+                    dx = 0;
+                    dy = -1;
+                } else {
+                    dx = 0;
+                    dy = 1;
+                }
+            }
+        }
+
+        x += dx;
+        y += dy;
+    }
+
+    console.log(letters.join(''));
+})();

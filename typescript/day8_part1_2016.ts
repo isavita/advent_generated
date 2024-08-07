@@ -1,70 +1,65 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const screenWidth = 50;
-const screenHeight = 6;
+// Define the dimensions of the screen
+const SCREEN_WIDTH = 50;
+const SCREEN_HEIGHT = 6;
 
-function main() {
-  const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-  const screen = Array.from({ length: screenHeight }, () => Array(screenWidth).fill(false));
+// Initialize the screen as a 2D array of boolean values (false means off, true means on)
+let screen: boolean[][] = Array.from({ length: SCREEN_HEIGHT }, () =>
+  Array(SCREEN_WIDTH).fill(false)
+);
 
-  input.forEach(instruction => processInstruction(instruction, screen));
-
-  console.log(countLitPixels(screen));
-}
-
-function processInstruction(instruction, screen) {
-  const rectRegex = /rect (\d+)x(\d+)/;
-  const rotateRowRegex = /rotate row y=(\d+) by (\d+)/;
-  const rotateColumnRegex = /rotate column x=(\d+) by (\d+)/;
-
-  if (rectRegex.test(instruction)) {
-    const [, a, b] = instruction.match(rectRegex).map(Number);
-    rect(screen, a, b);
-  } else if (rotateRowRegex.test(instruction)) {
-    const [, a, b] = instruction.match(rotateRowRegex).map(Number);
-    rotateRow(screen, a, b);
-  } else if (rotateColumnRegex.test(instruction)) {
-    const [, a, b] = instruction.match(rotateColumnRegex).map(Number);
-    rotateColumn(screen, a, b);
-  }
-}
-
-function rect(screen, a, b) {
-  for (let y = 0; y < b; y++) {
-    for (let x = 0; x < a; x++) {
+// Function to turn on a rectangle of pixels
+function rect(A: number, B: number) {
+  for (let y = 0; y < B; y++) {
+    for (let x = 0; x < A; x++) {
       screen[y][x] = true;
     }
   }
 }
 
-function rotateRow(screen, row, shift) {
-  const temp = Array(screenWidth).fill(false);
-  screen[row].forEach((_, i) => {
-    temp[(i + shift) % screenWidth] = screen[row][i];
-  });
-  screen[row] = temp;
+// Function to rotate a row of pixels
+function rotateRow(A: number, B: number) {
+  const row = screen[A];
+  for (let i = 0; i < B; i++) {
+    row.unshift(row.pop()!);
+  }
 }
 
-function rotateColumn(screen, col, shift) {
-  const temp = Array(screenHeight).fill(false);
-  screen.forEach((_, i) => {
-    temp[(i + shift) % screenHeight] = screen[i][col];
-  });
-  screen.forEach((_, i) => {
-    screen[i][col] = temp[i];
-  });
+// Function to rotate a column of pixels
+function rotateColumn(A: number, B: number) {
+  const column: boolean[] = [];
+  for (let y = 0; y < SCREEN_HEIGHT; y++) {
+    column.push(screen[y][A]);
+  }
+  for (let i = 0; i < B; i++) {
+    column.unshift(column.pop()!);
+  }
+  for (let y = 0; y < SCREEN_HEIGHT; y++) {
+    screen[y][A] = column[y];
+  }
 }
 
-function countLitPixels(screen) {
-  let count = 0;
-  screen.forEach(row => {
-    row.forEach(pixel => {
-      if (pixel) {
-        count++;
-      }
-    });
-  });
-  return count;
+// Function to process a single instruction
+function processInstruction(instruction: string) {
+  if (instruction.startsWith('rect')) {
+    const [A, B] = instruction.split(' ')[1].split('x').map(Number);
+    rect(A, B);
+  } else if (instruction.startsWith('rotate row')) {
+    const [, A, B] = instruction.match(/y=(\d+) by (\d+)/)!.map(Number);
+    rotateRow(A, B);
+  } else if (instruction.startsWith('rotate column')) {
+    const [, A, B] = instruction.match(/x=(\d+) by (\d+)/)!.map(Number);
+    rotateColumn(A, B);
+  }
 }
 
-main();
+// Read the input file and process each instruction
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+input.forEach(processInstruction);
+
+// Count the number of lit pixels
+const litPixels = screen.flat().filter(pixel => pixel).length;
+
+// Print the result
+console.log(litPixels);

@@ -1,69 +1,52 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const evaluate = (expr: string): number => {
+    const tokens = expr.match(/\d+|[\+\*\(\)]/g) || [];
+    const output: string[] = [];
+    const operators: string[] = [];
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
-let sum = 0;
+    const precedence = (op: string): number => (op === '+' || op === '*') ? 1 : 0;
 
-input.forEach(expression => {
-    const result = evaluate(expression);
-    sum += result;
-});
+    const applyOperator = (op: string, b: number, a: number): number => {
+        return op === '+' ? a + b : a * b;
+    };
 
-console.log(sum);
+    const evaluateStack = () => {
+        const b = Number(output.pop());
+        const a = Number(output.pop());
+        const op = operators.pop()!;
+        output.push(applyOperator(op, b, a).toString());
+    };
 
-function evaluate(expression) {
-    const tokens = tokenize(expression);
-    return evaluateTokens(tokens);
-}
-
-function tokenize(expression) {
-    expression = expression.replace(/\(/g, '( ').replace(/\)/g, ' )');
-    return expression.split(' ').filter(token => token !== '');
-}
-
-function evaluateTokens(tokens) {
-    const ops = [];
-    const vals = [];
-
-    tokens.forEach(token => {
-        switch (token) {
-            case '(':
-                ops.push(token);
-                break;
-            case '+':
-            case '*':
-                while (ops.length > 0 && ops[ops.length - 1] !== '(') {
-                    vals.splice(-2, 2, applyOp(ops.pop(), vals[vals.length - 2], vals[vals.length - 1]));
-                }
-                ops.push(token);
-                break;
-            case ')':
-                while (ops[ops.length - 1] !== '(') {
-                    vals.splice(-2, 2, applyOp(ops.pop(), vals[vals.length - 2], vals[vals.length - 1]));
-                }
-                ops.pop(); // Remove the opening '('
-                break;
-            default:
-                const value = parseInt(token, 10);
-                vals.push(value);
-                break;
+    for (const token of tokens) {
+        if (!isNaN(Number(token))) {
+            output.push(token);
+        } else if (token === '(') {
+            operators.push(token);
+        } else if (token === ')') {
+            while (operators.length && operators[operators.length - 1] !== '(') {
+                evaluateStack();
+            }
+            operators.pop(); // Remove '('
+        } else {
+            while (operators.length && precedence(operators[operators.length - 1]) >= precedence(token)) {
+                evaluateStack();
+            }
+            operators.push(token);
         }
-    });
-
-    while (ops.length > 0) {
-        vals.splice(-2, 2, applyOp(ops.pop(), vals[vals.length - 2], vals[vals.length - 1]));
     }
 
-    return vals[0];
-}
-
-function applyOp(op, a, b) {
-    switch (op) {
-        case '+':
-            return a + b;
-        case '*':
-            return a * b;
-        default:
-            throw new Error(`Unknown operator: ${op}`);
+    while (operators.length) {
+        evaluateStack();
     }
-}
+
+    return Number(output[0]);
+};
+
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+    const total = input.reduce((sum, line) => sum + evaluate(line), 0);
+    console.log(total);
+};
+
+main();

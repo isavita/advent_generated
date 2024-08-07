@@ -1,114 +1,78 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-class Coord {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
+type Coord = { x: number; y: number };
 
-  add(c) {
-    return new Coord(this.x + c.x, this.y + c.y);
-  }
+const North: Coord = { x: 0, y: -1 };
+const West: Coord = { x: -1, y: 0 };
+const South: Coord = { x: 0, y: 1 };
+const East: Coord = { x: 1, y: 0 };
 
-  multiplyByScalar(s) {
-    return new Coord(this.x * s, this.y * s);
-  }
-}
+const Abs = (x: number): number => (x < 0 ? -x : x);
 
-const North = new Coord(0, -1);
-const West = new Coord(-1, 0);
-const South = new Coord(0, 1);
-const East = new Coord(1, 0);
+const parseInput = (input: string[]): Coord[] => {
+    const vertices: Coord[] = [{ x: 0, y: 0 }];
+    let current: Coord = vertices[0];
 
-function abs(x) {
-  return x < 0 ? -x : x;
-}
+    for (const line of input) {
+        const [dirInput, lengthStr] = line.split(" ");
+        const length = parseInt(lengthStr, 10);
+        let dir: Coord;
 
-function parseInput(input) {
-  const Up = 'U';
-  const Left = 'L';
-  const Down = 'D';
-  const Right = 'R';
+        switch (dirInput) {
+            case 'U': dir = North; break;
+            case 'L': dir = West; break;
+            case 'D': dir = South; break;
+            case 'R': dir = East; break;
+            default: throw new Error(`Invalid direction: ${dirInput}`);
+        }
 
-  let current = new Coord(0, 0);
-  let vertices = [current];
-
-  for (let line of input) {
-    const parts = line.split(" ");
-    const dirInput = parts[0][0];
-    const lengthStr = parts[1];
-    let length = 0;
-    for (let i = 0; i < lengthStr.length; i++) {
-      length = length * 10 + parseInt(lengthStr[i]);
+        current = { x: current.x + dir.x * length, y: current.y + dir.y * length };
+        vertices.push(current);
     }
 
-    let dir;
-    switch (dirInput) {
-      case Up:
-        dir = North;
-        break;
-      case Left:
-        dir = West;
-        break;
-      case Down:
-        dir = South;
-        break;
-      case Right:
-        dir = East;
-        break;
+    return vertices;
+};
+
+const shoelace = (vertices: Coord[]): number => {
+    const n = vertices.length;
+    let area = 0;
+
+    for (let i = 0; i < n; i++) {
+        const next = (i + 1) % n;
+        area += vertices[i].x * vertices[next].y - vertices[i].y * vertices[next].x;
     }
 
-    current = current.add(dir.multiplyByScalar(length));
-    vertices.push(current);
-  }
+    return Abs(area) / 2;
+};
 
-  return vertices;
-}
+const perimeter = (vertices: Coord[]): number => {
+    const n = vertices.length;
+    let perim = 0;
 
-function hexStringToInt(hexStr) {
-  return parseInt(hexStr, 16);
-}
+    for (let i = 0; i < n; i++) {
+        const next = (i + 1) % n;
+        perim += Abs(vertices[i].x - vertices[next].x) + Abs(vertices[i].y - vertices[next].y);
+    }
 
-function shoelace(vertices) {
-  const n = vertices.length;
-  let area = 0;
+    return perim;
+};
 
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    area += vertices[i].x * vertices[next].y;
-    area -= vertices[i].y * vertices[next].x;
-  }
+const calculatePolygonArea = (vertices: Coord[]): number => {
+    return shoelace(vertices) + Math.floor(perimeter(vertices) / 2) + 1;
+};
 
-  area = abs(area) / 2;
-  return area;
-}
+const solve = (input: string[]): number => {
+    const vertices = parseInput(input);
+    return calculatePolygonArea(vertices);
+};
 
-function perimeter(vertices) {
-  const n = vertices.length;
-  let perim = 0;
+const readFile = (fileName: string): string[] => {
+    return fs.readFileSync(fileName, 'utf-8').trim().split('\n');
+};
 
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    perim += abs(vertices[i].x - vertices[next].x) + abs(vertices[i].y - vertices[next].y);
-  }
+const main = () => {
+    const input = readFile("input.txt");
+    console.log(solve(input));
+};
 
-  return perim;
-}
-
-function calculatePolygonArea(vertices) {
-  return shoelace(vertices) + perimeter(vertices) / 2 + 1;
-}
-
-function solve(input) {
-  const vertices = parseInput(input);
-  const res = calculatePolygonArea(vertices);
-  return res;
-}
-
-function readFile(fileName) {
-  const file = fs.readFileSync(fileName, 'utf8');
-  return file.trim().split("\n");
-}
-
-const input = readFile("input.txt");
-console.log(solve(input));
+main();

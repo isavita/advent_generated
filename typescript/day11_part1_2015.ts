@@ -1,61 +1,76 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
-
-function readInput(filename) {
-    return fs.readFileSync(filename, 'utf8').trim();
+// Function to read the input password from a file
+function readInput(filePath: string): string {
+    return fs.readFileSync(filePath, 'utf-8').trim();
 }
 
-function findNextPassword(currentPassword) {
-    while (true) {
-        currentPassword = incrementPassword(currentPassword);
-        if (isValidPassword(currentPassword)) {
-            break;
-        }
-    }
-    return currentPassword;
-}
-
-function incrementPassword(password) {
+// Function to increment the password
+function incrementPassword(password: string): string {
     let chars = password.split('');
-    for (let i = chars.length - 1; i >= 0; i--) {
-        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
-        if (chars[i] > 'z') {
+    let i = chars.length - 1;
+
+    while (i >= 0) {
+        if (chars[i] === 'z') {
             chars[i] = 'a';
+            i--;
         } else {
+            chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
             break;
         }
     }
+
     return chars.join('');
 }
 
-function isValidPassword(password) {
-    return hasStraight(password) && !containsInvalidLetters(password) && hasTwoPairs(password);
-}
-
-function hasStraight(password) {
+// Function to check if the password contains an increasing straight of at least three letters
+function hasIncreasingStraight(password: string): boolean {
     for (let i = 0; i < password.length - 2; i++) {
-        if (password.charCodeAt(i) + 1 === password.charCodeAt(i + 1) && password.charCodeAt(i) + 2 === password.charCodeAt(i + 2)) {
+        if (password.charCodeAt(i + 1) === password.charCodeAt(i) + 1 &&
+            password.charCodeAt(i + 2) === password.charCodeAt(i) + 2) {
             return true;
         }
     }
     return false;
 }
 
-function containsInvalidLetters(password) {
-    return password.includes('i') || password.includes('o') || password.includes('l');
+// Function to check if the password contains any of the forbidden letters
+function containsForbiddenLetters(password: string): boolean {
+    return /[iol]/.test(password);
 }
 
-function hasTwoPairs(password) {
-    let count = 0;
-    for (let i = 0; i < password.length - 1; i++) {
+// Function to check if the password contains at least two different, non-overlapping pairs of letters
+function hasTwoPairs(password: string): boolean {
+    let pairs = 0;
+    let i = 0;
+
+    while (i < password.length - 1) {
         if (password[i] === password[i + 1]) {
-            count++;
-            i++; // Skip the next character
+            pairs++;
+            i += 2; // Skip the next character to avoid overlapping pairs
+        } else {
+            i++;
         }
     }
-    return count >= 2;
+
+    return pairs >= 2;
 }
 
-const currentPassword = readInput('input.txt');
-const newPassword = findNextPassword(currentPassword);
-console.log(newPassword);
+// Function to find the next valid password
+function findNextPassword(password: string): string {
+    do {
+        password = incrementPassword(password);
+    } while (!hasIncreasingStraight(password) || containsForbiddenLetters(password) || !hasTwoPairs(password));
+
+    return password;
+}
+
+// Main function to read input, process, and print the output
+function main() {
+    const inputPassword = readInput('input.txt');
+    const nextPassword = findNextPassword(inputPassword);
+    console.log(nextPassword);
+}
+
+// Run the main function
+main();

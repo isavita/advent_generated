@@ -1,54 +1,60 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+type Instruction = [string, string, string?];
 
-function getValue(arg, registers) {
-    if (!isNaN(parseInt(arg))) {
-        return parseInt(arg);
+const parseInstruction = (line: string): Instruction => {
+    const parts = line.split(' ');
+    return [parts[0], parts[1], parts[2]];
+};
+
+const getValue = (arg: string, registers: Map<string, number>): number => {
+    return isNaN(Number(arg)) ? registers.get(arg) || 0 : Number(arg);
+};
+
+const runDuet = (instructions: Instruction[]) => {
+    const registers = new Map<string, number>();
+    let lastSound = 0;
+    let pointer = 0;
+
+    while (pointer >= 0 && pointer < instructions.length) {
+        const [cmd, x, y] = instructions[pointer];
+
+        switch (cmd) {
+            case 'snd':
+                lastSound = getValue(x, registers);
+                break;
+            case 'set':
+                registers.set(x, getValue(y || '0', registers));
+                break;
+            case 'add':
+                registers.set(x, (registers.get(x) || 0) + getValue(y || '0', registers));
+                break;
+            case 'mul':
+                registers.set(x, (registers.get(x) || 0) * getValue(y || '0', registers));
+                break;
+            case 'mod':
+                registers.set(x, (registers.get(x) || 0) % getValue(y || '0', registers));
+                break;
+            case 'rcv':
+                if (getValue(x, registers) !== 0) {
+                    console.log(lastSound);
+                    return;
+                }
+                break;
+            case 'jgz':
+                if (getValue(x, registers) > 0) {
+                    pointer += getValue(y || '0', registers) - 1; // -1 to counter the pointer increment
+                }
+                break;
+        }
+        pointer++;
     }
-    return registers.get(arg) || 0;
-}
+};
 
-const instructions = fs.readFileSync('input.txt', 'utf8')
-    .trim()
-    .split('\n')
-    .map(line => line.trim().split(' '));
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim().split('\n');
+    const instructions = input.map(parseInstruction);
+    runDuet(instructions);
+};
 
-const registers = new Map();
-let lastSound = 0;
-
-for (let i = 0; i < instructions.length;) {
-    const instruction = instructions[i];
-    const cmd = instruction[0];
-    const arg1 = instruction[1];
-
-    switch (cmd) {
-        case "snd":
-            lastSound = getValue(arg1, registers);
-            break;
-        case "set":
-            registers.set(arg1, getValue(instruction[2], registers));
-            break;
-        case "add":
-            registers.set(arg1, registers.get(arg1) + getValue(instruction[2], registers));
-            break;
-        case "mul":
-            registers.set(arg1, registers.get(arg1) * getValue(instruction[2], registers));
-            break;
-        case "mod":
-            registers.set(arg1, registers.get(arg1) % getValue(instruction[2], registers));
-            break;
-        case "rcv":
-            if (getValue(arg1, registers) !== 0) {
-                console.log(lastSound);
-                process.exit(0);
-            }
-            break;
-        case "jgz":
-            if (getValue(arg1, registers) > 0) {
-                i += getValue(instruction[2], registers);
-                continue;
-            }
-            break;
-    }
-    i++;
-}
+main();

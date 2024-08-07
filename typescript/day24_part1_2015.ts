@@ -1,28 +1,59 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n').map(Number);
-const totalWeight = input.reduce((a, b) => a + b, 0);
-const targetWeight = totalWeight / 3;
-let bestQE = Number.MAX_SAFE_INTEGER;
-let bestLength = Number.MAX_SAFE_INTEGER;
-
-for (let comb = 1; comb < (1 << input.length); comb++) {
-  let groupWeight = 0;
-  let qe = 1;
-  let groupLength = 0;
-  for (let i = 0; i < input.length; i++) {
-    if ((comb & (1 << i)) !== 0) {
-      groupWeight += input[i];
-      qe *= input[i];
-      groupLength++;
-    }
-  }
-  if (groupWeight === targetWeight && groupLength <= bestLength) {
-    if (groupLength < bestLength || qe < bestQE) {
-      bestLength = groupLength;
-      bestQE = qe;
-    }
-  }
+// Function to read input from file
+function readInput(filePath: string): number[] {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return data.split('\n').map(Number);
 }
 
-console.log(bestQE);
+// Function to find the quantum entanglement of the first group
+function findQuantumEntanglement(weights: number[]): number {
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const targetWeight = totalWeight / 3;
+
+    if (targetWeight !== Math.floor(targetWeight)) {
+        throw new Error('It is not possible to split the packages into three equal groups.');
+    }
+
+    let minGroupSize = Infinity;
+    let minQuantumEntanglement = Infinity;
+
+    const findGroups = (start: number, currentGroup: number[], currentSum: number, groupSize: number) => {
+        if (currentSum === targetWeight) {
+            if (groupSize < minGroupSize) {
+                minGroupSize = groupSize;
+                minQuantumEntanglement = currentGroup.reduce((product, weight) => product * weight, 1);
+            } else if (groupSize === minGroupSize) {
+                const currentQE = currentGroup.reduce((product, weight) => product * weight, 1);
+                if (currentQE < minQuantumEntanglement) {
+                    minQuantumEntanglement = currentQE;
+                }
+            }
+            return;
+        }
+        if (currentSum > targetWeight || start >= weights.length) {
+            return;
+        }
+
+        for (let i = start; i < weights.length; i++) {
+            currentGroup.push(weights[i]);
+            findGroups(i + 1, currentGroup, currentSum + weights[i], groupSize + 1);
+            currentGroup.pop();
+        }
+    };
+
+    findGroups(0, [], 0, 0);
+
+    return minQuantumEntanglement;
+}
+
+// Main function to execute the program
+function main() {
+    const filePath = path.join(__dirname, 'input.txt');
+    const weights = readInput(filePath);
+    const quantumEntanglement = findQuantumEntanglement(weights);
+    console.log(quantumEntanglement);
+}
+
+main();

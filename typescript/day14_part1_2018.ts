@@ -1,23 +1,24 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = parseInt(fs.readFileSync('input.txt', 'utf8').trim());
+const input = parseInt(fs.readFileSync('input.txt', 'utf-8').trim(), 10);
 
-let scoreboard = [3, 7];
-let elf1 = 0;
-let elf2 = 1;
+function calculateScores(numRecipes: number): string {
+    const scores = [3, 7];
+    let elf1 = 0;
+    let elf2 = 1;
 
-while (scoreboard.length < input + 10) {
-    const newScore = scoreboard[elf1] + scoreboard[elf2];
-    if (newScore >= 10) {
-        scoreboard.push(Math.floor(newScore / 10));
+    while (scores.length < numRecipes + 10) {
+        const newScore = scores[elf1] + scores[elf2];
+        if (newScore >= 10) {
+            scores.push(1, newScore % 10);
+        } else {
+            scores.push(newScore);
+        }
+        elf1 = (elf1 + scores[elf1] + 1) % scores.length;
+        elf2 = (elf2 + scores[elf2] + 1) % scores.length;
     }
-    scoreboard.push(newScore % 10);
 
-    elf1 = (elf1 + scoreboard[elf1] + 1) % scoreboard.length;
-    elf2 = (elf2 + scoreboard[elf2] + 1) % scoreboard.length;
+    return scores.slice(numRecipes, numRecipes + 10).join('');
 }
 
-for (let i = input; i < input + 10; i++) {
-    process.stdout.write(scoreboard[i].toString());
-}
-console.log();
+console.log(calculateScores(input));

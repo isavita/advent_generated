@@ -1,45 +1,59 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+interface Instruction {
+    operation: string;
+    args: string[];
+}
 
-const registers = { a: 0, b: 0, c: 0, d: 0 };
+function parseInput(input: string): Instruction[] {
+    return input.split('\n').map(line => {
+        const parts = line.split(' ');
+        return {
+            operation: parts[0],
+            args: parts.slice(1)
+        };
+    });
+}
 
-executeInstructions(input, registers);
+function executeProgram(instructions: Instruction[]): number {
+    const registers: { [key: string]: number } = { a: 0, b: 0, c: 0, d: 0 };
+    let ip = 0; // Instruction pointer
 
-console.log(registers.a);
+    while (ip >= 0 && ip < instructions.length) {
+        const { operation, args } = instructions[ip];
 
-function executeInstructions(instructions, registers) {
-  let i = 0;
-  while (i < instructions.length) {
-    const parts = instructions[i].trim().split(' ');
-    switch (parts[0]) {
-      case 'cpy':
-        const value = getValue(parts[1], registers);
-        registers[parts[2]] = value;
-        i++;
-        break;
-      case 'inc':
-        registers[parts[1]]++;
-        i++;
-        break;
-      case 'dec':
-        registers[parts[1]]--;
-        i++;
-        break;
-      case 'jnz':
-        const jumpValue = getValue(parts[1], registers);
-        if (jumpValue !== 0) {
-          const jump = parseInt(parts[2], 10);
-          i += jump;
-        } else {
-          i++;
+        switch (operation) {
+            case 'cpy':
+                const value = parseInt(args[0]) || registers[args[0]];
+                registers[args[1]] = value;
+                ip++;
+                break;
+            case 'inc':
+                registers[args[0]]++;
+                ip++;
+                break;
+            case 'dec':
+                registers[args[0]]--;
+                ip++;
+                break;
+            case 'jnz':
+                const testValue = parseInt(args[0]) || registers[args[0]];
+                if (testValue !== 0) {
+                    ip += parseInt(args[1]);
+                } else {
+                    ip++;
+                }
+                break;
+            default:
+                throw new Error(`Unknown operation: ${operation}`);
         }
-        break;
     }
-  }
+
+    return registers['a'];
 }
 
-function getValue(s, registers) {
-  const parsedValue = parseInt(s, 10);
-  return isNaN(parsedValue) ? registers[s] : parsedValue;
-}
+const input = fs.readFileSync('input.txt', 'utf-8');
+const instructions = parseInput(input);
+const result = executeProgram(instructions);
+
+console.log(result);

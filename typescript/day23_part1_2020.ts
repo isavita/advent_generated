@@ -1,53 +1,47 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
+const input = fs.readFileSync('input.txt', 'utf-8').trim();
+const cups = input.split('').map(Number);
+const moves = 100;
 
-const cups = new Array(input.length + 1);
-let currentCup;
-for (let i = 0; i < input.length; i++) {
-  const cup = parseInt(input[i]);
-  if (i === 0) {
-    currentCup = cup;
-  }
-  if (i < input.length - 1) {
-    const nextCup = parseInt(input[i + 1]);
-    cups[cup] = nextCup;
-  }
-}
-const firstCup = parseInt(input[0]);
-const lastCup = parseInt(input[input.length - 1]);
-cups[lastCup] = firstCup;
-
-for (let i = 0; i < 100; i++) {
-  const pickup1 = cups[currentCup];
-  const pickup2 = cups[pickup1];
-  const pickup3 = cups[pickup2];
-
-  cups[currentCup] = cups[pickup3];
-
-  let destinationCup = currentCup - 1;
-  if (destinationCup < 1) {
-    destinationCup = input.length;
-  }
-  while (destinationCup === pickup1 || destinationCup === pickup2 || destinationCup === pickup3) {
-    destinationCup--;
-    if (destinationCup < 1) {
-      destinationCup = input.length;
+const simulateCrabCups = (cups: number[], moves: number): number[] => {
+    const maxCup = Math.max(...cups);
+    const cupMap = new Map<number, number>();
+    for (let i = 0; i < cups.length; i++) {
+        cupMap.set(cups[i], cups[(i + 1) % cups.length]);
     }
-  }
 
-  cups[pickup3] = cups[destinationCup];
-  cups[destinationCup] = pickup1;
+    let currentCup = cups[0];
 
-  currentCup = cups[currentCup];
-}
+    for (let move = 0; move < moves; move++) {
+        const pickedUp: (number | undefined)[] = [
+            cupMap.get(currentCup),
+            cupMap.get(cupMap.get(currentCup) || 0) || 0,
+            cupMap.get(cupMap.get(cupMap.get(currentCup) || 0) || 0) || 0
+        ];
 
-let cup = cups[1];
-while (cup !== 1) {
-  process.stdout.write(cup.toString());
-  cup = cups[cup];
-  if (cup === 1) {
-    break;
-  }
-}
-console.log();
+        cupMap.set(currentCup, cupMap.get(pickedUp[2] || 0) || 0);
+
+        let destinationCup = currentCup - 1;
+        while (pickedUp.includes(destinationCup) || destinationCup <= 0) {
+            destinationCup = destinationCup <= 0 ? maxCup : destinationCup - 1;
+        }
+
+        cupMap.set(pickedUp[2] || 0, cupMap.get(destinationCup) || 0);
+        cupMap.set(destinationCup, pickedUp[0] || 0);
+
+        currentCup = cupMap.get(currentCup) || 0;
+    }
+
+    const result: number[] = [];
+    let cup = cupMap.get(1) || 0;
+    while (cup !== 1) {
+        result.push(cup);
+        cup = cupMap.get(cup) || 0;
+    }
+
+    return result;
+};
+
+const result = simulateCrabCups(cups, moves);
+console.log(result.join(''));

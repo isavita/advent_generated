@@ -1,28 +1,44 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n').filter(Boolean);
+// Define the Disc interface
+interface Disc {
+    positions: number;
+    startPosition: number;
+}
 
-const discs = input.map(line => {
-  const [, , totalPositions, startPosition] = line.match(/Disc #(\d+) has (\d+) positions; at time=0, it is at position (\d+)./);
-  return { totalPositions: +totalPositions, startPosition: +startPosition };
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf-8');
+
+// Parse the input to get the discs
+const discs: Disc[] = input.trim().split('\n').map(line => {
+    const match = line.match(/Disc #(\d+) has (\d+) positions; at time=0, it is at position (\d+)/);
+    if (match) {
+        const [, discNumber, positions, startPosition] = match;
+        return { positions: parseInt(positions, 10), startPosition: parseInt(startPosition, 10) };
+    }
+    throw new Error('Invalid input format');
 });
 
-let time = 0;
-while (true) {
-  if (checkDiscs(discs, time)) {
-    console.log(time);
-    break;
-  }
-  time++;
+// Function to find the first time the capsule can pass through all discs
+function findFirstTime(discs: Disc[]): number {
+    let time = 0;
+    while (true) {
+        let canPass = true;
+        for (let i = 0; i < discs.length; i++) {
+            const disc = discs[i];
+            const discTime = time + i + 1;
+            if ((disc.startPosition + discTime) % disc.positions !== 0) {
+                canPass = false;
+                break;
+            }
+        }
+        if (canPass) {
+            return time;
+        }
+        time++;
+    }
 }
 
-function checkDiscs(discs, time) {
-  for (let i = 0; i < discs.length; i++) {
-    const disc = discs[i];
-    const position = (disc.startPosition + time + i + 1) % disc.totalPositions;
-    if (position !== 0) {
-      return false;
-    }
-  }
-  return true;
-}
+// Find and print the first time
+const firstTime = findFirstTime(discs);
+console.log(firstTime);

@@ -1,24 +1,31 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const simulateLanternfish = (initialState: number[], days: number): number => {
+    const fishCount = new Array(9).fill(0);
+    
+    initialState.forEach(timer => fishCount[timer]++);
+    
+    for (let day = 0; day < days; day++) {
+        const newFish = fishCount[0];
+        for (let i = 0; i < 8; i++) {
+            fishCount[i] = fishCount[i + 1];
+        }
+        fishCount[6] += newFish;
+        fishCount[8] = newFish;
+    }
 
-const input = fs.readFileSync('input.txt', 'utf8');
-const lanternFishCounts = Array(9).fill(0);
+    return fishCount.reduce((sum, count) => sum + count, 0);
+};
 
-input.split('\n').forEach(line => {
-  const fishAges = line.split(',');
-  fishAges.forEach(age => {
-    const ageCount = parseInt(age, 10);
-    lanternFishCounts[ageCount]++;
-  });
-});
+const main = () => {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const initialState = input.trim().split(',').map(Number);
+    
+    const totalFishAfter80Days = simulateLanternfish(initialState, 80);
+    const totalFishAfter256Days = simulateLanternfish(initialState, 256);
+    
+    console.log(`Total lanternfish after 80 days: ${totalFishAfter80Days}`);
+    console.log(`Total lanternfish after 256 days: ${totalFishAfter256Days}`);
+};
 
-for (let i = 0; i < 256; i++) {
-  const newLanternFish = lanternFishCounts[0];
-  for (let j = 0; j < lanternFishCounts.length - 1; j++) {
-    lanternFishCounts[j] = lanternFishCounts[j + 1];
-  }
-  lanternFishCounts[6] += newLanternFish;
-  lanternFishCounts[8] = newLanternFish;
-}
-
-console.log(lanternFishCounts.reduce((acc, curr) => acc + curr, 0));
+main();

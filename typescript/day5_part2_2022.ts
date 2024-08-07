@@ -1,45 +1,33 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-function readAll(path) {
-    const file = fs.readFileSync(path, 'utf8');
-    return file.trim();
-}
+const readAll = (path: string): string => fs.readFileSync(path, 'utf-8').trim();
 
-function move(st, steps) {
-    const stacks = new Array(st.length);
-    for (let i = 0; i < st.length; i++) {
-        stacks[i] = new Array(st[i].length);
-        for (let j = 0; j < st[i].length; j++) {
-            stacks[i][j] = st[i][st[i].length - j - 1];
-        }
-    }
+const main = () => {
+  const s = readAll("input.txt").split("\n\n");
+  const input = s[0].split("\n");
+  const stacks: string[][] = Array.from({ length: (input[0].length + 1) / 4 }, () => []);
 
-    for (let step of steps) {
-        const [, n, from, to] = step.match(/move (\d+) from (\d+) to (\d+)/).map(Number);
-        const fromIndex = from - 1;
-        const toIndex = to - 1;
-        stacks[toIndex] = stacks[toIndex].concat(stacks[fromIndex].slice(-n));
-        stacks[fromIndex] = stacks[fromIndex].slice(0, -n);
-    }
-
-    const result = new Array(stacks.length);
-    for (let i = 0; i < stacks.length; i++) {
-        result[i] = stacks[i][stacks[i].length - 1];
-    }
-
-    return result.join('');
-}
-
-const input = readAll('input.txt').split('\n\n');
-const stacks = new Array((input[0].split('\n')[0].length + 1) / 4);
-input[0].split('\n').forEach(line => {
+  for (const line of input) {
     for (let i = 0; i < line.length; i++) {
-        const b = line.charCodeAt(i);
-        if (b >= 65 && b <= 90) {
-            stacks[(i - 1) / 4] = (stacks[(i - 1) / 4] || '') + String.fromCharCode(b);
-        }
+      if (line[i] >= 'A' && line[i] <= 'Z') {
+        stacks[(i - 1) / 4].push(line[i]);
+      }
     }
-});
+  }
 
-const steps = input[1].split('\n');
-console.log(move(stacks, steps));
+  const steps = s[1].split("\n");
+  console.log(move(stacks, steps));
+};
+
+const move = (st: string[][], steps: string[]): string => {
+  const stacks = st.map(stack => stack.reverse());
+
+  for (const step of steps) {
+    const [_, n, from, to] = step.match(/move (\d+) from (\d+) to (\d+)/)!.map(Number);
+    stacks[to - 1].push(...stacks[from - 1].splice(-n));
+  }
+
+  return stacks.map(stack => stack[stack.length - 1]).join('');
+};
+
+main();

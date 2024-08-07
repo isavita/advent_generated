@@ -1,42 +1,35 @@
+import * as fs from 'fs';
 
-const fs = require('fs');
+const SERIAL_NUMBER = parseInt(fs.readFileSync('input.txt', 'utf-8').trim());
 
-const data = fs.readFileSync('input.txt', 'utf8').trim();
-const serial = parseInt(data);
+const getPowerLevel = (x: number, y: number): number => {
+    const rackID = x + 10;
+    let powerLevel = rackID * y + SERIAL_NUMBER;
+    powerLevel *= rackID;
+    return Math.floor((powerLevel / 100) % 10) - 5;
+};
 
-const gridSize = 300;
-const grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+const findMaxPowerSquare = (): { x: number; y: number; power: number } => {
+    let maxPower = -Infinity;
+    let coordinates = { x: 0, y: 0 };
 
-for (let y = 0; y < gridSize; y++) {
-    for (let x = 0; x < gridSize; x++) {
-        const rackID = x + 11;
-        let powerLevel = rackID * (y + 1);
-        powerLevel += serial;
-        powerLevel *= rackID;
-        powerLevel = Math.floor(powerLevel / 100) % 10;
-        powerLevel -= 5;
-        grid[y][x] = powerLevel;
-    }
-}
-
-let maxPower = -1 << 31;
-let maxX = 0;
-let maxY = 0;
-
-for (let y = 0; y < gridSize - 2; y++) {
-    for (let x = 0; x < gridSize - 2; x++) {
-        let totalPower = 0;
-        for (let dy = 0; dy < 3; dy++) {
+    for (let x = 1; x <= 298; x++) {
+        for (let y = 1; y <= 298; y++) {
+            let totalPower = 0;
             for (let dx = 0; dx < 3; dx++) {
-                totalPower += grid[y + dy][x + dx];
+                for (let dy = 0; dy < 3; dy++) {
+                    totalPower += getPowerLevel(x + dx, y + dy);
+                }
+            }
+            if (totalPower > maxPower) {
+                maxPower = totalPower;
+                coordinates = { x, y };
             }
         }
-        if (totalPower > maxPower) {
-            maxPower = totalPower;
-            maxX = x + 1;
-            maxY = y + 1;
-        }
     }
-}
 
-console.log(`${maxX},${maxY}`);
+    return { ...coordinates, power: maxPower };
+};
+
+const result = findMaxPowerSquare();
+console.log(`${result.x},${result.y}`);

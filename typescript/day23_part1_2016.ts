@@ -1,78 +1,113 @@
-const fs = require('fs');
+type Instruction = {
+    op: string;
+    args: (string | number)[];
+};
 
-function main() {
-  const instructions = readInstructions('input.txt');
-  const registers = { a: 7, b: 0, c: 0, d: 0 };
-  executeInstructions(instructions, registers);
-  console.log(registers.a);
-}
+class AssembunnyInterpreter {
+    private instructions: Instruction[];
+    private registers: { [key: string]: number };
+    private ip: number;
 
-function readInstructions(filename) {
-  return fs.readFileSync(filename, 'utf8').split('\n');
-}
-
-function executeInstructions(instructions, registers) {
-  let pc = 0;
-  while (pc < instructions.length) {
-    const fields = instructions[pc].split(' ');
-    switch (fields[0]) {
-      case 'cpy':
-        const x = getValue(fields[1], registers);
-        if (fields[2] in registers) {
-          registers[fields[2]] = x;
-        }
-        break;
-      case 'inc':
-        if (fields[1] in registers) {
-          registers[fields[1]]++;
-        }
-        break;
-      case 'dec':
-        if (fields[1] in registers) {
-          registers[fields[1]]--;
-        }
-        break;
-      case 'jnz':
-        const jnzValue = getValue(fields[1], registers);
-        if (jnzValue !== 0) {
-          pc += getValue(fields[2], registers) - 1;
-        }
-        break;
-      case 'tgl':
-        const toggleValue = getValue(fields[1], registers);
-        const tgt = pc + toggleValue;
-        if (tgt >= 0 && tgt < instructions.length) {
-          instructions[tgt] = toggleInstruction(instructions[tgt]);
-        }
-        break;
+    constructor(instructions: Instruction[]) {
+        this.instructions = instructions;
+        this.registers = {};
+        this.ip = 0;
     }
-    pc++;
-  }
+
+    private getValue(arg: string | number): number {
+        if (typeof arg === 'number') {
+            return arg;
+        }
+        return this.registers[arg] || 0;
+    }
+
+    private toggleInstruction(index: number): void {
+        if (index < 0 || index >= this.instructions.length) {
+            return;
+        }
+
+        const instr = this.instructions[index];
+        switch (instr.op) {
+            case 'inc':
+                instr.op = 'dec';
+                break;
+            case 'dec':
+            case 'tgl':
+            case 'out':
+                instr.op = 'inc';
+                break;
+            case 'jnz':
+                instr.op = 'cpy';
+                break;
+            case 'cpy':
+                instr.op = 'jnz';
+                break;
+        }
+    }
+
+    public run(): void {
+        while (this.ip < this.instructions.length) {
+            const instr = this.instructions[this.ip];
+            switch (instr.op) {
+                case 'cpy':
+                    if (typeof instr.args[1] === 'string') {
+                        this.registers[instr.args[1]] = this.getValue(instr.args[0]);
+                    }
+                    break;
+                case 'inc':
+                    if (typeof instr.args[0] === 'string') {
+                        this.registers[instr.args[0]] = (this.registers[instr.args[0]] || 0) + 1;
+                    }
+                    break;
+                case 'dec':
+                    if (typeof instr.args[0] === 'string') {
+                        this.registers[instr.args[0]] = (this.registers[instr.args[0]] || 0) - 1;
+                    }
+                    break;
+                case 'jnz':
+                    if (this.getValue(instr.args[0]) !== 0) {
+                        this.ip += this.getValue(instr.args[1]) - 1;
+                    }
+                    break;
+                case 'tgl':
+                    this.toggleInstruction(this.ip + this.getValue(instr.args[0]));
+                    break;
+            }
+            this.ip++;
+        }
+    }
+
+    public getRegister(name: string): number {
+        return this.registers[name] || 0;
+    }
+
+    public setRegister(name: string, value: number): void {
+        this.registers[name] = value;
+    }
 }
 
-function getValue(s, registers) {
-  const val = parseInt(s);
-  return isNaN(val) ? registers[s] : val;
+function parseInstructions(input: string): Instruction[] {
+    return input.split('\n').map(line => {
+        const parts = line.split(' ');
+        const op = parts[0];
+        const args = parts.slice(1).map(arg => isNaN(Number(arg)) ? arg : Number(arg));
+        return { op, args };
+    });
 }
 
-function toggleInstruction(instr) {
-  const parts = instr.split(' ');
-  switch (parts[0]) {
-    case 'inc':
-      parts[0] = 'dec';
-      break;
-    case 'dec':
-    case 'tgl':
-      parts[0] = 'inc';
-      break;
-    case 'jnz':
-      parts[0] = 'cpy';
-      break;
-    case 'cpy':
-      parts[0] = 'jnz';
-      break;
-  }
-  return parts.join(' ');
-}
+// Read input from file
+const fs = require('fs');
+const input = fs.readFileSync('input.txt', 'utf8');
 
-main();
+// Parse instructions
+const instructions = parseInstructions(input);
+
+// Initialize interpreter with register 'a' set to 7
+const interpreter = new AssembunnyInterpreter(instructions);
+interpreter.setRegister('a', 7);
+
+// Run the program
+interpreter.run();
+
+// Print the value of register 'a'
+console.log(interpreter.getRegister('a'));

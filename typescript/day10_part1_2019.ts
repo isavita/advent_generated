@@ -1,47 +1,52 @@
-const fs = require('fs');
+import * as fs from 'fs';
+import * as path from 'path';
 
-function readAsteroids(filename) {
-    const file = fs.readFileSync(filename, 'utf8');
-    const lines = file.split('\n');
-    const asteroids = [];
-    for (let line of lines) {
-        const asteroidRow = [];
-        for (let char of line) {
-            asteroidRow.push(char === '#');
-        }
-        asteroids.push(asteroidRow);
-    }
-    return asteroids;
-}
+const gcd = (a: number, b: number): number => {
+    return b === 0 ? Math.abs(a) : gcd(b, a % b);
+};
 
-function findBestAsteroidLocation(asteroids) {
-    let maxCount = 0;
-    for (let y = 0; y < asteroids.length; y++) {
-        for (let x = 0; x < asteroids[y].length; x++) {
-            if (asteroids[y][x]) {
-                const count = countVisibleAsteroids(asteroids, x, y);
-                if (count > maxCount) {
-                    maxCount = count;
-                }
-            }
-        }
-    }
-    return maxCount;
-}
+const countVisibleAsteroids = (map: string[][], x: number, y: number): number => {
+    const angles = new Set<string>();
+    const height = map.length;
+    const width = map[0].length;
 
-function countVisibleAsteroids(asteroids, x, y) {
-    const angles = new Set();
-    for (let otherY = 0; otherY < asteroids.length; otherY++) {
-        for (let otherX = 0; otherX < asteroids[otherY].length; otherX++) {
-            if (asteroids[otherY][otherX] && !(otherX === x && otherY === y)) {
-                const angle = Math.atan2(otherY - y, otherX - x);
+    for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+            if (map[i][j] === '#' && (i !== y || j !== x)) {
+                const dx = j - x;
+                const dy = i - y;
+                const divisor = gcd(dx, dy);
+                const angle = `${dy / divisor},${dx / divisor}`;
                 angles.add(angle);
             }
         }
     }
     return angles.size;
-}
+};
 
-const asteroids = readAsteroids("input.txt");
-const maxCount = findBestAsteroidLocation(asteroids);
-console.log(maxCount);
+const findBestLocation = (map: string[][]): { x: number; y: number; count: number } => {
+    let bestLocation = { x: -1, y: -1, count: 0 };
+
+    for (let y = 0; y < map.length; y++) {
+        for (let x = 0; x < map[0].length; x++) {
+            if (map[y][x] === '#') {
+                const count = countVisibleAsteroids(map, x, y);
+                if (count > bestLocation.count) {
+                    bestLocation = { x, y, count };
+                }
+            }
+        }
+    }
+    return bestLocation;
+};
+
+const main = () => {
+    const filePath = path.join(__dirname, 'input.txt');
+    const input = fs.readFileSync(filePath, 'utf-8');
+    const map = input.trim().split('\n').map(line => line.split(''));
+
+    const bestLocation = findBestLocation(map);
+    console.log(`Best location: (${bestLocation.x}, ${bestLocation.y}) can detect ${bestLocation.count} other asteroids.`);
+};
+
+main();

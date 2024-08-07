@@ -1,33 +1,29 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+function calculateChecksum(boxIds: string[]): number {
+    let countTwo = 0;
+    let countThree = 0;
 
-let twoCount = 0;
-let threeCount = 0;
+    for (const id of boxIds) {
+        const letterCounts = new Map<string, number>();
+        
+        for (const letter of id) {
+            letterCounts.set(letter, (letterCounts.get(letter) || 0) + 1);
+        }
 
-input.forEach(id => {
-  const charCount = {};
-  for (const char of id) {
-    charCount[char] = (charCount[char] || 0) + 1;
-  }
-
-  let hasTwos = false;
-  let hasThrees = false;
-  for (const count in charCount) {
-    if (charCount[count] === 2) {
-      hasTwos = true;
-    } else if (charCount[count] === 3) {
-      hasThrees = true;
+        const counts = Array.from(letterCounts.values());
+        if (counts.includes(2)) countTwo++;
+        if (counts.includes(3)) countThree++;
     }
-  }
 
-  if (hasTwos) {
-    twoCount++;
-  }
-  if (hasThrees) {
-    threeCount++;
-  }
-});
+    return countTwo * countThree;
+}
 
-const checksum = twoCount * threeCount;
-console.log(checksum);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8');
+    const boxIds = input.trim().split('\n');
+    const checksum = calculateChecksum(boxIds);
+    console.log(checksum);
+}
+
+main();

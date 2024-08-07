@@ -1,12 +1,20 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-const totalElves = parseInt(input);
+function findWinningElf(numElves: number): number {
+    let winner = 0; // Josephus position starts at 0 for 1 elf
+    
+    for (let i = 1; i <= numElves; i++) {
+        winner = (winner + 2) % i; // The step is 2 since every second elf is eliminated
+    }
 
-let highestPowerOfTwo = 1;
-while (highestPowerOfTwo * 2 <= totalElves) {
-    highestPowerOfTwo *= 2;
+    return winner + 1; // Convert from 0-indexed to 1-indexed
 }
 
-const winner = (totalElves - highestPowerOfTwo) * 2 + 1;
-console.log(winner);
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf-8').trim();
+    const numElves = parseInt(input, 10);
+    const winner = findWinningElf(numElves);
+    console.log(winner);
+}
+
+main();

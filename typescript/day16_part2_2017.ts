@@ -1,74 +1,44 @@
-const fs = require('fs');
-
-const input = fs.readFileSync('input.txt', 'utf8').trim().split(',');
+import * as fs from 'fs';
 
 const programs = 'abcdefghijklmnop'.split('');
-const initial = programs.join('');
+const input = fs.readFileSync('input.txt', 'utf-8').trim().split(',');
 
-let cycleLen = 0;
+function dance(moves: string[], positions: string[]): string[] {
+    for (const move of moves) {
+        if (move.startsWith('s')) {
+            const x = parseInt(move.slice(1), 10);
+            const spin = positions.splice(-x);
+            positions = spin.concat(positions);
+        } else if (move.startsWith('x')) {
+            const [a, b] = move.slice(1).split('/').map(Number);
+            [positions[a], positions[b]] = [positions[b], positions[a]];
+        } else if (move.startsWith('p')) {
+            const [a, b] = move.slice(1).split('/').map(c => positions.indexOf(c));
+            [positions[a], positions[b]] = [positions[b], positions[a]];
+        }
+    }
+    return positions;
+}
+
+const initialState = [...programs];
+const seenStates = new Map<string, number>();
+let currentState = initialState.join('');
+seenStates.set(currentState, 0);
 
 for (let i = 0; i < 1000000000; i++) {
-  for (const move of input) {
-    switch (move[0]) {
-      case 's':
-        const x = parseInt(move.slice(1));
-        spin(programs, x);
-        break;
-      case 'x':
-        const [A, B] = move.slice(1).split('/').map(Number);
-        exchange(programs, A, B);
-        break;
-      case 'p':
-        const [a, b] = move.slice(1).split('/');
-        partner(programs, a, b);
-        break;
+    currentState = dance(input, [...currentState]).join('');
+    if (seenStates.has(currentState)) {
+        const cycleLength = i + 1 - seenStates.get(currentState)!;
+        const remaining = (1000000000 - (i + 1)) % cycleLength;
+        for (const [state, iteration] of seenStates.entries()) {
+            if (iteration === remaining) {
+                console.log(state);
+                break; // Exit the loop after printing the state
+            }
+        }
+        break; // Exit the main loop
     }
-  }
-
-  if (programs.join('') === initial) {
-    cycleLen = i + 1;
-    break;
-  }
+    seenStates.set(currentState, i + 1);
 }
 
-programs.length = 0;
-programs.push(...initial.split(''));
-
-for (let i = 0; i < 1000000000 % cycleLen; i++) {
-  for (const move of input) {
-    switch (move[0]) {
-      case 's':
-        const x = parseInt(move.slice(1));
-        spin(programs, x);
-        break;
-      case 'x':
-        const [A, B] = move.slice(1).split('/').map(Number);
-        exchange(programs, A, B);
-        break;
-      case 'p':
-        const [a, b] = move.slice(1).split('/');
-        partner(programs, a, b);
-        break;
-    }
-  }
-}
-
-console.log(programs.join(''));
-
-function spin(programs, x) {
-  const n = programs.length;
-  const temp = programs.slice();
-  for (let i = 0; i < n; i++) {
-    programs[(i + x) % n] = temp[i];
-  }
-}
-
-function exchange(programs, A, B) {
-  [programs[A], programs[B]] = [programs[B], programs[A]];
-}
-
-function partner(programs, A, B) {
-  const indexA = programs.indexOf(A);
-  const indexB = programs.indexOf(B);
-  exchange(programs, indexA, indexB);
-}
+console.log(currentState);

@@ -1,60 +1,51 @@
-const fs = require('fs');
+import * as fs from 'fs';
 
-const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
-const packages = input.map(Number);
-const totalWeight = packages.reduce((a, b) => a + b, 0);
-const targetWeight = Math.floor(totalWeight / 4);
-
-let bestQE = Infinity;
-let bestLength = Infinity;
-
-for (let comb = 1; comb < (1 << packages.length); comb++) {
-  let groupWeight = 0;
-  let qe = 1;
-  let groupLength = 0;
-  for (let i = 0; i < packages.length; i++) {
-    if (comb & (1 << i)) {
-      groupWeight += packages[i];
-      qe *= packages[i];
-      groupLength++;
-    }
-  }
-  if (groupWeight === targetWeight && groupLength <= bestLength) {
-    if (groupLength < bestLength || qe < bestQE) {
-      if (canSplit(packages, comb, targetWeight)) {
-        bestLength = groupLength;
-        bestQE = qe;
-      }
-    }
-  }
+// Function to read input from file
+function readInput(filePath: string): number[] {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return data.split('\n').map(Number);
 }
 
-console.log(bestQE);
+// Function to calculate the quantum entanglement
+function quantumEntanglement(group: number[]): number {
+    return group.reduce((acc, val) => acc * val, 1);
+}
 
-function canSplit(packages, firstGroupComb, targetWeight) {
-  const remainingPackages = packages.filter((_, i) => !(firstGroupComb & (1 << i)));
-  for (let comb1 = 1; comb1 < (1 << remainingPackages.length); comb1++) {
-    let group1Weight = 0;
-    for (let i = 0; i < remainingPackages.length; i++) {
-      if (comb1 & (1 << i)) {
-        group1Weight += remainingPackages[i];
-      }
-    }
-    if (group1Weight === targetWeight) {
-      for (let comb2 = 1; comb2 < (1 << remainingPackages.length); comb2++) {
-        if (!(comb1 & comb2)) {
-          let group2Weight = 0;
-          for (let i = 0; i < remainingPackages.length; i++) {
-            if (comb2 & (1 << i)) {
-              group2Weight += remainingPackages[i];
+// Function to find the optimal grouping for a given number of groups
+function findOptimalGrouping(weights: number[], numGroups: number): number | null {
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    if (totalWeight % numGroups !== 0) return null;
+
+    const targetWeight = totalWeight / numGroups;
+    let minGroupSize = Infinity;
+    let minQE = Infinity;
+
+    const findGroup = (index: number, currentWeight: number, currentGroup: number[], groups: number[][]): void => {
+        if (currentWeight === targetWeight) {
+            if (currentGroup.length < minGroupSize || (currentGroup.length === minGroupSize && quantumEntanglement(currentGroup) < minQE)) {
+                minGroupSize = currentGroup.length;
+                minQE = quantumEntanglement(currentGroup);
             }
-          }
-          if (group2Weight === targetWeight) {
-            return true;
-          }
+            return;
         }
-      }
-    }
-  }
-  return false;
+
+        if (currentWeight > targetWeight || index >= weights.length) return;
+
+        findGroup(index + 1, currentWeight + weights[index], [...currentGroup, weights[index]], groups);
+        findGroup(index + 1, currentWeight, currentGroup, groups);
+    };
+
+    findGroup(0, 0, [], []);
+
+    return minQE !== Infinity ? minQE : null;
 }
+
+const weights = readInput('input.txt');
+
+// Part 1: Three groups
+const part1Result = findOptimalGrouping(weights, 3);
+console.log(`Part 1: ${part1Result}`);
+
+// Part 2: Four groups
+const part2Result = findOptimalGrouping(weights, 4);
+console.log(`Part 2: ${part2Result}`);
