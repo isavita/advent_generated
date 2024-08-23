@@ -1,0 +1,48 @@
+(define (read-input filename)
+  (with-input-from-file filename
+    (lambda ()
+      (let loop ((lines '()))
+        (let ((line (read)))
+          (if (eof-object? line)
+              (reverse lines)
+              (loop (cons line lines))))))))
+
+(define (combinations lst n)
+  (if (= n 0)
+      (list '())
+      (if (null? lst)
+          '()
+          (append
+           (map (lambda (c) (cons (car lst) c))
+                (combinations (cdr lst) (- n 1)))
+           (combinations (cdr lst) n)))))
+
+(define (quantum-entanglement group)
+  (apply * group))
+
+(define (find-min-group packages target-weight)
+  (let loop ((min-group '())
+             (min-qe +inf.0)
+             (n 1))
+    (let ((combs (combinations packages n)))
+      (for-each (lambda (group)
+                  (when (= (apply + group) target-weight)
+                    (let ((qe (quantum-entanglement group)))
+                      (when (or (null? min-group)
+                                (< (length group) (length min-group))
+                                (and (= (length group) (length min-group))
+                                     (< qe min-qe)))
+                        (set! min-group group)
+                        (set! min-qe qe)))))
+                combs)
+      (if (or (not (null? min-group)) (>= n (length packages)))
+          min-qe
+          (loop min-group min-qe (+ n 1))))))
+
+(define (main)
+  (let* ((packages (read-input "input.txt"))
+         (total-weight (apply + packages))
+         (group-weight (/ total-weight 3)))
+    (find-min-group packages group-weight)))
+
+(display (main))
