@@ -1,0 +1,8 @@
+The timeout error suggests that the previous solution was likely using a brute-force approach, which is not efficient for the large search space in Part Two. To fix this, we need to optimize the algorithm. Instead of checking every single point in the 4000000x4000000 grid, we can use the properties of the sensor coverage areas to our advantage.
+
+A more efficient approach would be to:
+1. For each sensor, calculate the boundary of its coverage area (one step beyond its range).
+2. Check the points along these boundaries for any that are not covered by any other sensor.
+3. The first such point we find will be our distress beacon location.
+
+This approach significantly reduces the number of points we need to check, as we're only looking at the edges of sensor coverage areas rather than every point in the grid.

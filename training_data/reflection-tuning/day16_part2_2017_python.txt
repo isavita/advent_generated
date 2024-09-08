@@ -1,0 +1,15 @@
+To solve this problem efficiently, we need to consider a few key points:
+
+1. We need to implement the three types of dance moves: spin, exchange, and partner.
+2. For Part One, we simply need to apply these moves to the initial string of programs.
+3. For Part Two, doing the dance a billion times would be too slow. We need to find a pattern.
+4. The key observation is that after a certain number of dances, the order will repeat.
+5. We can find this cycle length by performing the dance until we see a repeated order.
+6. Once we know the cycle length, we can calculate how many dances we need to perform after dividing 1 billion by the cycle length.
+
+Here's the approach:
+1. Implement the dance moves.
+2. Perform the dance once for Part One.
+3. For Part Two, find the cycle length.
+4. Calculate the equivalent number of dances needed after 1 billion iterations.
+5. Perform only the necessary number of dances to get the final order.

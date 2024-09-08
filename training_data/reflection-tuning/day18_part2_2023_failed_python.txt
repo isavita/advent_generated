@@ -1,0 +1,8 @@
+The error message indicates that there's an issue with parsing the hexadecimal code. Specifically, it's trying to convert '#2304' to an integer, which is invalid because it includes the '#' character. To fix this, we need to modify the parse_instruction function to correctly handle the hexadecimal code format described in Part Two of the problem.
+
+The new parsing should:
+1. Remove the '#' character from the beginning of the hex code.
+2. Use the first 5 digits for the distance (converting from hex to decimal).
+3. Use the last digit to determine the direction.
+
+Additionally, we need to update the main logic to use this new parsing method and calculate the area using the shoelace formula and Pick's theorem, as the distances are now much larger.

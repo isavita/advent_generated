@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to create a grid representation of the map.
+2. Identify all the points of interest (numbers 0-9) and their coordinates.
+3. Use Breadth-First Search (BFS) to calculate the shortest distance between each pair of points.
+4. Use the distances to create a graph where nodes are points of interest and edges are distances.
+5. Implement a Traveling Salesman Problem (TSP) solver using dynamic programming to find the shortest path visiting all points.
+6. The TSP solver will start from 0 and visit all other points, returning the minimum distance.
+
+This approach is efficient because:
+- BFS ensures we find the shortest path between any two points considering walls.
+- The TSP solver with dynamic programming has a time complexity of O(n^2 * 2^n), where n is the number of points, which is manageable for small n.
+- We avoid recalculating paths during the TSP solving by pre-computing all distances.

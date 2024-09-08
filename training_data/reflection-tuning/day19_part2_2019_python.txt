@@ -1,0 +1,9 @@
+To solve this problem efficiently, we need to:
+1. Implement a function to check if a point is affected by the tractor beam.
+2. For Part 1, scan the 50x50 area and count affected points.
+3. For Part 2, we need to find the closest 100x100 square that fits in the beam.
+   - We can start from a reasonable position and move diagonally until we find a suitable square.
+   - To check if a square fits, we only need to check its top-left and bottom-right corners.
+   - Once we find a fitting square, we can return the required calculation.
+
+The key to efficiency is minimizing the number of checks we perform, especially for Part 2.

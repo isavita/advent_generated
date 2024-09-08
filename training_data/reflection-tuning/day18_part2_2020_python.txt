@@ -1,0 +1,15 @@
+To solve this problem efficiently, we need to implement two different evaluation methods:
+1. For Part 1: Left-to-right evaluation with equal precedence for addition and multiplication.
+2. For Part 2: Addition before multiplication.
+
+For both parts, we'll need to handle parentheses correctly. We can use a recursive approach to evaluate expressions inside parentheses first.
+
+For Part 1, we can simply evaluate the expression from left to right, keeping track of the current value and the next operation to perform.
+
+For Part 2, we can use a two-pass approach:
+1. First, evaluate all additions, replacing them with their results.
+2. Then, evaluate all multiplications.
+
+To handle parentheses, we'll use a recursive function that evaluates the innermost parentheses first and replaces them with their result.
+
+We'll implement both parts in the same program, reading the input once and applying both evaluation methods to each expression.

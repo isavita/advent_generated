@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can use a dictionary to keep track of the last turn each number was spoken. This allows us to quickly look up whether a number has been spoken before and when it was last spoken. We'll iterate through the turns, updating the dictionary and calculating the next number based on the rules given.
+
+The steps will be:
+1. Initialize a dictionary with the starting numbers and their positions.
+2. Keep track of the last number spoken.
+3. Iterate from the length of the starting numbers + 1 to 2020.
+4. For each turn, check if the last number is in the dictionary (excluding its most recent occurrence).
+5. Calculate the next number based on this information.
+6. Update the dictionary with the new number and its turn.
+7. After 2020 turns, return the last number spoken.
+
+This approach has a time complexity of O(n) where n is the number of turns (2020 in this case), and a space complexity of O(m) where m is the number of unique numbers spoken.

@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to consider a few key points:
+
+1. For Part 1, we can implement the FFT algorithm as described, using numpy for faster array operations.
+
+2. For Part 2, the naive approach would be too slow and memory-intensive. However, we can exploit two properties of the problem:
+   a) We only need the last 8 digits of a specific part of the output.
+   b) The offset is always in the second half of the input.
+
+   For the second half of any FFT phase, each output digit is just the sum of all following input digits mod 10. This is because the pattern for these positions is always [0, 0, ..., 1, 1, ..., 1].
+
+   We can use this to our advantage by working backwards from the end of the input, calculating cumulative sums mod 10.
+
+3. We'll use numpy for efficient array operations in both parts.

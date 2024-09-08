@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse each line into start and end ranges.
+2. Sort the ranges based on their start values.
+3. Merge overlapping ranges to simplify our list.
+4. Iterate through the merged ranges to find the first gap, which will be the lowest unblocked IP.
+
+This approach allows us to handle large ranges of IPs efficiently without having to check every single IP. By merging overlapping ranges, we reduce the number of comparisons needed.

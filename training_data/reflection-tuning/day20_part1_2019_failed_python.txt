@@ -1,0 +1,5 @@
+The error message indicates an IndexError occurring when trying to access elements of the maze. This suggests that the code is attempting to access positions outside the bounds of the maze, particularly when checking for vertical portal labels. The issue likely arises when processing tiles at the bottom edge of the maze, where y+1 would be out of range.
+
+To fix this, we need to modify the parse_maze function to handle edge cases more carefully. We should check both vertical and horizontal directions for portal labels, but ensure we don't go out of bounds. We'll prioritize checking vertically first, and only if that's not possible (i.e., we're at the bottom edge), we'll check horizontally.
+
+Additionally, we should implement a more robust way to identify the start (AA) and end (ZZ) points, as well as other portals. We'll use a dictionary to store portal locations and implement a breadth-first search (BFS) to find the shortest path.

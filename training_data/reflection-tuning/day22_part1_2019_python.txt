@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can observe that we don't need to actually manipulate the deck of cards. Instead, we can track the position of a single card (2019 in this case) through the shuffling process. Each shuffle operation can be represented as a mathematical transformation on the card's position.
+
+1. Deal into new stack: position = deck_size - 1 - position
+2. Cut N cards: position = (position - N) % deck_size
+3. Deal with increment N: position = (position * N) % deck_size
+
+We can apply these transformations in order for each shuffle instruction. This approach is much more efficient than manipulating the entire deck, especially for large deck sizes.

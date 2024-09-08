@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input rules into a dictionary for quick lookup.
+2. Implement functions to split the grid into smaller squares and to join squares back into a larger grid.
+3. Create a function to apply the rules, including rotation and flipping of patterns.
+4. Implement the main iteration logic that applies the rules for the specified number of iterations.
+5. Count the number of '#' pixels in the final grid.
+
+For efficiency:
+- Use sets to store the active pixels instead of a 2D grid.
+- Implement the rotations and flips as coordinate transformations.
+- Use tuple representations of patterns for dictionary keys.
+
+For Part Two, we'll simply increase the number of iterations from 5 to 18.

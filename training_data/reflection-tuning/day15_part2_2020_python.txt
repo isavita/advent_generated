@@ -1,0 +1,14 @@
+To solve this problem efficiently, we need to consider the following:
+
+1. We need to keep track of the last time each number was spoken.
+2. For each turn, we need to quickly determine if the number has been spoken before and when.
+3. The game can go on for a large number of turns (up to 30,000,000), so we need to optimize for speed and memory.
+
+Approach:
+1. Use a dictionary to store the last turn each number was spoken. This allows for O(1) lookup time.
+2. Initialize the dictionary with the starting numbers.
+3. Iterate through the turns, updating the dictionary and calculating the next number to be spoken.
+4. To save memory, we only need to keep track of the last turn a number was spoken, not all occurrences.
+5. Use a single function that can solve both parts of the problem by accepting the target turn as a parameter.
+
+This approach should be efficient enough to handle both part 1 (2020 turns) and part 2 (30,000,000 turns) in a reasonable amount of time.

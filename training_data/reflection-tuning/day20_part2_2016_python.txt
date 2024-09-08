@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can use a merge intervals approach:
+1. Read the input and convert each range to a tuple of (start, end).
+2. Sort these ranges based on the start value.
+3. Merge overlapping ranges.
+4. For Part 1, the lowest unblocked IP will be the first gap after 0 or 0 itself if not blocked.
+5. For Part 2, we can calculate the total number of blocked IPs and subtract from the total possible IPs (4294967296).
+
+This approach is efficient as it runs in O(n log n) time due to sorting, and O(n) space.

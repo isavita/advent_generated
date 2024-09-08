@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and store it as a 2D grid.
+2. Find the starting point (the first '|' in the top row).
+3. Implement a function to traverse the path, following the rules:
+   - Move in the current direction until a turn is needed.
+   - Turn only when there's no other option (at '+').
+   - Collect letters along the way.
+   - Stop when we reach the end of the path.
+4. Keep track of the direction, position, and collected letters.
+5. Handle different characters: '|', '-', '+', letters, and spaces.
+
+The solution will use a simple state machine approach, moving step by step and changing direction when necessary.

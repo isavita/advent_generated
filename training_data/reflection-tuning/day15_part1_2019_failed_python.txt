@@ -1,0 +1,5 @@
+The error message indicates that we're trying to use the `.get()` method on a list object, which is not a valid operation. This suggests that `memory` is a list, but we're treating it as if it were a dictionary. To fix this, we need to modify how we access and update the memory.
+
+Instead of using `.get()`, we should use list indexing, but we need to ensure that the list is large enough to accommodate all the memory addresses we might need. We can do this by extending the list with zeros when we need to access an index beyond its current length.
+
+Additionally, we should modify the `get_param` and `set_param` functions to handle list indexing properly, and update the main intcode execution loop to work with a list instead of a dictionary.

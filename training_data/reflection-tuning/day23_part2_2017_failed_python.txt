@@ -1,0 +1,9 @@
+The error message "911" doesn't provide much context about the specific issue in the code. However, given the nature of the problem, it's likely that the previous solution might have been correct for Part 1 but didn't address Part 2 correctly. The key difference in Part 2 is that we need to optimize the program to determine the final value in register h without actually running the entire simulation, as it would take too long.
+
+To solve Part 2 efficiently, we need to analyze the assembly-like code and understand what it's actually computing. Often, these types of problems are implementing a mathematical algorithm in a roundabout way. By reverse-engineering the algorithm, we can implement it directly in Python, which will be much faster than simulating the instructions.
+
+Based on the description, we need to:
+1. Analyze the input instructions to understand the overall algorithm.
+2. Implement a direct calculation of the result without simulating each instruction.
+3. Set register 'a' to 1 at the start, as specified in Part 2.
+4. Calculate the final value of register 'h' efficiently.

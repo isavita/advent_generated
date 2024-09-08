@@ -1,0 +1,5 @@
+The error message indicates an IndexError in the run method of the computer, specifically when trying to assign a value to self.memory[params[2]]. This suggests that the memory array is not large enough to accommodate the address being accessed.
+
+To fix this, we need to ensure that the memory array is dynamically expanded when we try to access or write to an index that's out of range. We can modify the Computer class to include a method that safely gets and sets memory values, expanding the memory array as needed.
+
+Additionally, we should implement the Network class to handle the 50 computers and their packet communication. The solve function should initialize the network, assign addresses to each computer, and run the network until a packet is sent to address 255.

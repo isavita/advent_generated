@@ -1,0 +1,10 @@
+To solve this problem, we need to implement each of the described operations as functions. Then, we'll read the input file line by line, parse each instruction, and apply the corresponding operation to our password string. Here's the approach:
+
+1. Define functions for each operation (swap positions, swap letters, rotate, reverse, move).
+2. Read the input file and initialize the password as "abcdefgh".
+3. For each line in the input:
+   - Parse the instruction to determine which operation to apply and its parameters.
+   - Call the appropriate function with the parsed parameters.
+4. After processing all instructions, print the final scrambled password.
+
+The most challenging part might be the "rotate based on position of letter" operation, as it involves finding the index of a letter and then performing a variable number of rotations. We'll implement this carefully to ensure it works correctly.

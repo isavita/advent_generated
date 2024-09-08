@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can follow these steps:
+
+1. Parse the input file to create a 2D grid representing the contraption.
+2. Implement a function to simulate the beam's movement through the grid.
+3. For Part 1, run the simulation with the beam starting from the top-left corner.
+4. For Part 2, iterate through all possible starting positions on the edges of the grid.
+5. Use a set to keep track of energized tiles and beam positions to avoid infinite loops.
+6. Optimize by using a queue for beam propagation and avoiding unnecessary calculations.
+
+The key to efficiency is to avoid recalculating paths for beams that have already been processed and to use appropriate data structures for quick lookups and insertions.

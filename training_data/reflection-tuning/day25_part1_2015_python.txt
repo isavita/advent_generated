@@ -1,0 +1,3 @@
+The error message suggests that the program is trying to convert a string "To" to an integer, which is not possible. This likely means that the input file is not being read correctly or the content is not in the expected format. The error occurs when trying to split and map the content to integers.
+
+To fix this, we need to ensure that we're reading the correct input and parsing it properly. The task description mentions that the input contains "the message on the machine's console", which should be two numbers representing the row and column of the code we need to find. We should modify the input reading part to correctly extract these numbers.

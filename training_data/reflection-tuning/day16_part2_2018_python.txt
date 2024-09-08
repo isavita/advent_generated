@@ -1,0 +1,10 @@
+To solve this problem, we need to approach it in two parts:
+
+1. Parse the input file to extract the samples and the test program.
+2. Implement all 16 opcodes as functions.
+3. For each sample, test which opcodes could produce the observed result.
+4. Count how many samples behave like three or more opcodes.
+5. Use the samples to deduce which number corresponds to which opcode.
+6. Execute the test program using the deduced opcode mappings.
+
+The key to efficiency here is to use sets for quick lookups and a dictionary to store the opcode functions. We'll also use a bit of logic to narrow down the opcode possibilities quickly.

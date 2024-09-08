@@ -1,0 +1,12 @@
+To solve this problem, we need to simulate the particle system over time. Here's the approach:
+
+1. Parse the input file to create a list of particles, each with position, velocity, and acceleration.
+2. For Part 1:
+   - We don't need to actually simulate the particles. Instead, we can analyze their acceleration and velocity to determine which particle will eventually be closest to the origin.
+   - The particle with the smallest acceleration magnitude will be closest in the long term. If there's a tie, we'll use velocity, and then position as tiebreakers.
+3. For Part 2:
+   - We need to simulate the particles over time and check for collisions.
+   - We'll use a dictionary to keep track of particle positions at each step.
+   - We'll continue the simulation until there are no more collisions for a significant number of steps.
+
+This approach should be efficient as it avoids unnecessary calculations for Part 1 and uses a dictionary for quick collision detection in Part 2.

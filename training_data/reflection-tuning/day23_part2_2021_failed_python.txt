@@ -1,0 +1,3 @@
+The error message indicates a KeyError when trying to access ROOM_INDEX with a '.' character. This suggests that the get_valid_moves function is trying to process empty spaces ('.') as if they were amphipods. We need to modify the function to skip empty spaces and only process actual amphipods (A, B, C, or D).
+
+To fix this, we should add a check in the get_valid_moves function to ensure we're only processing amphipods and not empty spaces. We'll also need to adjust the logic for moving amphipods to and from the hallway and rooms.

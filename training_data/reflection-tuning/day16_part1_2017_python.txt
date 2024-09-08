@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the dance moves from the input file.
+2. Initialize a list representing the programs (a through p).
+3. Implement functions for each type of dance move (spin, exchange, partner).
+4. Apply each dance move to the list of programs.
+5. Print the final order of programs.
+
+We can use a list to represent the programs and manipulate it based on the dance moves. For efficiency, we'll use string operations for the spin move and list indexing for exchange and partner moves.

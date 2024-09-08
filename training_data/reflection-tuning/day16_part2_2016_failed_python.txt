@@ -1,0 +1,9 @@
+Based on the output provided, it seems the previous solution only generated the initial dragon curve data without calculating the checksum. The output shows two lines of binary data, which are likely the result of expanding the initial state using the dragon curve algorithm. However, the task requires us to generate enough data to fill the disk (272 characters for part 1 and 35651584 characters for part 2) and then calculate the checksum of that data.
+
+To fix this issue, we need to:
+1. Implement the dragon curve expansion correctly to generate enough data.
+2. Implement the checksum calculation algorithm.
+3. Ensure we're using the correct length for each part of the problem.
+4. Calculate and return the final checksum for both parts.
+
+I'll provide a solution that addresses these points and solves both parts of the problem.

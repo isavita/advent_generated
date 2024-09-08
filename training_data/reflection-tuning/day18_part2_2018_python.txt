@@ -1,0 +1,12 @@
+To solve this problem efficiently, we need to:
+1. Read the initial state from the input file.
+2. Implement a function to simulate one minute of changes.
+3. For Part 1, run the simulation for 10 minutes and calculate the resource value.
+4. For Part 2, we need to optimize for 1,000,000,000 minutes. The key insight here is that the pattern will likely repeat after some time. We can:
+   a. Run the simulation until we detect a cycle.
+   b. Calculate how many cycles will occur in 1,000,000,000 minutes.
+   c. Fast-forward to the state that would exist after those cycles.
+   d. Simulate the remaining minutes.
+5. Calculate and return the final resource value.
+
+We'll use a 2D list to represent the area and implement efficient neighbor counting using list comprehensions.

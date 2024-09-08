@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the package weights from the input file.
+2. Calculate the total weight and divide it by 3 to get the target weight for each group.
+3. Use a recursive function to find all possible combinations of packages that sum up to the target weight.
+4. Sort these combinations by length (number of packages) and then by quantum entanglement.
+5. Return the quantum entanglement of the first (optimal) combination.
+
+To optimize the solution:
+- We'll use itertools.combinations to generate package combinations efficiently.
+- We'll use early stopping in our recursive function to avoid unnecessary computations.
+- We'll cache the results of our recursive function to avoid redundant calculations.

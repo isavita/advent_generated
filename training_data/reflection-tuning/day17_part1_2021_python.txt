@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Parse the input to get the target area coordinates.
+2. Simulate the probe's trajectory for various initial velocities.
+3. Find the highest y position reached among all valid trajectories.
+
+The key insights are:
+- The x and y components of the motion can be treated independently.
+- For maximum height, we want the highest initial y velocity that still hits the target.
+- The probe will always return to y=0 on its way down, and the step after that will have a y velocity of -(initial_y_velocity + 1).
+- The highest possible initial y velocity is one that makes the probe land on the bottom edge of the target area in a single step after returning to y=0.
+
+With these insights, we can calculate the maximum initial y velocity directly, without simulating all possible trajectories.

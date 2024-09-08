@@ -1,0 +1,15 @@
+To solve this problem, we need to approach it in two steps:
+
+1. For Part 1:
+   - Read the input coordinates and create a set of cubes.
+   - For each cube, check its six adjacent sides.
+   - If an adjacent side doesn't have a cube, increment the surface area.
+
+2. For Part 2:
+   - We need to find the exterior surface area, excluding trapped air pockets.
+   - We can use a flood fill algorithm starting from outside the droplet.
+   - First, determine the bounds of the droplet and create a slightly larger bounding box.
+   - Perform a 3D flood fill from a corner of this bounding box.
+   - Count the surfaces where the flood fill touches the lava droplet.
+
+This approach will efficiently solve both parts of the problem in a single pass through the data.

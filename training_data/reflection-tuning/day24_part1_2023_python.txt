@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Parse the input file to extract hailstone positions and velocities.
+2. Implement a function to check if two hailstones' paths intersect within the given test area.
+3. Iterate through all pairs of hailstones and count the intersections.
+
+For the intersection check:
+- We'll use linear algebra to find the intersection point of two lines.
+- We need to ensure the intersection happens in the future for both hailstones.
+- We'll check if the intersection point is within the test area.
+
+To optimize:
+- We'll use numpy for efficient vector operations.
+- We'll use itertools.combinations to iterate through pairs efficiently.

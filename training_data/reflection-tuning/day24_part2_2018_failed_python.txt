@@ -1,0 +1,10 @@
+Based on the incorrect output provided, it seems the main issue is in Part 2 of the problem. The answer 4444 is too low, which suggests that the boost calculation or the simulation with the boost might not be implemented correctly. 
+
+The key aspects to focus on for fixing this issue would be:
+
+1. Ensure that the boost is being applied correctly to all immune system groups.
+2. Implement a binary search or similar algorithm to find the smallest boost that leads to an immune system victory.
+3. Make sure the simulation runs until there's a clear winner (either immune system or infection).
+4. Verify that the counting of remaining units is done correctly after the immune system wins.
+
+I would approach the solution by implementing a clear separation between the battle simulation and the boost finding logic. Then, I'd use a binary search to efficiently find the smallest boost that leads to an immune system victory.

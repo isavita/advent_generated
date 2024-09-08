@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use a combination of parsing the input, iterative approach for ingredient combinations, and calculation of scores. Here's the approach:
+
+1. Parse the input file to extract ingredient properties.
+2. Create a function to calculate the score for a given combination of ingredients.
+3. Use nested loops to iterate through all possible combinations of ingredients (ensuring they sum to 100 teaspoons).
+4. For each combination, calculate the score and keep track of the highest score.
+5. For Part Two, add a condition to check if the calorie count is exactly 500.
+6. Optimize by using list comprehensions and built-in functions where possible.
+
+This approach allows us to explore all possible combinations efficiently while keeping the code concise and readable.

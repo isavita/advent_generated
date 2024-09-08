@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. Here's the thought process:
+
+1. We need to find the sum of factors for each house number, multiplied by 10.
+2. Instead of checking each house individually, we can use a sieve-like approach.
+3. We'll create an array to store the number of presents for each house.
+4. We'll iterate through the Elves (starting from 1) and update the presents for all houses they visit.
+5. We'll stop when we find the first house that has at least as many presents as the input number.
+
+This approach is more efficient than calculating factors for each house individually, as it distributes the work across all houses simultaneously.

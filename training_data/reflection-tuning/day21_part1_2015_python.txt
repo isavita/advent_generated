@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Parse the input file to get the boss's stats.
+2. Define the available items and their stats.
+3. Generate all possible combinations of equipment (1 weapon, 0-1 armor, 0-2 rings).
+4. Simulate the fight for each combination.
+5. Find the least expensive combination that results in a win.
+
+We can use itertools to generate combinations efficiently. For the simulation, we'll create a function that determines if the player wins given a set of stats. We'll then iterate through all combinations, keeping track of the cheapest winning combination.

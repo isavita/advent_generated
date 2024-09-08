@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the SNAFU numbers from the input file.
+2. Convert each SNAFU number to decimal.
+3. Sum up all the decimal numbers.
+4. Convert the sum back to SNAFU.
+
+For the SNAFU to decimal conversion, we'll use a dictionary to map SNAFU digits to their decimal values. We'll then iterate through the SNAFU number from right to left, multiplying each digit by the appropriate power of 5.
+
+For the decimal to SNAFU conversion, we'll use a similar approach but in reverse. We'll find the highest power of 5 that fits into the number, then work our way down, choosing the appropriate SNAFU digit at each step.
+
+We'll implement these as separate functions for clarity and reusability.

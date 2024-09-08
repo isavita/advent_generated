@@ -1,0 +1,12 @@
+To solve this problem, we need to implement a clustering algorithm that groups points based on their Manhattan distance. Here's the approach:
+
+1. Parse the input file to get all the 4D points.
+2. Implement a function to calculate Manhattan distance between two points.
+3. Use a disjoint set (union-find) data structure to efficiently group points into constellations.
+4. Iterate through all pairs of points, and if their Manhattan distance is 3 or less, union them in the disjoint set.
+5. Count the number of unique sets (constellations) at the end.
+
+This approach is efficient because:
+- The union-find data structure provides near-constant time operations for unioning and finding sets.
+- We only need to compare each pair of points once.
+- The space complexity is linear with respect to the number of points.

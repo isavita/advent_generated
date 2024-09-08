@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the initial row from the input file.
+2. Create a function to generate the next row based on the current row.
+3. Keep track of the total safe tiles as we generate each row.
+4. Repeat the process for 40 rows (including the initial row).
+
+The key to efficiency here is to avoid storing all rows in memory. We only need to keep track of the current row and the total safe tile count. We can use string operations to generate each new row based on the previous one.

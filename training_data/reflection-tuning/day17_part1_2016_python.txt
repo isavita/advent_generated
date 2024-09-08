@@ -1,0 +1,9 @@
+To solve this problem, we can use a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in a graph-like structure. Here's the approach:
+
+1. We'll use a queue to store the states we need to explore. Each state will contain the current position and the path taken so far.
+2. We'll use the MD5 hash function to determine which doors are open at each step.
+3. We'll explore all possible moves (up, down, left, right) from each state, checking if the move is valid (within bounds and the door is open).
+4. We'll continue this process until we reach the vault (bottom-right corner).
+5. Since we're using BFS, the first path to reach the vault will be the shortest.
+
+The solution will be efficient as it explores the shortest paths first and doesn't waste time on longer paths.

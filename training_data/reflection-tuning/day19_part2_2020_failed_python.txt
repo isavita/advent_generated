@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to separate rules and messages.
+2. Create a function to generate regular expressions from the rules.
+3. For Part 1, simply count how many messages match the regex for rule 0.
+4. For Part 2, modify rules 8 and 11, and use a custom matching function to handle the loops.
+
+The key challenge is handling the recursive nature of rules 8 and 11 in Part 2. We can't use standard regex for this, so we'll implement a custom matching function that checks for multiple repetitions of rule 42 followed by multiple repetitions of rule 31, with the constraint that there must be more repetitions of 42 than 31.

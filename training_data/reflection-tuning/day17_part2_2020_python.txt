@@ -1,0 +1,14 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Represent the active cubes using a set of tuples (x, y, z, w) for 4D coordinates.
+2. Implement a function to get the neighbors of a given cube.
+3. Create a function to count active neighbors for a given cube.
+4. Implement the cycle simulation logic.
+5. Run the simulation for 6 cycles and count the active cubes.
+
+To optimize performance:
+- Use a set to store active cubes for O(1) lookup.
+- Only consider cubes that are active or have active neighbors in each cycle.
+- Use generator expressions for neighbor counting to save memory.
+
+For Part 1 (3D), we can simply set w=0 and ignore the w coordinate in calculations.

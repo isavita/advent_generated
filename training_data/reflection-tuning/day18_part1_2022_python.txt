@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input coordinates from the file and store them in a set for quick lookup.
+2. Iterate through each cube in the set.
+3. For each cube, check its six adjacent positions (up, down, left, right, front, back).
+4. If an adjacent position is not in the set, it means that side is exposed, so we increment our surface area count.
+5. After checking all cubes, return the total surface area count.
+
+This approach has a time complexity of O(n), where n is the number of cubes, as we only iterate through the cubes once and perform constant-time operations for each cube.

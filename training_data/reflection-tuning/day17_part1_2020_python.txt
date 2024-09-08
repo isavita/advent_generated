@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Represent the active cubes using a set of tuples (x, y, z).
+2. For each cycle, we'll only consider the active cubes and their neighbors.
+3. Use a helper function to get the neighbors of a cube.
+4. Count active neighbors for each cube and its inactive neighbors.
+5. Apply the rules to determine the new state of each cube.
+6. Repeat for six cycles.
+
+This approach avoids creating a full 3D grid and only focuses on the active cubes and their immediate surroundings, which is more memory-efficient for sparse configurations.

@@ -1,0 +1,12 @@
+To solve this problem, we need to simulate the game with the given rules. Here's the approach:
+
+1. Read the starting positions from the input file.
+2. Initialize player scores, positions, and a die counter.
+3. Implement a function to roll the deterministic die.
+4. Simulate the game turns, alternating between players:
+   - Roll the die three times and move the player.
+   - Update the player's score.
+   - Check if the player has won (score >= 1000).
+5. When a player wins, calculate the result by multiplying the losing player's score by the number of die rolls.
+
+We'll use modular arithmetic to handle the circular nature of the board and the die rolls efficiently.

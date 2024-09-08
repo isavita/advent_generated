@@ -1,0 +1,17 @@
+The previous solution seems to have correctly solved Part 1 of the problem (as the answer 3589 is given), but failed to correctly implement Part 2. The main issues with Part 2 are likely:
+
+1. The scale of the problem: We're dealing with a deck of 119315717514047 cards and need to apply the shuffle 101741582076661 times. This is far too large to simulate directly.
+
+2. The need for a mathematical approach: Instead of simulating the shuffles, we need to find a way to calculate the final position of a card mathematically.
+
+3. Modular arithmetic: Given the large numbers involved, we'll need to use modular arithmetic to keep the calculations manageable.
+
+4. Inverse operations: To find which card ends up in position 2020, we actually need to work backwards through the shuffle process.
+
+5. Optimization: We'll need to use techniques like modular exponentiation to handle the large number of repetitions efficiently.
+
+To fix this, we should implement a solution that:
+1. Represents each shuffle operation as a linear function (ax + b) mod deck_size
+2. Combines multiple operations by composing these functions
+3. Uses modular exponentiation to efficiently apply the combined function many times
+4. Inverts the final function to find the original position of the card that ends up at 2020

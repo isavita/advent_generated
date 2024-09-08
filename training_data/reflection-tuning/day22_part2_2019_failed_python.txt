@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to recognize that performing the shuffling operations directly on such a large deck would be impractical. Instead, we can use modular arithmetic to track the position of a single card through the shuffling process.
+
+For Part 1, we can implement each shuffling operation and apply them sequentially to find the final position of card 2019.
+
+For Part 2, we need to:
+1. Realize that each shuffle operation is a linear function (ax + b) mod deck_size
+2. Compose all shuffle operations into a single linear function
+3. Use modular exponentiation to efficiently apply this function 101741582076661 times
+4. Use the inverse function to find which card ends up at position 2020
+
+We'll use the extended Euclidean algorithm for modular inverse calculations and implement fast modular exponentiation for efficiency.

@@ -1,0 +1,13 @@
+To solve this problem, we can use a modified version of Dijkstra's algorithm or A* search. The key modifications are:
+1. We need to keep track of the direction and the number of steps taken in that direction.
+2. We can only move up to 3 steps in the same direction before turning.
+3. We can't reverse direction.
+
+We'll use a priority queue to always explore the path with the least heat loss so far. We'll use a tuple to represent each state: (heat_loss, row, col, direction, steps_in_direction).
+
+To optimize the solution:
+1. We'll use a set to keep track of visited states to avoid revisiting.
+2. We'll use a 2D array to store the grid for efficient access.
+3. We'll use constants for directions and movement to make the code more readable.
+
+The time complexity will be O(N * M * 4 * 3 * log(N*M)), where N and M are the dimensions of the grid, 4 is the number of directions, and 3 is the maximum steps in a direction.

@@ -1,0 +1,16 @@
+To solve this problem efficiently, we can use a breadth-first search (BFS) approach. Here's the thought process:
+
+1. Read the input map from the file.
+2. Find the starting position 'S'.
+3. Implement a BFS algorithm that:
+   - Starts from 'S' and explores in all four directions (up, down, left, right).
+   - Keeps track of the step count and the positions reached at each step.
+   - Stops when we reach 64 steps.
+4. Count the number of unique positions reached at exactly 64 steps.
+
+We'll use a set to keep track of visited positions at each step to avoid revisiting the same position in the same number of steps. We'll also use a queue to manage the BFS traversal.
+
+This approach is efficient because:
+- It explores all possible paths simultaneously.
+- It avoids redundant calculations by not revisiting positions in the same number of steps.
+- It stops exactly at 64 steps, not exploring further unnecessarily.

@@ -1,0 +1,17 @@
+To solve this problem efficiently, we need to:
+1. Parse the input and create a 3D representation of the bricks.
+2. Simulate the falling of bricks to their final positions.
+3. Build a graph of support relationships between bricks.
+4. For each brick, determine how many other bricks would fall if it were removed.
+
+Key optimizations:
+- Use sets for efficient lookup of brick positions.
+- Use dictionaries to store support relationships.
+- Implement a depth-first search (DFS) to count falling bricks.
+
+The solution will involve:
+1. Parsing input and creating Brick objects.
+2. Implementing a fall_bricks function to simulate gravity.
+3. Building support graphs (supports and supported_by).
+4. Implementing a count_falling_bricks function using DFS.
+5. Calculating the sum of falling bricks for each brick removal.

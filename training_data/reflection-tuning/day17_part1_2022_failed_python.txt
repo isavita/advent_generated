@@ -1,0 +1,13 @@
+To solve this problem, we need to simulate the falling rocks and jet patterns. Here's the approach:
+
+1. Parse the input to get the jet pattern.
+2. Define the rock shapes.
+3. Implement a function to simulate the falling of a single rock.
+4. Keep track of the tower's height and the current state of the chamber.
+5. Simulate 2022 rocks falling.
+6. Return the final height of the tower.
+
+Key optimizations:
+- Use a set to store occupied positions in the chamber for quick collision checks.
+- Only keep track of the top portion of the chamber that's relevant for future collisions.
+- Use modulo operations to cycle through rock shapes and jet patterns.

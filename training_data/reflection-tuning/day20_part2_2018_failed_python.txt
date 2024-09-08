@@ -1,0 +1,16 @@
+To solve this problem efficiently, we can use a breadth-first search (BFS) approach. BFS is ideal for finding the shortest path in an unweighted graph, which is essentially what we're dealing with here. Each room can be represented as a node in the graph, and doors as edges connecting the nodes.
+
+Here's the approach:
+1. Parse the regex input to build the graph of rooms.
+2. Use a BFS to traverse the graph, keeping track of the distance (number of doors) to each room.
+3. For Part 1, find the maximum distance.
+4. For Part 2, count the number of rooms with a distance of at least 1000.
+
+To parse the regex, we'll use a stack to handle nested parentheses and branches. We'll keep track of our current position and all possible positions after branching.
+
+The BFS will use a queue to explore rooms in order of increasing distance from the starting point.
+
+This approach is efficient because:
+- We only traverse each room once during the BFS.
+- We can solve both parts in a single pass through the graph.
+- We don't need to actually construct a 2D grid of the facility, saving memory.

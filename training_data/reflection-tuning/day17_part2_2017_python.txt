@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to consider two key points:
+
+1. For Part One, we can simulate the spinlock process directly, as the number of iterations (2017) is relatively small.
+
+2. For Part Two, simulating 50 million insertions would be too slow. However, we only need to track the value that comes after 0, which is always at index 1 in the circular buffer. We can optimize by only keeping track of the current position and the value at index 1, without storing the entire buffer.
+
+For Part One, we'll use a list to represent the circular buffer and simulate the process as described.
+
+For Part Two, we'll use a single variable to keep track of the value after 0, updating it only when a new value is inserted at index 1.
+
+This approach will be much more efficient for the large number of iterations in Part Two.

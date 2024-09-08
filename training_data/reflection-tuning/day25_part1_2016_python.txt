@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Parse the input instructions from the file.
+2. Implement a function to execute the assembunny code.
+3. Create a function to check if the output matches the desired clock signal pattern.
+4. Implement a loop to try different initial values for register 'a' until we find the correct one.
+
+The key to efficiency here is to:
+- Use a generator for the output to avoid storing all values in memory.
+- Implement a quick check for the clock signal pattern that doesn't require generating the entire infinite sequence.
+- Use early termination in the execution function if the output doesn't match the pattern.

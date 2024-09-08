@@ -1,0 +1,11 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm with some modifications. Here's the approach:
+
+1. Read the passcode from the input file.
+2. Implement a function to calculate the MD5 hash and determine open doors.
+3. Use a queue to perform BFS, storing the current position and path.
+4. For each step, check all possible moves (up, down, left, right) based on open doors.
+5. If we reach the vault (3,3), update the shortest path and continue searching for longer paths.
+6. Keep track of the longest path length.
+7. Terminate the search when there are no more possible moves.
+
+This approach will efficiently find both the shortest path and the length of the longest path in a single pass.

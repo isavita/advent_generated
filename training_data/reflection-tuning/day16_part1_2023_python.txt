@@ -1,0 +1,11 @@
+To solve this problem, we need to simulate the beam's path through the contraption. Here's the approach:
+
+1. Read the input from "input.txt" and store it as a 2D grid.
+2. Create a function to move the beam and track its path.
+3. Use a set to keep track of energized tiles.
+4. Use a set to keep track of visited positions and directions to avoid infinite loops.
+5. Implement the logic for beam reflection and splitting based on encountered symbols.
+6. Start the beam from the top-left corner moving right.
+7. Count the number of unique energized tiles.
+
+We'll use a recursive approach for the beam movement, which will handle splitting naturally. To optimize, we'll use sets for fast lookups and avoid unnecessary iterations.

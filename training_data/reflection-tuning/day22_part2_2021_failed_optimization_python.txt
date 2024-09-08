@@ -1,0 +1,9 @@
+The timeout error suggests that the previous solution was likely using a brute-force approach, which doesn't scale well for large coordinate ranges. Instead of tracking individual cubes, we should use a more efficient approach that deals with entire cuboids at once. 
+
+A better solution would involve:
+1. Representing each step as a cuboid (with on/off state).
+2. Implementing a way to split cuboids when they intersect.
+3. Keeping track of non-overlapping "on" cuboids.
+4. Calculating the total volume of "on" cuboids at the end.
+
+This approach will be much faster as it avoids iterating over individual coordinates, especially for part 2 where the ranges are very large.

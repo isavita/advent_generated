@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to extract information about each disc.
+2. Implement a function to check if a capsule will pass through all discs at a given time.
+3. Iterate through possible start times until we find one that allows the capsule to pass.
+4. For Part Two, add the new disc and repeat the process.
+
+The key insight is that we can use modular arithmetic to determine the position of each disc at any given time. We'll use a loop to check increasing start times until we find a solution.

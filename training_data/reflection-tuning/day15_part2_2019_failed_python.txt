@@ -1,0 +1,3 @@
+The error message indicates that the `status` variable is None when we're trying to compare it to an integer. This suggests that the `intcode_computer` function might be returning None instead of a valid status code in some cases. To fix this, we need to ensure that the `intcode_computer` function always returns a valid status code, and we should add a check to handle the case where it might return None.
+
+We should modify the `explore_map` function to handle potential None returns from the `intcode_computer`. We can do this by adding a check before comparing the status to 0. If the status is None, we should treat it as if the droid hit a wall (status 0).

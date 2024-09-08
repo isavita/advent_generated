@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can use a combination of dynamic programming and bit manipulation. Here's the approach:
+
+1. Read the container sizes from the input file.
+2. Use a bitmask to represent all possible combinations of containers.
+3. For each combination, calculate the total volume and count the valid combinations.
+4. For Part Two, keep track of the minimum number of containers used and count combinations with that minimum.
+
+This approach is efficient because it avoids recursive calls and uses bitwise operations for faster processing.

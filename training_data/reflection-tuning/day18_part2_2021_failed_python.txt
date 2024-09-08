@@ -1,0 +1,13 @@
+To solve this problem, we need to implement several key functions:
+
+1. Parse the input: Convert the string representation of snailfish numbers into a nested list structure.
+2. Addition: Implement the addition operation for snailfish numbers.
+3. Explosion: Implement the explosion operation for nested pairs.
+4. Splitting: Implement the splitting operation for large regular numbers.
+5. Reduction: Combine explosion and splitting in a loop until the number is fully reduced.
+6. Magnitude calculation: Recursively calculate the magnitude of a snailfish number.
+
+For Part 1, we'll add all numbers in the input sequentially and calculate the final magnitude.
+For Part 2, we'll try all possible pairs of numbers, add them, and find the maximum magnitude.
+
+The main challenge is to implement the explosion operation efficiently, as it requires traversing the nested structure and modifying it in place.

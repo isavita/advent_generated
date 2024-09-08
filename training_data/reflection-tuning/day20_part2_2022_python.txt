@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to consider the following points:
+1. We need to maintain the original order of numbers while mixing.
+2. We need to handle circular movement efficiently.
+3. For Part Two, we need to apply the decryption key and mix 10 times.
+
+Approach:
+1. Use a list of tuples (index, value) to maintain the original order.
+2. Use modular arithmetic to handle circular movement efficiently.
+3. Implement a mixing function that can be used for both parts.
+4. For Part Two, multiply all values by the decryption key before mixing.
+5. Find the position of 0 and calculate the grove coordinates.
+
+The key to efficiency is to avoid actually moving elements in a list, which can be slow for large inputs. Instead, we'll use a linked list-like approach with a list of indices.

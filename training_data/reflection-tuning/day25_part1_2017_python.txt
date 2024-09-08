@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the initial state, number of steps, and state rules.
+2. Implement a Turing machine simulation using a dictionary to represent the tape (for efficiency with sparse data).
+3. Run the simulation for the specified number of steps.
+4. Count the number of 1s on the tape after the simulation.
+
+The key to efficiency here is using a dictionary for the tape, as it allows us to only store the positions that have been changed to 1, saving memory and improving performance for large numbers of steps.

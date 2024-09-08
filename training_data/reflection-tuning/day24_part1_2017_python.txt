@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse the components.
+2. Implement a recursive depth-first search (DFS) function to explore all possible bridges.
+3. Keep track of the strongest bridge found so far.
+4. Use a set to keep track of used components to avoid duplicates.
+5. Start the search with components that have a 0-pin port.
+6. Calculate the strength of each valid bridge and update the maximum strength.
+
+The DFS approach allows us to explore all possible combinations efficiently. We'll use backtracking to try different paths and a set to keep track of used components, ensuring we don't use the same component twice in a bridge.

@@ -1,0 +1,15 @@
+Based on the incorrect output provided, it seems the main issue is that the solution is not correctly calculating the number of water tiles. For Part 1, the count of 1030 seems too low, and for Part 2, 829 is also likely incorrect.
+
+The problem might be in how the water is being simulated to flow and settle. Some potential issues could be:
+
+1. Not correctly handling the boundaries of the clay structure.
+2. Miscalculating how water spreads horizontally when it can't fall further.
+3. Not properly distinguishing between flowing water (|) and settled water (~).
+4. Incorrectly counting tiles outside the valid y-range.
+
+To fix this, we need to ensure that:
+1. We accurately model how water flows down, spreads, and settles.
+2. We correctly count both flowing and settled water within the valid y-range.
+3. We distinguish between water that can flow away (for Part 2) and water that is truly trapped.
+
+I'll provide a revised solution that should address these issues.

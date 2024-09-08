@@ -1,0 +1,9 @@
+Based on the given output, it seems that the previous solution correctly solved Part 1 (299 minutes), but the result for Part 2 (848 minutes) is likely incorrect. The issue might be in the implementation of the round-trip calculation for Part 2.
+
+To fix this, we should ensure that:
+1. After reaching the goal in Part 1, we reset the starting position to the goal and set the new goal as the original starting position.
+2. After reaching the original starting position, we again reset the starting position and set the goal back to the original goal.
+3. We need to continue the blizzard movement from where it left off after Part 1, not reset it.
+4. We should accumulate the total time for all three trips.
+
+I'll provide a revised solution that addresses these points and should correctly solve both parts of the problem.

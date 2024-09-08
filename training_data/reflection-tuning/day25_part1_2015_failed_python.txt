@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" to get the target row and column.
+2. Implement a function to generate the next code based on the previous one.
+3. Calculate the position of the target code in the sequence.
+4. Generate codes until we reach the target position.
+
+The key insight is that we don't need to generate the entire grid. We can calculate the position of any (row, column) pair in the sequence using a formula:
+position = (row + column - 1) * (row + column - 2) / 2 + column
+
+This formula comes from observing the pattern of how the diagonals are filled.
+
+Once we have the position, we can generate codes sequentially until we reach that position.

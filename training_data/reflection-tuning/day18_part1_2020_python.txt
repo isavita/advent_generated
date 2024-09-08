@@ -1,0 +1,11 @@
+To solve this problem, we need to implement a custom expression evaluator that follows the given rules of operator precedence. Here's the approach:
+
+1. Create a function to evaluate a simple expression without parentheses.
+2. Create a function to evaluate a full expression with parentheses.
+3. For the main expression evaluator:
+   - Use a stack to handle parentheses.
+   - Evaluate sub-expressions within parentheses recursively.
+   - For expressions without parentheses, evaluate left to right.
+4. Read expressions from the input file, evaluate each one, and sum the results.
+
+The key is to handle parentheses correctly and ensure that operations within the same level of parentheses are evaluated strictly from left to right.

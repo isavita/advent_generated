@@ -1,0 +1,15 @@
+To solve this problem, we need to implement an assembunny interpreter that can handle the new 'tgl' instruction. Here's the approach:
+
+1. Read the instructions from the input file.
+2. Initialize registers (a, b, c, d) with 'a' set to 7 (the number of eggs).
+3. Implement a function to execute each instruction type (cpy, inc, dec, jnz, tgl).
+4. Create a main loop to iterate through the instructions, executing them and updating the program counter.
+5. Handle the 'tgl' instruction by modifying other instructions in the program.
+6. After executing all instructions, return the value in register 'a'.
+
+The key challenges are:
+- Implementing the 'tgl' instruction correctly, including handling out-of-bounds toggles.
+- Ensuring that toggled instructions are executed correctly in subsequent runs.
+- Handling potential infinite loops (though not explicitly mentioned in the problem).
+
+Let's implement this solution:

@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the input file to extract information about each Aunt Sue.
+2. Define the MFCSAM readings.
+3. For Part 1, compare each Aunt Sue's attributes with the MFCSAM readings, finding the one that matches all known attributes.
+4. For Part 2, modify the comparison logic to account for the "greater than" and "fewer than" conditions for specific attributes.
+5. Implement a function to check if an Aunt Sue matches the criteria for both parts.
+6. Iterate through all Aunts Sue and find the matching ones for both parts.
+
+The solution will use dictionaries to store Aunt Sue data and MFCSAM readings, making comparisons efficient. We'll use a single pass through the data to solve both parts simultaneously.

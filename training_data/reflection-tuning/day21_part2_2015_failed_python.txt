@@ -1,0 +1,5 @@
+The error message indicates that we're trying to access an element of an integer object as if it were a list or tuple. This suggests that the `loadout` variable in the `calculate_stats` function is not structured as expected. It's likely that `loadout` is a flat list of integers instead of a list of tuples or lists.
+
+To fix this, we need to modify how we handle the `loadout` in the `calculate_stats` function. Instead of trying to access elements of each item in the loadout, we should treat each element as a single value representing either cost, damage, or armor.
+
+We'll need to restructure the `calculate_stats` function to handle a flat list of integers, where every three elements represent cost, damage, and armor respectively. This way, we can sum up these values correctly without trying to access elements of an integer.

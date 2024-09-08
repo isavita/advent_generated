@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the instructions from the input file.
+2. Implement a function to execute each instruction type (set, sub, mul, jnz).
+3. Keep track of the number of times the 'mul' instruction is invoked.
+4. Execute the program by iterating through the instructions, updating registers and the instruction pointer as needed.
+5. Return the count of 'mul' instructions executed.
+
+We'll use a dictionary to represent the registers, and a list to store the instructions. We'll implement a function for each instruction type and use a main loop to execute the program.

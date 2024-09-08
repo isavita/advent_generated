@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract rules, your ticket, and nearby tickets.
+2. Create a function to check if a value is valid for any field.
+3. For Part 1, sum up all invalid values in nearby tickets.
+4. For Part 2:
+   - Discard invalid tickets
+   - Create a set of possible fields for each position
+   - Use process of elimination to determine the exact field for each position
+   - Multiply the values of "departure" fields on your ticket
+5. Implement the solution using sets and dictionaries for efficient lookups
+
+The key to efficiency here is using sets for quick membership tests and avoiding unnecessary iterations.

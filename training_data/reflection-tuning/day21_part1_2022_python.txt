@@ -1,0 +1,11 @@
+To solve this problem, we can use a dictionary to store the monkeys and their jobs. For monkeys with simple numbers, we can directly store the number. For monkeys with operations, we'll store the operation as a string.
+
+We'll then create a recursive function that evaluates a monkey's job. If it's a number, we return it. If it's an operation, we recursively evaluate the operands and perform the operation.
+
+To make the solution efficient, we'll use memoization to cache the results of each monkey's evaluation, so we don't recalculate the same values multiple times.
+
+The main steps of the solution will be:
+1. Parse the input file and create a dictionary of monkeys and their jobs.
+2. Create a recursive function to evaluate a monkey's job.
+3. Use memoization to optimize the recursive function.
+4. Evaluate the 'root' monkey's job and print the result.

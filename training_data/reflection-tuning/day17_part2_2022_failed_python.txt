@@ -1,0 +1,13 @@
+Based on the given output, it seems that the Part 1 solution (309) is incorrect, while the Part 2 solution (1525364428678) might be correct. The main issue is likely in the implementation of the rock falling simulation for Part 1. 
+
+To fix this, we should:
+1. Ensure that the rock shapes and jet patterns are correctly implemented.
+2. Verify that the rock falling logic, including collision detection and settling, is working properly.
+3. Double-check the calculation of the tower height after 2022 rocks have fallen.
+
+For Part 2, we need to implement a cycle detection algorithm to handle the large number of rocks (1000000000000) efficiently. This involves:
+1. Detecting repeating patterns in the tower growth.
+2. Calculating the height gain per cycle.
+3. Extrapolating the final height based on the number of complete cycles and the remainder.
+
+Let's implement a corrected solution addressing these points.

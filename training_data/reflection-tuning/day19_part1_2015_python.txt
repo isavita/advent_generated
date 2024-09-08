@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the replacement rules and the medicine molecule.
+2. For each possible replacement in the medicine molecule, apply the rule and generate a new molecule.
+3. Keep track of unique molecules generated.
+4. Count the number of unique molecules.
+
+The efficient approach would be:
+- Use a dictionary to store replacement rules for quick lookup.
+- Iterate through the medicine molecule once, checking for possible replacements at each position.
+- Use a set to store unique molecules, which allows for constant-time addition and eliminates duplicates automatically.

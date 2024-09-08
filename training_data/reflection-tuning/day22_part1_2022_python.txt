@@ -1,0 +1,15 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the map and the path instructions.
+2. Implement a function to move on the map according to the instructions.
+3. Handle wrapping around the map when reaching edges.
+4. Keep track of the current position and facing direction.
+5. Calculate the final password based on the ending position and facing.
+
+The approach will be:
+- Use a 2D list to represent the map.
+- Use a tuple (row, col) to represent the current position.
+- Use an integer (0-3) to represent the facing direction.
+- Implement a function to move forward and handle wrapping.
+- Implement a function to turn left or right.
+- Parse and execute the path instructions.
+- Calculate and return the final password.

@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. For Part One, the solution follows the Josephus problem, which can be solved using the formula: 2(n - 2^floor(log2(n))) + 1.
+
+For Part Two, we can observe a pattern in the winning position:
+1. For powers of 3 (3, 9, 27, 81, ...), the winning position is always 1.
+2. For numbers between powers of 3, the winning position increases by 1 for each step until it reaches the next power of 3.
+
+We can use this pattern to calculate the winning position efficiently without simulating the entire process.

@@ -1,0 +1,14 @@
+To solve this problem, we need to create a springscript program that will allow the springdroid to navigate the hull without falling into space. The key is to create a set of instructions that will make the droid jump at the right moments.
+
+For Part 1, we need to consider the following:
+1. The droid should jump if there's a hole in front of it (NOT A).
+2. It should also jump if there's a hole two or three steps ahead, but ground four steps ahead (NOT B AND NOT C AND D).
+3. We need to combine these conditions using OR.
+
+For Part 2, we need to extend our logic to consider the additional sensors E, F, G, H, and I. We can improve our jumping strategy by:
+1. Jumping if there's a hole ahead but land to jump to (NOT A AND D).
+2. Jumping if there's a hole two steps ahead but land to jump to (NOT B AND D).
+3. Jumping if there's a hole three steps ahead but land to jump to (NOT C AND D AND H).
+4. We'll combine these conditions using OR.
+
+We'll implement an Intcode computer to run the springscript, read the input, and process the output.

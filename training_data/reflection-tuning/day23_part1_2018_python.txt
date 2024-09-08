@@ -1,0 +1,7 @@
+To solve this problem, we need to follow these steps:
+1. Parse the input file to extract the position and radius of each nanobot.
+2. Find the nanobot with the largest signal radius.
+3. For the strongest nanobot, calculate the Manhattan distance to every other nanobot.
+4. Count how many nanobots are within the signal radius of the strongest nanobot.
+
+We'll use a simple Nanobot class to store the position and radius of each bot. We'll use the Manhattan distance formula to calculate distances between bots. The solution will be efficient as it only requires a single pass through the data to find the strongest bot, and another pass to count bots in range.

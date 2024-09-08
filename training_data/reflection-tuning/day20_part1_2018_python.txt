@@ -1,0 +1,13 @@
+To solve this problem, we can use a breadth-first search (BFS) approach. Here's the thought process:
+
+1. Parse the regex input to build a graph representation of the facility.
+2. Use a stack to handle nested parentheses and branches in the regex.
+3. Keep track of the current position and update it as we parse the regex.
+4. For branches, explore all possible paths.
+5. Use BFS to find the room that's furthest from the starting point.
+6. The BFS will naturally give us the shortest path to each room, and we just need to keep track of the maximum distance.
+
+This approach is efficient because:
+- We only parse the regex once to build the graph.
+- BFS ensures we find the shortest path to each room.
+- We don't need to store the entire map, just the connections between rooms.

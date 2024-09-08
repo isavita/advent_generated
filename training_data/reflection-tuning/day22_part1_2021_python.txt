@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Parse the input file to extract the reboot steps.
+2. Create a 3D grid (101x101x101) to represent the initialization region (-50 to 50 for each dimension).
+3. Iterate through each reboot step:
+   - If the step is within the initialization region, update the grid accordingly.
+   - Skip steps that are completely outside the region.
+4. After processing all steps, count the number of 'on' cubes in the grid.
+
+This approach is memory-efficient as we're only storing the state of cubes within the initialization region. It's also time-efficient as we're processing each step only once and directly updating the grid.

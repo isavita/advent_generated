@@ -1,0 +1,18 @@
+To solve this problem efficiently, we need to consider the following:
+
+1. Representing the grid: Since the grid is infinite, we can use a set to store only the infected nodes' coordinates. This is more memory-efficient than storing the entire grid.
+
+2. Tracking the virus carrier: We need to keep track of the virus carrier's position and direction.
+
+3. Implementing the state transitions: For part two, we need to handle the four states (clean, weakened, infected, flagged) efficiently.
+
+4. Optimizing iterations: Since we need to perform 10 million iterations, we should avoid unnecessary operations and use efficient data structures.
+
+Here's an approach to solve both parts:
+
+1. Use a set to store infected nodes initially.
+2. Use a dictionary to store the state of each node for part two.
+3. Implement the logic for both parts in separate functions.
+4. Use complex numbers to represent coordinates and directions, which simplifies the turning and moving operations.
+
+This approach should provide an efficient solution for both parts of the problem.

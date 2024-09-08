@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the instructions from the input file.
+2. Implement a function for each instruction (hlf, tpl, inc, jmp, jie, jio).
+3. Create a program execution function that processes the instructions.
+4. Run the program twice: once with register 'a' starting at 0, and once with it starting at 1.
+5. Return the value of register 'b' after each execution.
+
+We'll use a dictionary to represent the registers and a list to store the instructions. The program execution will use a while loop with a program counter to keep track of the current instruction.

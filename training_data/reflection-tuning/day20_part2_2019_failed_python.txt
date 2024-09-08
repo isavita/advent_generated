@@ -1,0 +1,17 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm with some modifications to handle the recursive nature of the maze. Here's the approach:
+
+1. Parse the input to create a 2D grid representation of the maze.
+2. Identify all portals and their positions.
+3. Implement a BFS that takes into account the recursive levels:
+   - Use a queue to store states (position, level, steps).
+   - For each state, explore neighboring tiles and portals.
+   - When using a portal, adjust the level accordingly (increase for inner portals, decrease for outer portals).
+   - Keep track of visited states to avoid loops.
+4. Continue the search until we reach 'ZZ' at level 0.
+
+The key differences for Part 2 are:
+- We need to track the current level for each state.
+- Portals behave differently based on whether they're inner or outer and the current level.
+- The goal is to reach 'ZZ' specifically at level 0.
+
+This approach ensures we find the shortest path while correctly handling the recursive nature of the maze.

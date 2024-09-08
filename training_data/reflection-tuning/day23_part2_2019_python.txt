@@ -1,0 +1,11 @@
+To solve this problem, we need to simulate a network of 50 Intcode computers and implement the NAT functionality. Here's the approach:
+
+1. Implement an Intcode computer class that can run the NIC software.
+2. Create 50 instances of the Intcode computer, each with a unique address.
+3. Implement a packet queue for each computer.
+4. Simulate the network by running all computers in a round-robin fashion.
+5. Implement the NAT functionality to monitor the network and send packets when idle.
+6. Keep track of the Y values sent by the NAT to address 0.
+7. Stop the simulation when the NAT sends the same Y value twice in a row to address 0.
+
+The solution will use a dictionary to store the computers and their packet queues, and a separate class for the NAT. We'll use a main loop to simulate the network until we find the answer.

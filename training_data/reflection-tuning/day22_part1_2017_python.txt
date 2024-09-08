@@ -1,0 +1,10 @@
+To solve this problem, we need to simulate the virus carrier's movement and actions on the grid. Here's the approach:
+
+1. Read the input grid from the file and store it as a set of infected coordinates.
+2. Initialize the virus carrier's position at the center of the grid and set its direction to up.
+3. Create a function to simulate a single burst of activity.
+4. Repeat the burst 10000 times, keeping track of how many infections occur.
+5. Use a dictionary to represent the infinite grid, only storing infected nodes.
+6. Use complex numbers to represent coordinates and directions for easy manipulation.
+
+This approach allows for efficient storage and manipulation of the grid, as we only need to keep track of infected nodes and can easily handle the "infinite" nature of the grid.

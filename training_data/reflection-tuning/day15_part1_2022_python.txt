@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input to extract sensor and beacon positions.
+2. Calculate the Manhattan distance between each sensor and its closest beacon.
+3. For the target row (y=2000000), determine the range of x-coordinates that each sensor covers.
+4. Merge overlapping ranges to get the total coverage.
+5. Count the number of unique positions covered, excluding any beacons on the target row.
+
+We'll use a set to keep track of beacon positions on the target row and a list of tuples to store the ranges. Merging ranges will help us handle overlaps efficiently.

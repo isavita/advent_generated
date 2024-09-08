@@ -1,0 +1,14 @@
+To solve this problem, we need to simulate the Elves' movement process. Here's my approach:
+
+1. Parse the input to create a set of Elf positions.
+2. Implement the movement rules as described.
+3. For Part 1, simulate 10 rounds and calculate the empty ground tiles.
+4. For Part 2, continue simulating until no Elf moves.
+
+Key points:
+- Use a set to store Elf positions for efficient lookup.
+- Implement a function to check adjacent positions.
+- Use a dictionary to track proposed moves and handle conflicts.
+- Keep track of the current direction order.
+
+The solution will iterate through the rounds, applying the rules and updating the Elf positions. We'll use helper functions to make the code more readable and maintainable.

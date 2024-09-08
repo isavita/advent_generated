@@ -1,0 +1,10 @@
+Based on the incorrect output provided, it seems the previous solution might have underestimated the minimum mana required to win the fight in both parts. The error likely lies in the implementation of the game mechanics or the search algorithm used to find the optimal strategy.
+
+To fix this, we should:
+1. Ensure all spell effects are correctly implemented, including their durations and impacts.
+2. Implement a more thorough search algorithm, possibly using a priority queue to explore the most promising strategies first.
+3. Carefully handle the hard mode in Part 2, where the player loses 1 hit point at the start of each turn.
+4. Double-check the win/lose conditions and make sure they're applied correctly.
+5. Optimize the code to explore more possibilities if the search was previously limited.
+
+Let's implement a solution using a depth-first search with memoization to find the optimal strategy efficiently.

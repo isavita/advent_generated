@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input file containing information about all 500 Aunt Sues.
+2. Create a dictionary of the MFCSAM results.
+3. Compare each Aunt Sue's attributes with the MFCSAM results.
+4. Find the Aunt Sue that matches all known attributes.
+
+The most efficient approach would be to:
+- Store the MFCSAM results in a dictionary for quick lookup.
+- Parse each Aunt Sue's information and immediately compare it with the MFCSAM results.
+- If all attributes match, we've found our Aunt Sue.
+
+We'll use regular expressions to parse the input efficiently.

@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Parse the input to create a set of elf positions.
+2. Implement the movement rules for each round.
+3. Simulate 10 rounds of movement.
+4. Find the smallest rectangle containing all elves after 10 rounds.
+5. Count the empty ground tiles in this rectangle.
+
+Key points for an efficient solution:
+- Use a set to store elf positions for quick lookup and updates.
+- Implement a function to check adjacent positions efficiently.
+- Use a dictionary to track proposed moves and handle conflicts.
+- Rotate the direction priorities using a deque for easy manipulation.

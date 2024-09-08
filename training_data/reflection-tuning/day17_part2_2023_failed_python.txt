@@ -1,0 +1,11 @@
+Based on the given output, it seems that the previous solution was able to calculate answers for both parts, but they might be incorrect. The main issue could be in the implementation of the path-finding algorithm, particularly in how it handles the movement constraints for both the regular crucible and the ultra crucible.
+
+For Part 1, the constraint of moving at most three blocks in a single direction before turning might not have been implemented correctly. For Part 2, the constraints of moving a minimum of four blocks and a maximum of ten blocks in a direction before turning might have been overlooked or incorrectly implemented.
+
+To fix this, we need to ensure that:
+1. For Part 1, we properly track the number of consecutive moves in the same direction and limit it to 3.
+2. For Part 2, we implement the minimum of 4 and maximum of 10 consecutive moves in the same direction.
+3. We use a priority queue (heapq in Python) to efficiently find the path with the least heat loss.
+4. We properly handle the grid boundaries and movement directions.
+
+Let's implement a solution that addresses these points:

@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract the map and locations of points of interest.
+2. Use BFS (Breadth-First Search) to find the shortest path between all pairs of points.
+3. Use itertools.permutations to generate all possible orders of visiting the points.
+4. For each permutation, calculate the total distance and keep track of the minimum.
+5. For Part Two, we just need to add the distance back to 0 for each permutation.
+
+This approach is efficient because:
+- BFS ensures we find the shortest path between any two points.
+- We precompute all distances, so we don't need to recalculate for each permutation.
+- We only generate permutations for the non-zero points, reducing the number of permutations.
