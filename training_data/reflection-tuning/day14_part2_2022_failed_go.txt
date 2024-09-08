@@ -1,0 +1,10 @@
+Based on the error message, it seems there are syntax errors in the code. The main issues are:
+1. An unexpected closing brace (}) where a declaration or assignment was expected.
+2. A non-declaration statement outside of a function body.
+
+To fix these issues, we need to ensure that:
+1. All variable declarations and assignments are properly formatted.
+2. All code statements are inside function bodies.
+3. The overall structure of the program is correct, with proper function definitions and main() function.
+
+I'll rewrite the solution, focusing on correct syntax and structure, while implementing the logic for both parts of the problem.

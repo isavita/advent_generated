@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can use a few optimization techniques:
+
+1. Pre-compute the power levels for all cells in the 300x300 grid.
+2. Use a 2D prefix sum (also known as summed-area table or integral image) to quickly calculate the sum of any rectangular area in constant time.
+3. Iterate through all possible square sizes and positions, keeping track of the maximum power and its corresponding coordinates.
+
+The key optimization here is the use of the 2D prefix sum, which allows us to calculate the sum of any square in O(1) time instead of O(n^2) for an n x n square. This significantly reduces the time complexity of our solution.
+
+For Part 1, we only need to check 3x3 squares, but for Part 2, we'll check all square sizes from 1x1 to 300x300.

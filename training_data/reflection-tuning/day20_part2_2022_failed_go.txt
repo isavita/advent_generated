@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Read the input numbers from the file.
+2. Create a slice of structs that contain both the original value and its initial position.
+3. Implement a mixing function that moves each number according to its value.
+4. For Part 1, mix the numbers once.
+5. For Part 2, apply the decryption key and mix the numbers 10 times.
+6. Find the position of 0 and calculate the sum of the 1000th, 2000th, and 3000th numbers after it.
+
+To handle large numbers and wrapping around the list efficiently, we can use modular arithmetic to calculate the new position of each number.

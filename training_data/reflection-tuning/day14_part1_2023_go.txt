@@ -1,0 +1,9 @@
+To solve this problem, we need to follow these steps:
+1. Read the input from "input.txt"
+2. Parse the input into a 2D slice of runes
+3. Tilt the platform north by moving all 'O' rocks as far up as possible
+4. Calculate the load on the north support beams
+
+The key to efficiency here is to process the grid column by column, moving rocks up in each column. This way, we only need to iterate through the grid once.
+
+For calculating the load, we can use the formula: load = (total_rows - current_row) for each 'O' rock.

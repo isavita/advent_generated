@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can use a breadth-first search (BFS) algorithm combined with a bit mask to keep track of collected keys. Here's the approach:
+
+1. Parse the input to create a 2D grid and identify the starting position and all key positions.
+2. Use a BFS to explore all possible paths, keeping track of the current position, collected keys (as a bit mask), and steps taken.
+3. Use a visited set to avoid revisiting the same state (position + collected keys).
+4. When all keys are collected, return the number of steps taken.
+5. Optimize by pre-computing distances between keys and the entrance using Floyd-Warshall algorithm.
+
+This approach ensures we explore all possible paths efficiently while avoiding redundant calculations.

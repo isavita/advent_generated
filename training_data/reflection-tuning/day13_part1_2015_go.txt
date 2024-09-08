@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the happiness values for each pair of people.
+2. Generate all possible seating arrangements (permutations) of the guests.
+3. Calculate the total happiness for each arrangement.
+4. Find the maximum happiness value among all arrangements.
+
+The key challenges are:
+- Efficiently storing and accessing the happiness values (we can use a map of maps).
+- Generating all permutations (we can use a recursive approach).
+- Handling the circular nature of the table (we need to consider the first and last person as neighbors).
+
+We'll use a depth-first search (DFS) approach to generate permutations and calculate happiness simultaneously, which is more memory-efficient than generating all permutations first.

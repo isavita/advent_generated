@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Read the target number of presents from the input file.
+2. Instead of simulating the elves' deliveries, we can use a mathematical approach.
+3. For each house number, we can calculate the sum of its factors multiplied by 10.
+4. We'll iterate through house numbers until we find the first one that receives at least the target number of presents.
+5. To optimize further, we can use a sieve-like approach to calculate the factors efficiently.
+
+This approach avoids unnecessary calculations and allows us to find the answer quickly without simulating the entire process.

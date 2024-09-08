@@ -1,0 +1,9 @@
+To solve this problem, we need to follow these steps:
+1. Read the input from "input.txt" and create a 2D grid of the pipe maze.
+2. Find the starting position 'S' in the grid.
+3. Determine the type of pipe at the starting position by checking its connections.
+4. Perform a breadth-first search (BFS) from the starting position to find the longest path.
+5. Keep track of the maximum distance reached during the BFS.
+6. Return the maximum distance as the answer.
+
+We'll use a struct to represent each position in the grid, storing its coordinates and distance from the start. We'll also use a queue for the BFS implementation.

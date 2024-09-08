@@ -1,0 +1,13 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm with some modifications to handle the recursive nature of the maze. Here's the approach:
+
+1. Parse the input file to create a 2D grid representation of the maze.
+2. Identify all portals, including AA (start) and ZZ (end).
+3. Implement a BFS algorithm that:
+   - Keeps track of the current position, level, and steps taken.
+   - Handles moving between levels when entering/exiting portals.
+   - Considers AA and ZZ as walls except at the outermost level.
+   - Terminates when reaching ZZ at the outermost level.
+4. Use a set or map to keep track of visited states (position + level) to avoid cycles.
+5. Return the minimum number of steps required to reach ZZ.
+
+The key challenge is handling the recursive nature of the maze and efficiently tracking visited states to avoid getting stuck in loops.

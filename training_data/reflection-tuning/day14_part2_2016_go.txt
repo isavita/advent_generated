@@ -1,0 +1,10 @@
+To solve this problem efficiently, we need to consider the following approach:
+
+1. Create a function to generate MD5 hashes for a given salt and index.
+2. Implement key stretching by repeatedly hashing 2016 times.
+3. Use a sliding window of 1000 hashes to check for potential keys.
+4. Keep track of the found keys and their indices.
+5. Optimize by caching generated hashes to avoid redundant calculations.
+6. Use goroutines to parallelize hash generation and checking for improved performance.
+
+The main challenge is to balance between memory usage (for caching) and computation time. We'll use a fixed-size cache to store recent hashes and implement concurrent processing to speed up the solution.

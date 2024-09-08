@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the JSON input from "input.txt"
+2. Parse the JSON data
+3. Implement a recursive function to traverse the JSON structure
+4. Sum all numbers while ignoring objects with "red" property (for Part Two)
+5. Use the encoding/json package to unmarshal the JSON data
+6. Handle both arrays and objects recursively
+7. Check for "red" value in objects and skip if found (Part Two)
+8. Return the final sum
+
+We'll use a single function that can handle both Part One and Part Two, with a boolean flag to switch between the two behaviors.

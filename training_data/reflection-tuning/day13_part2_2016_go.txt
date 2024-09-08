@@ -1,0 +1,8 @@
+To solve this problem, we'll use a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in an unweighted graph, which is essentially what this maze represents. We'll implement the following approach:
+
+1. Create a function to determine if a cell is open or a wall based on the given formula.
+2. Implement a BFS function that explores the maze, keeping track of the distance to each cell.
+3. For Part 1, we'll run the BFS until we reach the target coordinates (31,39).
+4. For Part 2, we'll count the number of distinct locations reachable in at most 50 steps.
+
+We'll use a queue for the BFS and a map to keep track of visited cells and their distances. This approach ensures we explore the maze efficiently and find the shortest path.

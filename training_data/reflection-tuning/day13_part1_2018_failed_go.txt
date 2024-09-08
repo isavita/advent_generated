@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the input file to create a map of the tracks and identify the initial positions and directions of the carts.
+2. Simulate the movement of carts tick by tick.
+3. For each tick, move carts in order (top to bottom, left to right).
+4. Handle intersections by implementing the turning logic.
+5. Check for collisions after each cart's movement.
+6. Return the coordinates of the first collision.
+
+We'll use a 2D slice to represent the track, and a slice of structs to represent the carts. We'll sort the carts before each tick to ensure they move in the correct order.

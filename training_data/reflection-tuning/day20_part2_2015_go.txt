@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. We'll use the concept of divisors and their sums.
+
+For Part 1:
+1. We'll iterate through house numbers.
+2. For each house, we'll calculate the sum of its divisors multiplied by 10.
+3. We'll stop when we find a house that receives at least as many presents as the input number.
+
+For Part 2:
+1. We'll use a similar approach, but with some modifications.
+2. We'll only consider divisors up to 50 (since each Elf stops after 50 houses).
+3. We'll multiply the sum by 11 instead of 10.
+
+To optimize, we can use a sieve-like approach to calculate divisors for all numbers up to a certain limit, but for simplicity, we'll calculate divisors for each house individually.

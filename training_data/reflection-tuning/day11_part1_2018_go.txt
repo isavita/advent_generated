@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Create a function to calculate the power level of each cell.
+2. Pre-compute the power levels for the entire 300x300 grid.
+3. Use a 2D prefix sum (integral image) to efficiently calculate the sum of any 3x3 square.
+4. Iterate through all possible 3x3 squares and find the one with the maximum power.
+
+Using a 2D prefix sum will allow us to calculate the sum of any rectangular area in constant time, which significantly improves the efficiency of our solution. This approach reduces the time complexity from O(n^4) to O(n^2), where n is the grid size (300 in this case).

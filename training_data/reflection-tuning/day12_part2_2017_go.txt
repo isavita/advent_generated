@@ -1,0 +1,8 @@
+To solve this problem, we can use a graph representation and a depth-first search (DFS) algorithm. Here's the approach:
+
+1. Parse the input file and create an adjacency list to represent the connections between programs.
+2. Implement a DFS function to explore all connected programs starting from a given program ID.
+3. For Part 1, perform DFS starting from program 0 and count the number of visited programs.
+4. For Part 2, iterate through all programs, performing DFS for each unvisited program and counting the number of groups.
+
+This approach is efficient as it visits each program only once, resulting in a time complexity of O(N + E), where N is the number of programs and E is the number of connections.

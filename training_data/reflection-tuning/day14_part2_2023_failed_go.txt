@@ -1,0 +1,16 @@
+The previous solution likely only implemented the first part of the problem, which involved tilting the platform once to the north. The error of 89133 suggests that it calculated the load correctly for a single tilt, but didn't implement the full spin cycle for part two.
+
+To fix this, we need to:
+1. Implement the full spin cycle (north, west, south, east tilts)
+2. Run this cycle 1000000000 times
+3. Optimize the solution to handle such a large number of cycles efficiently
+
+The key to optimization here is recognizing that the pattern of rock positions will likely repeat after a certain number of cycles. We can detect this cycle and then use modular arithmetic to determine the state after 1000000000 cycles without actually performing all those cycles.
+
+Here's how we could approach this:
+1. Implement the full spin cycle
+2. Store the state of the platform after each cycle
+3. Detect when we've seen a state before, which indicates the start of a cycle
+4. Calculate how many cycles are in the repeating pattern
+5. Use this to determine what the state will be after 1000000000 cycles
+6. Calculate the load for that final state

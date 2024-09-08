@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input from "input.txt" and store it as a 2D slice of runes.
+2. Identify empty rows and columns.
+3. Create a list of galaxy coordinates, adjusting for expansion.
+4. Calculate the Manhattan distance between each pair of galaxies.
+5. Sum up all the distances.
+
+The key to efficiency here is to avoid actually expanding the universe in memory. Instead, we can keep track of empty rows and columns, and adjust our distance calculations accordingly. This approach saves both time and space complexity.
+
+For the expansion, we'll use a factor of 2 as mentioned in the problem statement. We'll use slices to keep track of cumulative expansions for rows and columns, which will allow us to quickly adjust galaxy coordinates.

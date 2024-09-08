@@ -1,0 +1,10 @@
+Based on the given output, it seems that the previous solution was able to calculate the correct answer for Part 1 (814 lights on after 100 steps). However, the answer for Part 2 (721) is likely incorrect.
+
+The main issue in Part 2 is probably related to handling the four corner lights that are always on. The solution might not be correctly keeping these corners lit throughout the simulation, or it might be miscounting them in the final tally.
+
+To fix this, we need to ensure that:
+1. The four corner lights are initially set to on.
+2. After each step, the four corner lights are forcibly set back to on.
+3. The counting logic correctly includes these always-on corner lights.
+
+I'll modify the code to address these issues, focusing particularly on the Part 2 logic.

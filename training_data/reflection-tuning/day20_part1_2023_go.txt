@@ -1,0 +1,13 @@
+To solve this problem, we need to simulate the pulse propagation through the network of modules. Here's the approach:
+
+1. Parse the input to create a map of modules and their connections.
+2. Implement each module type (broadcaster, flip-flop, conjunction) with its specific behavior.
+3. Create a queue to handle pulses in the order they are sent.
+4. Simulate pressing the button 1000 times, keeping track of low and high pulses sent.
+5. For each button press, process all pulses until the queue is empty.
+6. Calculate the final result by multiplying the total low and high pulses.
+
+The key to efficiency is using appropriate data structures:
+- Use a map for quick module lookup.
+- Use a queue (implemented as a slice) for pulse processing.
+- Use bitsets for flip-flop states and conjunction memory to save space and improve performance.

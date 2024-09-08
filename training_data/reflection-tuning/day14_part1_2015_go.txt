@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to extract information about each reindeer.
+2. Simulate the race for 2503 seconds.
+3. Calculate the distance traveled by each reindeer.
+4. Find the maximum distance traveled among all reindeer.
+
+We can create a struct to represent each reindeer, containing its speed, fly time, and rest time. Then, we'll implement a function to calculate the distance traveled by a reindeer in a given time. Finally, we'll iterate through all reindeer, calculate their distances, and keep track of the maximum.

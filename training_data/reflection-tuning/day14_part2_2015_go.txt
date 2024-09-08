@@ -1,0 +1,7 @@
+To solve this problem efficiently, we need to:
+1. Parse the input file to extract reindeer data.
+2. Implement a function to calculate the distance traveled by each reindeer after 2503 seconds.
+3. Implement a function to simulate the race second by second, awarding points to the leading reindeer(s).
+4. Keep track of the maximum distance traveled (for Part 1) and the maximum points scored (for Part 2).
+
+We'll use structs to represent reindeer data and a slice to store all reindeer. We'll then iterate through the race duration, updating distances and points accordingly.

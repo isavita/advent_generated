@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can use the Shoelace formula (also known as the surveyor's formula) to calculate the area of the polygon formed by the dig instructions. We'll also need to account for the perimeter of the polygon, as the trench itself takes up space.
+
+The approach will be:
+1. Parse the input file and extract the correct instructions from the hexadecimal codes.
+2. Use the Shoelace formula to calculate the area of the polygon.
+3. Calculate the perimeter of the polygon.
+4. Apply Pick's theorem to get the final result, which includes both the interior points and the boundary points.
+
+The Shoelace formula will give us twice the area, so we'll divide the result by 2. The perimeter needs to be added to account for the outer edge of the trench. Finally, we add 1 to account for the starting point.
+
+This approach is efficient as it runs in O(n) time, where n is the number of instructions, and uses O(1) space.

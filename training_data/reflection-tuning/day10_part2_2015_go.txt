@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input from "input.txt".
+2. Implement a function to perform one iteration of the look-and-say sequence.
+3. Create a loop to apply the process 40 times for Part 1 and 50 times for Part 2.
+4. Use strings.Builder for efficient string concatenation.
+5. To optimize for large sequences, we can use a slice of bytes instead of a string to avoid unnecessary allocations.
+6. Print the length of the final sequence for both parts.
+
+The key to efficiency here is to avoid unnecessary string allocations and use byte slices for manipulation.

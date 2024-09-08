@@ -1,0 +1,7 @@
+The error message indicates that there's a mismatch in the number of variables being assigned in a strings.Split operation. Specifically, it's trying to assign 2 variables, but strings.Split returns only 1 value (a slice of strings). This suggests that the code is incorrectly trying to unpack the result of strings.Split directly into multiple variables.
+
+To fix this, we need to:
+1. Capture the result of strings.Split into a single variable (a slice).
+2. Then, access the individual elements of this slice as needed.
+
+The error is likely occurring in the part where the code is parsing the workflows or the parts. We'll need to adjust how we're handling the split results to correctly assign values.

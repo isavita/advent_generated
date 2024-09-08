@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Parse each instruction and store them in a suitable data structure
+3. Implement a function to execute the instructions
+4. Keep track of the last played sound
+5. Stop execution when we encounter a non-zero rcv instruction
+6. Return the last played sound as the answer
+
+We'll use a struct to represent each instruction and a map to store register values. We'll implement a function to execute instructions and another to parse the input file.

@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to create a map of happiness relationships between people.
+2. Implement a recursive function to generate all possible seating arrangements.
+3. For each arrangement, calculate the total happiness change.
+4. Keep track of the maximum happiness change.
+5. For Part Two, add ourselves to the list with 0 happiness relationships.
+
+We'll use a recursive backtracking algorithm to generate all permutations of seating arrangements. To optimize, we can use a bitmask to keep track of seated people and avoid unnecessary allocations.
+
+For Part Two, we'll simply add ourselves to the happiness map and rerun the algorithm with the updated list of people.

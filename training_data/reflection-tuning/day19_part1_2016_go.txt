@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. The pattern of the winning position follows a specific sequence known as the Josephus problem.
+
+For a number of Elves n, the winning position W(n) can be calculated as follows:
+1. Find the largest power of 2 less than or equal to n, let's call it 2^k.
+2. Calculate the difference: l = n - 2^k
+3. The winning position is W(n) = 2l + 1
+
+This approach has a time complexity of O(log n) as we only need to find the largest power of 2 less than n.
+
+We'll implement this solution in Go, reading the input from "input.txt" and printing the final answer.

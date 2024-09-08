@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to create a 2D grid of asteroids.
+2. For each asteroid, calculate how many other asteroids it can see.
+3. To determine visibility, we can use the concept of slope and greatest common divisor (GCD).
+4. We'll use a map to keep track of unique slopes from each asteroid to others.
+5. The asteroid that can see the most other asteroids is our answer.
+
+The key to efficiency here is using GCD to simplify the slopes and a map to quickly check for unique directions. This approach avoids checking every possible line of sight and instead focuses on unique directions.

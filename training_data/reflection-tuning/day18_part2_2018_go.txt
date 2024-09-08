@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to:
+1. Read the input from "input.txt" and create a 2D grid to represent the lumber collection area.
+2. Implement a function to simulate one minute of changes according to the given rules.
+3. Create a function to count the number of wooded acres and lumberyards.
+4. For Part 1, simply run the simulation for 10 minutes and calculate the resource value.
+5. For Part 2, we need to optimize for 1,000,000,000 minutes. The key insight is that the pattern will likely repeat after some time. We can detect this cycle and fast-forward to the end state.
+
+To detect the cycle:
+- We'll use a map to store the state of the grid after each minute.
+- When we encounter a repeated state, we've found the cycle length.
+- We can then calculate how many cycles will occur in the remaining time and jump to the equivalent state.
+
+This approach will significantly reduce the computation time for Part 2.

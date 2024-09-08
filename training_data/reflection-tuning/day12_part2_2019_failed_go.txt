@@ -1,0 +1,16 @@
+To solve this problem efficiently, we need to consider a few key points:
+
+1. We can simulate the motion of the moons step by step, updating their velocities and positions.
+2. For Part 1, we need to calculate the total energy after 1000 steps.
+3. For Part 2, we need to find the period of repetition for the entire system.
+
+The efficient approach for Part 2 is to realize that the x, y, and z coordinates are independent of each other. We can find the period for each coordinate separately and then calculate the least common multiple (LCM) of these periods to get the overall period.
+
+Here's how we'll structure the solution:
+1. Define structs for Moon and Vector3D.
+2. Implement functions to update velocities and positions.
+3. Calculate total energy for Part 1.
+4. Find the period for each coordinate and calculate LCM for Part 2.
+5. Use efficient LCM calculation using the GCD method.
+
+This approach will be much faster than simulating billions of steps for Part 2.

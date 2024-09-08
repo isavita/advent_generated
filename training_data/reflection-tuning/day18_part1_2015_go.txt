@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Read the initial configuration from the input file.
+2. Create a function to count the number of active neighbors for each light.
+3. Implement the rules for updating the lights' states.
+4. Iterate through the grid 100 times, updating the state in each step.
+5. Count the number of lights that are on after 100 steps.
+
+We'll use a 2D slice to represent the grid, where true represents an "on" light and false represents an "off" light. We'll create two grids and alternate between them for each step to avoid modifying the grid while we're reading from it.
+
+To handle the edge cases efficiently, we'll pad the grid with an extra row and column on each side, always treating these as "off". This simplifies our neighbor-counting logic.

@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can follow these steps:
+
+1. Parse the input file to create a map of layer depths to their ranges.
+2. For Part 1:
+   - Iterate through each layer from 0 to the maximum depth.
+   - For each layer, check if a scanner is at the top position when the packet arrives.
+   - If caught, add the severity (depth * range) to the total.
+3. For Part 2:
+   - Use a loop to increment the delay until we find a delay where we're not caught.
+   - For each delay, check all layers to see if we're caught at any point.
+   - Optimize by using the modulo operator to determine scanner position instead of simulating movement.
+
+The key optimization is using the formula `(depth + delay) % (2 * (range - 1)) == 0` to check if we're caught, which avoids the need for complex scanner movement simulation.

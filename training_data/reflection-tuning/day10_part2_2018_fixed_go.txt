@@ -1,0 +1,10 @@
+The error message indicates that there's an index out of range error, specifically trying to access index 11 in a slice of length 10. This suggests that we're trying to access an element that doesn't exist in our slice. 
+
+The most likely cause of this error is that we're not properly handling the boundaries of our grid when updating the positions of the points. We might be trying to access or update a position that's outside the bounds of our grid.
+
+To fix this, we need to ensure that:
+1. We're correctly calculating the boundaries of our grid after each update.
+2. We're not trying to access or update positions outside these boundaries.
+3. We might need to implement a dynamic grid that can expand as the points move.
+
+Additionally, we should add checks to ensure we're not accessing out-of-bounds indices when updating point positions or drawing the grid.

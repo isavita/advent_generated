@@ -1,0 +1,14 @@
+To solve this problem efficiently, we need to simulate the process of creating recipes and tracking the positions of the two elves. Here's the approach:
+
+1. Initialize the scoreboard with the first two recipes (3 and 7).
+2. Keep track of the current positions of both elves.
+3. For Part 1:
+   - Continue creating new recipes until we have the required number plus 10 more.
+   - Return the scores of the 10 recipes after the input number.
+4. For Part 2:
+   - Continue creating new recipes while checking if the last few digits match the input sequence.
+   - Return the number of recipes before the matching sequence.
+
+To optimize the solution:
+- Use a slice to store the recipes, which allows for efficient appending and indexing.
+- For Part 2, use a rolling window to check for the matching sequence instead of converting the entire slice to a string each time.

@@ -1,0 +1,9 @@
+To solve this problem, we need to implement a simple assembunny interpreter. We'll create a struct to represent the computer's state, including its registers and the current instruction pointer. We'll then implement functions for each instruction type (cpy, inc, dec, jnz) and a main execution loop that processes the instructions until we reach the end of the program.
+
+The approach will be:
+1. Read and parse the input file into a slice of instructions.
+2. Initialize the computer state with all registers set to 0.
+3. Execute the instructions one by one, updating the registers and instruction pointer accordingly.
+4. After the program halts, return the value in register 'a'.
+
+This solution will be efficient as it directly simulates the assembunny code without any unnecessary operations.

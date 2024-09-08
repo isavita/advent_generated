@@ -1,0 +1,8 @@
+To solve this problem, we need to implement a simple assembunny code interpreter. We'll create a struct to represent the computer's state, including its registers and the current instruction pointer. We'll then implement functions to execute each type of instruction (cpy, inc, dec, jnz).
+
+For Part One, we'll initialize all registers to 0 and run the program.
+For Part Two, we'll initialize register c to 1 and run the program again.
+
+We'll read the instructions from the input file, parse them, and then execute them sequentially until we reach the end of the program. The final value in register 'a' will be our answer for both parts.
+
+To make the solution efficient, we'll use a map to store the registers, allowing for quick access and modification. We'll also use a switch statement to efficiently dispatch the correct instruction execution based on the opcode.

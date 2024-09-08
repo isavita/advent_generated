@@ -1,0 +1,10 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in an unweighted graph, which is essentially what this maze represents. Here's the approach:
+
+1. Create a function to determine if a cell is open or a wall based on the given formula.
+2. Implement a BFS algorithm starting from (1,1) and targeting (31,39).
+3. Use a queue to keep track of cells to visit and a set to remember visited cells.
+4. For each cell, check its four adjacent cells (up, down, left, right) and add open cells to the queue.
+5. Keep track of the distance for each cell.
+6. When we reach the target cell, return the distance.
+
+We'll use a custom Point struct to represent coordinates and a custom Queue for the BFS implementation.

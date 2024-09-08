@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Implement an Intcode computer to execute the given program.
+2. Create a robot that moves on a 2D grid, painting panels and changing direction based on the Intcode program's output.
+3. Keep track of the painted panels and count unique panels painted.
+
+The approach will be:
+1. Use a map to store the painted panels, with coordinates as keys and colors as values.
+2. Implement the Intcode computer with support for input/output and halting.
+3. Create a robot struct to manage position, direction, and movement.
+4. Run the Intcode program, providing input based on the current panel color and updating the robot's position and panel colors based on the output.
+5. Count the number of unique panels painted at the end.
+
+This solution will be memory-efficient as it only stores painted panels, and time-efficient as it processes the Intcode program once.

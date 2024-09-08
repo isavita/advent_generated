@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a map of depth to range.
+2. Simulate the packet's journey through the firewall.
+3. For each layer, check if the packet is caught by calculating if the scanner is at the top position when the packet enters.
+4. If caught, add the severity (depth * range) to the total.
+5. Return the total severity.
+
+The key insight is that we don't need to actually simulate the scanner movement. We can determine if a scanner is at the top position at any given time using modulo arithmetic. A scanner with range R will be at the top position every 2*(R-1) picoseconds.

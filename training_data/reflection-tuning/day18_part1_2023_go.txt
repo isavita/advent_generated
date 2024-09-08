@@ -1,0 +1,8 @@
+To solve this problem, we need to follow these steps:
+1. Read the input file and parse each line to extract the direction, distance, and color.
+2. Implement a method to trace the path of the trench, keeping track of the coordinates.
+3. Use the Shoelace formula to calculate the area of the polygon formed by the trench.
+4. Apply Pick's theorem to calculate the number of interior points.
+5. Add the perimeter to the interior points to get the total number of cubic meters.
+
+The Shoelace formula will help us calculate the area efficiently, and Pick's theorem will allow us to count the interior points without actually filling the shape. This approach is more efficient than flood-filling the shape, especially for large inputs.

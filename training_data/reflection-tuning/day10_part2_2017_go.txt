@@ -1,0 +1,16 @@
+To solve this problem, we need to implement the Knot Hash algorithm in two parts:
+
+1. For Part One:
+   - Initialize a list of 256 numbers from 0 to 255.
+   - Parse the input lengths from the file.
+   - Implement the knot tying process as described.
+   - Multiply the first two numbers in the final list.
+
+2. For Part Two:
+   - Convert the input string to ASCII codes.
+   - Append the standard suffix (17, 31, 73, 47, 23).
+   - Run 64 rounds of the knot tying process.
+   - Create the dense hash by XORing blocks of 16 numbers.
+   - Convert the dense hash to a hexadecimal string.
+
+We'll create helper functions for each step of the process to keep the main logic clean and readable. We'll also reuse the knot tying logic from Part One in Part Two.

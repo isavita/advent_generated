@@ -1,0 +1,10 @@
+To solve this problem, we need to implement a function that increments the password and checks if it meets all the requirements. Here's the approach:
+
+1. Create a function to increment the password, handling the wrapping of 'z' to 'a'.
+2. Implement functions to check each requirement:
+   - Increasing straight of at least three letters
+   - No 'i', 'o', or 'l'
+   - At least two different, non-overlapping pairs
+3. Create a main function that reads the input, finds the next valid password, and then finds the next valid password after that for part two.
+
+The solution will use a loop to keep incrementing the password until all requirements are met. We'll use byte manipulation for efficiency when incrementing the password.

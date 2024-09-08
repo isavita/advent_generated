@@ -1,0 +1,7 @@
+To solve this problem efficiently, we need to:
+1. Parse the workflows and build a map of workflow names to their rules.
+2. Implement a recursive function that traverses the workflows, keeping track of the valid ranges for each rating (x, m, a, s).
+3. When we reach an 'A' (accept) state, calculate the number of combinations within the current ranges.
+4. Sum up all the accepted combinations.
+
+The key to efficiency is to work with ranges instead of individual values, allowing us to process large sets of possibilities at once. We'll use a struct to represent the ranges for each rating, and update these ranges as we traverse the workflows.

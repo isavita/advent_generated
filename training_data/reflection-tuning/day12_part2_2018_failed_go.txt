@@ -1,0 +1,10 @@
+Based on the given output, it seems that Part 1 is correct (1533), but Part 2 is likely incorrect (3349999993233). The issue with Part 2 is probably related to the large number of generations (50 billion) that need to be simulated. A direct simulation approach would be too slow and memory-intensive.
+
+To fix this, we need to optimize the solution for Part 2. One common pattern in such problems is that after a certain number of generations, the pattern of plants stabilizes and starts moving at a constant rate. We can detect this pattern and then use mathematical calculations to determine the final state without simulating all 50 billion generations.
+
+The approach would be:
+1. Simulate generations until we detect a repeating pattern.
+2. Calculate the rate at which the pattern is moving.
+3. Use this rate to calculate the final position after 50 billion generations.
+
+This optimization should significantly reduce the computation time and provide the correct answer for Part 2.

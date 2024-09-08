@@ -1,0 +1,11 @@
+The timeout error suggests that the previous solution was likely inefficient, possibly due to a brute-force approach that checked every single point in the 50x50 or 100x100 grid. To optimize this, we can take advantage of the beam's properties:
+
+1. The beam expands as it moves away from the emitter.
+2. The beam is continuous, meaning once we find a point inside the beam, we know all points below and to the right of it (within reason) are also in the beam.
+
+We can use these properties to implement a more efficient search algorithm:
+
+1. For Part 1, we can scan each row from left to right, stopping once we find the end of the beam in that row.
+2. For Part 2, we can use a binary search approach to find the 100x100 square, starting from a reasonable minimum distance.
+
+This approach should significantly reduce the number of checks we need to perform, thus avoiding the timeout issue.

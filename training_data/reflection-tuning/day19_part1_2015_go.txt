@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into two parts: replacement rules and the medicine molecule.
+2. For each replacement rule, find all occurrences of the 'from' part in the medicine molecule.
+3. For each occurrence, create a new molecule by replacing that occurrence with the 'to' part.
+4. Keep track of all unique molecules created this way.
+5. Count the number of unique molecules and return the result.
+
+We can use a map to store the replacement rules and a set (implemented as a map[string]bool) to keep track of unique molecules. This approach ensures efficiency by avoiding duplicates and allowing fast lookups.

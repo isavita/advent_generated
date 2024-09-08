@@ -1,0 +1,15 @@
+To solve this problem, we need to follow these steps:
+1. Parse the input file to extract tile information (ID and borders).
+2. Find matching borders between tiles.
+3. Identify corner tiles (tiles with only two matching borders).
+4. Multiply the IDs of the corner tiles.
+
+The key insights are:
+- We only need to consider the borders of each tile, not the entire tile content.
+- Corner tiles will have exactly two borders that match with other tiles.
+- We can use a map to efficiently store and look up border patterns.
+
+For efficiency, we'll:
+- Store borders as strings for easy comparison.
+- Use a map to count how many times each border appears across all tiles.
+- Use another map to store tiles by their ID for easy access.

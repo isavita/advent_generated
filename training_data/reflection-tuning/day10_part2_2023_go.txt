@@ -1,0 +1,17 @@
+To solve this problem, we need to approach it in two parts:
+
+1. Find the loop and its length (Part 1)
+2. Calculate the area enclosed by the loop (Part 2)
+
+For Part 1:
+- We'll use a depth-first search (DFS) to find the loop starting from 'S'.
+- We'll keep track of the distance from 'S' for each pipe in the loop.
+- The farthest point will be the maximum distance we find.
+
+For Part 2:
+- We'll use the "ray casting" algorithm to determine which points are inside the loop.
+- We'll scan each row from left to right, keeping track of whether we're inside or outside the loop.
+- We'll count the number of times we cross a vertical pipe (|, J, L) to determine if we're inside or outside.
+- We need to be careful with corners (F-J and L-7 count as crossing, F-7 and L-J don't).
+
+We'll implement both parts in a single pass through the grid for efficiency.

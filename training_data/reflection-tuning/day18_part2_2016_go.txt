@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Read the initial row from the input file.
+2. Create a function to generate the next row based on the current row.
+3. Use a sliding window of 3 characters to determine if each tile in the new row is safe or a trap.
+4. Keep track of the count of safe tiles as we generate each new row.
+5. For Part 1, generate 40 rows (including the initial row).
+6. For Part 2, generate 400000 rows (including the initial row).
+7. To optimize for large numbers of rows, we don't need to store all rows in memory. We can just keep track of the current row and the count of safe tiles.
+
+This approach will have a time complexity of O(n * m), where n is the number of rows and m is the length of each row. The space complexity will be O(m) as we only need to store the current row at any given time.

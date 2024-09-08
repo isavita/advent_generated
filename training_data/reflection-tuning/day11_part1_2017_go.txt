@@ -1,0 +1,16 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt".
+2. Parse the input into individual steps.
+3. Keep track of the position using a coordinate system.
+4. Calculate the final position after all steps.
+5. Determine the shortest path from the origin to the final position.
+
+For the coordinate system, we can use a 3D coordinate system (x, y, z) where:
+- ne: (1, 0, -1)
+- se: (1, -1, 0)
+- s:  (0, -1, 1)
+- sw: (-1, 0, 1)
+- nw: (-1, 1, 0)
+- n:  (0, 1, -1)
+
+The shortest path is the maximum absolute value among the final coordinates.

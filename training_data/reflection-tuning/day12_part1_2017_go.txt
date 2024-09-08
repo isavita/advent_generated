@@ -1,0 +1,8 @@
+To solve this problem, we can use a graph representation and perform a depth-first search (DFS) or breadth-first search (BFS) starting from program ID 0. Here's the approach:
+
+1. Parse the input file and create an adjacency list to represent the connections between programs.
+2. Implement a DFS function to traverse the graph starting from program ID 0.
+3. Keep track of visited programs to avoid revisiting them.
+4. Count the number of programs reached during the traversal.
+
+This solution is efficient as it only visits each program once, resulting in a time complexity of O(N + E), where N is the number of programs and E is the number of connections.

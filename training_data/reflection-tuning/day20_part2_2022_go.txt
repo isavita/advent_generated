@@ -1,0 +1,9 @@
+The negative results in both Part 1 and Part 2 suggest that there might be an issue with how the numbers are being moved within the list, particularly when dealing with negative numbers or when wrapping around the list. The problem might be in the implementation of the mixing process or in how the grove coordinates are calculated.
+
+To fix this, we should:
+1. Ensure that the mixing process correctly handles both positive and negative numbers, including proper wrapping around the list.
+2. Verify that the grove coordinates are calculated correctly, especially when wrapping around the list to find the 1000th, 2000th, and 3000th numbers after 0.
+3. For Part 2, make sure the decryption key is applied correctly and that the mixing process is repeated 10 times.
+4. Double-check the modulo operations to ensure they work correctly with negative numbers.
+
+Let's revise the solution with these considerations in mind.

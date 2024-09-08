@@ -1,0 +1,11 @@
+The timeout error suggests that the previous solution was likely using an inefficient algorithm, possibly a brute-force approach or a poorly optimized search algorithm. To fix this, we need to implement a more efficient solution. 
+
+For this type of problem, a good approach would be to use a breadth-first search (BFS) with some optimizations:
+
+1. Use a bitset to represent the collected keys, which allows for faster operations and less memory usage.
+2. Implement a state-based BFS where each state includes the current position(s), collected keys, and steps taken.
+3. Use memoization to avoid revisiting states we've already explored.
+4. Precompute distances between keys and entrances to avoid redundant path finding.
+5. For part 2, treat each quadrant separately and combine the results.
+
+This approach should significantly reduce the computation time and avoid timeout issues.

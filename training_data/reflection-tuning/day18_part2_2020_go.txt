@@ -1,0 +1,12 @@
+To solve this problem, we need to implement a custom expression evaluator that follows the given rules for operator precedence. Here's the approach:
+
+1. Parse the input file and read each line as an expression.
+2. For each expression, we'll implement two evaluation functions:
+   - One for Part 1, where all operators have equal precedence
+   - One for Part 2, where addition has higher precedence than multiplication
+3. For Part 1, we can use a simple left-to-right evaluation, handling parentheses recursively.
+4. For Part 2, we'll first evaluate all additions, then perform multiplications.
+5. We'll use a stack-based approach to handle nested parentheses.
+6. Finally, we'll sum up all the results for both parts and print them.
+
+The key to efficiency is to parse the expression only once and use string manipulation and conversion functions judiciously.

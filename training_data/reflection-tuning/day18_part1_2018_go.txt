@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the initial state from the input file.
+2. Implement a function to simulate one minute of change.
+3. Repeat the simulation for 10 minutes.
+4. Count the number of wooded acres and lumberyards.
+5. Calculate and return the total resource value.
+
+The key to efficiency here is to use a 2D slice to represent the grid and update it in-place. We'll use a double buffer approach to avoid conflicts during updates. We'll also use constants for the different types of acres to make the code more readable.
