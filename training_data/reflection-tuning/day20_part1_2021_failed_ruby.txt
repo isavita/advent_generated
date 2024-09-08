@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into the enhancement algorithm and the initial image.
+2. Implement a function to enhance the image, considering the infinite nature of the image.
+3. Apply the enhancement algorithm twice.
+4. Count the number of lit pixels in the final image.
+
+Key considerations:
+- We need to handle the infinite nature of the image by adding a border of dark pixels around the image before each enhancement.
+- We should keep track of the "default" state of the infinite pixels outside our visible area, as it may change between enhancements.
+- We can represent the image as a set of coordinates for lit pixels to save memory.

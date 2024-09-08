@@ -1,0 +1,7 @@
+The previous solution seems to have correctly solved Part 1, as the answer 522031 matches the given correct answer. However, the Part 2 solution (2219123195) appears to be incorrect.
+
+The main issue with the Part 2 solution is likely in the approach to finding the maximum amount of FUEL that can be produced with 1 trillion ORE. A common mistake in this type of problem is using a linear approach, which can lead to an overestimation.
+
+To fix this, we should implement a binary search algorithm to find the maximum amount of FUEL that can be produced. This approach will be more efficient and accurate, especially when dealing with large numbers like 1 trillion ORE.
+
+We'll keep the Part 1 solution as is, and focus on improving the Part 2 solution by implementing the binary search method.

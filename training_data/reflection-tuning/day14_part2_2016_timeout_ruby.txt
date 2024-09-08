@@ -1,0 +1,5 @@
+The timeout error suggests that the previous solution was likely inefficient, probably due to repeatedly calculating MD5 hashes for the same inputs. To optimize this, we can implement a caching mechanism for the MD5 hashes. Additionally, for Part Two, where we need to perform 2016 additional hashings, we can use memoization to store the results of stretched hashes.
+
+Another optimization could be to use a sliding window approach for checking the next 1000 hashes, rather than recalculating all 1000 hashes for each potential key.
+
+Lastly, we can use more efficient data structures like sets for storing and checking quintuplets, which should speed up the lookup process.

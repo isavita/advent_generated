@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can use Dijkstra's algorithm. This algorithm is ideal for finding the shortest path in a weighted graph, which is essentially what our cave map represents. Each position in the cave is a node, and the risk levels are the weights of the edges connecting adjacent nodes.
+
+Here's the approach:
+1. Read the input file and create a 2D array representing the cave.
+2. Implement a priority queue (using a simple array and sorting in this case) to always process the node with the lowest total risk first.
+3. Use Dijkstra's algorithm to find the path with the lowest total risk:
+   - Start from the top-left corner (0,0)
+   - For each node, calculate the total risk to reach its neighbors
+   - Update the neighbor's risk if a lower risk path is found
+   - Continue until we reach the bottom-right corner
+4. Return the total risk of the path to the bottom-right corner
+
+This approach ensures we find the optimal path without having to explore all possible paths, making it efficient for larger inputs.

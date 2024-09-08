@@ -1,0 +1,9 @@
+To solve this problem efficiently, we need to consider the following points:
+
+1. The circle of cups can be represented as a linked list, where each cup points to the next cup.
+2. We can use an array to store the next cup for each cup label, allowing O(1) access to any cup's next cup.
+3. Instead of physically moving cups, we'll update the links between cups.
+4. We'll keep track of the current cup and perform the operations as described in the problem.
+5. After 100 moves, we'll traverse the list starting from cup 1 to get the final order.
+
+This approach will be much more efficient than manipulating an array, especially for large numbers of cups and moves.

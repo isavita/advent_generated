@@ -1,0 +1,13 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm with some modifications to handle the recursive nature of the maze. Here's the approach:
+
+1. Parse the input to create a 2D grid representation of the maze.
+2. Identify all portals, including AA (start) and ZZ (end).
+3. Implement a BFS algorithm that:
+   - Keeps track of the current position and the current level.
+   - Only allows movement to adjacent '.' tiles.
+   - Handles portal transitions, considering the level changes.
+   - For part 2, ensures that outer portals can only be used at level 0, and inner portals increase the level.
+4. Use a set to keep track of visited states (position + level) to avoid cycles.
+5. Return the number of steps when reaching ZZ at level 0.
+
+The main challenge is handling the recursive nature of the maze in part 2, which we'll do by including the level in our state and adjusting how portals work based on the current level.

@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file line by line.
+2. For each line, create a method to check if it's a nice string based on the given criteria.
+3. Use regular expressions to simplify the checks for vowels, double letters, and forbidden substrings.
+4. Keep a count of nice strings and increment it for each nice string found.
+5. Finally, print the total count of nice strings.
+
+The use of regular expressions will make our code more concise and efficient, as they are optimized for pattern matching in strings.

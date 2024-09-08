@@ -1,0 +1,11 @@
+To solve this problem, we can use a recursive approach with backtracking. Here's the thought process:
+
+1. Read the container sizes from the input file.
+2. Create a recursive function that tries all possible combinations of containers.
+3. For each container, we have two choices: include it or not include it.
+4. Keep track of the current sum as we build combinations.
+5. If the current sum equals 150, we've found a valid combination, so increment our count.
+6. If the current sum exceeds 150, we can stop exploring this branch (backtracking).
+7. Use memoization to optimize the solution by caching results for subproblems.
+
+This approach will efficiently explore all possible combinations while avoiding unnecessary calculations.

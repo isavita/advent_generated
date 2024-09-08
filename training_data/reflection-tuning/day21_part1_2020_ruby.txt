@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to extract ingredients and allergens for each food.
+2. Create a mapping of allergens to possible ingredients.
+3. Identify ingredients that can't possibly contain any allergens.
+4. Count how many times these safe ingredients appear in the ingredient lists.
+
+We'll use sets to efficiently handle ingredient lists and perform set operations. We'll also use a hash to map allergens to possible ingredients.

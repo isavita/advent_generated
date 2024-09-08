@@ -1,0 +1,12 @@
+To solve this problem efficiently, we need to:
+1. Read the secret key from the input file.
+2. Implement a function to calculate MD5 hashes.
+3. Iterate through positive numbers, starting from 1.
+4. For each number, concatenate it with the secret key and calculate the MD5 hash.
+5. Check if the hash starts with six zeroes (for Part Two).
+6. Return the first number that satisfies the condition.
+
+To optimize performance:
+- We'll use Ruby's built-in Digest::MD5 library for efficient MD5 calculation.
+- We'll convert the hash to hexadecimal only once per iteration.
+- We'll use string comparison instead of regex for checking the leading zeroes.

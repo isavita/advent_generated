@@ -1,0 +1,11 @@
+To solve this problem, we need to simulate the particle system over time. Here's the approach:
+
+1. Parse the input file to create a list of particles with their positions, velocities, and accelerations.
+2. Create a function to update a particle's state for each tick.
+3. Simulate the system for a large number of ticks (e.g., 1000) to allow particles to spread out.
+4. For each tick:
+   - Update all particles
+   - Check for collisions and remove colliding particles
+5. Count the remaining particles after all collisions are resolved.
+
+The key to efficiency is to use a hash to quickly check for collisions by using the particle positions as keys. This allows us to avoid comparing every particle with every other particle, which would be O(n^2) complexity.

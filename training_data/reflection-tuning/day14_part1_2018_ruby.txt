@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can simulate the process described in the task. Here's the approach:
+
+1. Initialize the scoreboard with the first two recipes: [3, 7].
+2. Keep track of the current positions of both elves.
+3. Iterate until we have enough recipes (input + 10).
+4. In each iteration:
+   - Calculate the sum of the current recipes.
+   - Add new recipes to the scoreboard based on the sum.
+   - Update the positions of the elves.
+5. Once we have enough recipes, extract the scores of the ten recipes after the input number.
+
+To make it efficient, we'll use an array to store the scoreboard and only keep track of the necessary information.

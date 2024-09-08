@@ -1,0 +1,25 @@
+To solve this problem, we need to create a springscript program that will allow the springdroid to navigate the hull without falling into space. The key is to create a set of instructions that will make the droid jump over holes while ensuring it lands on solid ground.
+
+Here's the approach:
+
+1. We'll read the Intcode program from the input file.
+2. We'll create a springscript program that checks for holes and decides when to jump.
+3. We'll send this program to the Intcode computer along with the WALK command.
+4. We'll run the Intcode program and interpret its output.
+
+For the springscript program, a good strategy would be:
+- Jump if there's a hole in the next three spaces (A, B, or C is false)
+- But only if there's ground to land on (D is true)
+
+This can be implemented with the following springscript:
+
+NOT A T
+NOT B J
+OR T J
+NOT C T
+OR T J
+AND D J
+
+This program will make the droid jump over holes of length 1, 2, or 3, but only if there's ground to land on at position D.
+
+After sending this program and the WALK command, we'll interpret the output. If it's a large number, that's our answer. If it's ASCII output, the droid has fallen and we'd need to adjust our program (but we'll assume our program works for this solution).

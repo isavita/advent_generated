@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to use dynamic programming and memoization. The key observations are:
+
+1. The game state can be represented by the positions and scores of both players, and whose turn it is.
+2. We can use recursion to explore all possible outcomes, but we need to memoize the results to avoid redundant calculations.
+3. For each turn, we need to consider all possible combinations of the three dice rolls (27 combinations).
+4. We can use a hash to store the number of universes for each game state.
+
+The approach will be:
+1. Define a recursive function that takes the current game state and returns the number of wins for each player.
+2. Use memoization to store and reuse results for previously seen game states.
+3. For each turn, calculate the new position and score for all 27 possible dice roll combinations.
+4. Sum up the results from all branches of the game tree.
+5. Return the maximum number of wins between the two players.

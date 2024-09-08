@@ -1,0 +1,9 @@
+To solve this problem, we can use a breadth-first search (BFS) approach. Here's the thought process:
+
+1. Parse the regex input to build a map of the facility.
+2. Use a queue to perform BFS, keeping track of the position and distance for each step.
+3. Use a set to keep track of visited positions to avoid revisiting.
+4. Update the maximum distance as we explore.
+5. Handle branching by adding all possible paths to the queue.
+
+The key is to efficiently parse the regex and handle the branching logic. We'll use a stack to keep track of branching positions and distances.

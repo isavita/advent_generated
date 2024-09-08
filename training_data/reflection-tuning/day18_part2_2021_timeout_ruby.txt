@@ -1,0 +1,5 @@
+The error message indicates that we're trying to call the `length` method on `nil` in the `explode` function. This suggests that `pair[0]` is `nil` at some point during the execution. The issue likely occurs when we're trying to process a pair that doesn't have the expected structure.
+
+To fix this, we should add a check to ensure that `pair[0]` is not `nil` before trying to access its length. We should also review our pair parsing logic to make sure we're correctly identifying and handling all possible pair structures.
+
+Additionally, we should implement proper error handling to gracefully handle unexpected input or edge cases.

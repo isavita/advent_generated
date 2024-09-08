@@ -1,0 +1,10 @@
+To solve this problem efficiently, we need to:
+1. Read the input file line by line.
+2. For each line, apply the new rules to determine if it's nice or naughty.
+3. Count the number of nice strings.
+
+For the new rules:
+1. We can use a hash to keep track of pairs of letters and their positions. If we find a pair that appears twice with non-overlapping positions, the string satisfies the first rule.
+2. For the second rule, we can iterate through the string and check if any character is the same as the character two positions ahead.
+
+We'll use regular expressions for efficient string matching and a single pass through each string to minimize time complexity.

@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to separate rules and messages.
+2. Create a hash to store the rules, with rule numbers as keys and their definitions as values.
+3. Implement a recursive function to match messages against rules.
+4. Use memoization to optimize the recursive function and avoid redundant calculations.
+5. Count the number of messages that completely match rule 0.
+
+The key to efficiency here is using memoization in the recursive matching function. This will prevent recalculating the same sub-rules multiple times, especially for complex rule structures.

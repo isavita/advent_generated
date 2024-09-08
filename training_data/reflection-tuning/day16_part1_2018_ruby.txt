@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the samples (Before, instruction, After).
+2. Implement all 16 opcodes as functions.
+3. For each sample, test all 16 opcodes and count how many produce the correct output.
+4. Count the number of samples that behave like three or more opcodes.
+
+We'll use a class to represent the CPU state and implement the opcodes as methods. We'll then create a method to test a sample against all opcodes and count the matches. Finally, we'll process all samples and count those with 3 or more matching opcodes.

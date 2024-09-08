@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Parse the input to create a map of modules and their connections.
+2. Implement the logic for each type of module (broadcaster, flip-flop, conjunction).
+3. Simulate the button press 1000 times, keeping track of low and high pulses.
+4. Multiply the total low and high pulses to get the final answer.
+
+The key aspects of the solution:
+- Use a hash to store modules and their states.
+- Implement a queue to process pulses in the correct order.
+- Use a separate method for each module type to handle pulses.
+- Keep track of low and high pulse counts globally.
+
+The solution will simulate the entire process 1000 times and return the product of low and high pulse counts.

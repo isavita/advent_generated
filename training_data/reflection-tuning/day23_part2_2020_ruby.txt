@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to use a data structure that allows for quick access and manipulation of elements. A linked list-like structure would be ideal, as we need to frequently remove and insert elements.
+
+For Part 1, we can use an array where each index represents a cup label, and the value at that index points to the next cup in the circle. This allows for O(1) operations when moving cups.
+
+For Part 2, we need to handle a much larger number of cups (1 million) and moves (10 million). The same approach as Part 1 will work, but we need to be careful with memory usage and optimize our operations.
+
+The key steps in our solution will be:
+1. Initialize the cups array
+2. Implement the move operation efficiently
+3. Run the simulation for the required number of moves
+4. Extract the final arrangement (Part 1) or find the two cups after cup 1 (Part 2)
+
+We'll create a single solution that can handle both parts of the problem by adjusting the number of cups and moves based on the part we're solving.

@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input to create a set of rock positions.
+2. Implement a function to simulate sand falling.
+3. For Part 1, keep simulating sand until it falls into the abyss.
+4. For Part 2, add a floor and continue until the source is blocked.
+
+Key optimizations:
+- Use a Set to store rock and sand positions for quick lookups.
+- Keep track of the maximum y-coordinate to detect when sand falls into the abyss.
+- For Part 2, we can stop when we reach the source coordinates (500,0).
+
+The solution will use a single method to simulate both parts, with a parameter to switch between them.

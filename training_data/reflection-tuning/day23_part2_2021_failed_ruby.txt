@@ -1,0 +1,5 @@
+The error message indicates that we're trying to call `each_with_index` on a String object (`@hallway`), which is not a valid method for strings. This suggests that `@hallway` is being initialized as a string instead of an array. To fix this, we need to ensure that `@hallway` is properly initialized as an array of characters or spaces, rather than a single string.
+
+The error is likely occurring in the `next_states` method, where we're trying to iterate over the hallway. We should modify the initialization of the `@hallway` attribute to be an array instead of a string.
+
+Additionally, we might need to adjust how we're parsing the input and storing the state of the burrow to ensure we're working with the correct data structures throughout the solution.

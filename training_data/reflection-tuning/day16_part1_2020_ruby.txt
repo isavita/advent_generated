@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract the rules, our ticket, and nearby tickets.
+2. Create a set of all valid numbers based on the rules.
+3. Iterate through nearby tickets, checking each number against the set of valid numbers.
+4. Sum up all invalid numbers found.
+
+This approach allows us to quickly check if a number is valid without repeatedly parsing the rules for each number. Using a set for valid numbers provides O(1) lookup time, making the solution efficient.

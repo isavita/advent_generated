@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the secret key from the input file.
+2. Implement a function to calculate MD5 hashes.
+3. Iterate through positive numbers, starting from 1.
+4. For each number, combine it with the secret key and calculate the MD5 hash.
+5. Check if the hash starts with at least five zeroes.
+6. Return the lowest number that satisfies the condition.
+
+To make the solution efficient:
+- We'll use Ruby's built-in Digest::MD5 library for fast MD5 hash calculation.
+- We'll use string interpolation to combine the secret key and number efficiently.
+- We'll convert the MD5 digest to hexadecimal and check only the first 5 characters to avoid unnecessary string operations.

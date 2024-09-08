@@ -1,0 +1,17 @@
+To solve this problem efficiently, we need to approach it in two parts:
+
+1. For Part One:
+   - Parse the input file to extract the replacements and the medicine molecule.
+   - For each replacement, find all possible positions in the medicine molecule where it can be applied.
+   - Apply each replacement at each possible position and store the resulting molecules in a set to avoid duplicates.
+   - Count the number of unique molecules in the set.
+
+2. For Part Two:
+   - This is a more complex problem that requires working backwards from the medicine molecule to 'e'.
+   - We can use a greedy approach with randomization:
+     - Randomly shuffle the replacements.
+     - Repeatedly apply the replacements in reverse (replacing the right side with the left side) to the medicine molecule.
+     - If we get stuck, start over with a new random shuffle.
+   - Keep track of the minimum number of steps found so far.
+
+This approach should be efficient for most inputs, though it may struggle with extremely large or complex molecules.

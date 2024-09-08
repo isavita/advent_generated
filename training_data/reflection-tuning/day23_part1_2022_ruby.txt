@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Parse the input file to create a grid of elves.
+2. Implement the movement rules for each round.
+3. Simulate 10 rounds of movement.
+4. Find the smallest rectangle containing all elves.
+5. Count the empty ground tiles within that rectangle.
+
+We can use a set to store elf positions for efficient lookup and updates. We'll implement helper functions for each step of the process, including checking adjacent positions, proposing moves, and executing moves. We'll use a hash to track proposed moves and their frequencies to handle conflicts.
+
+For efficiency, we'll only update the grid boundaries when necessary, rather than scanning the entire grid each round.

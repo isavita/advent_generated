@@ -1,0 +1,12 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in Part 1 and can be adapted for finding the longest path in Part 2. We'll use a queue to keep track of paths to explore, and a set to avoid revisiting the same positions with the same path.
+
+For each step:
+1. Generate the MD5 hash of the passcode + current path
+2. Determine which doors are open based on the hash
+3. Explore all possible moves (up, down, left, right) if the corresponding door is open
+4. Add new valid paths to the queue
+5. Continue until we reach the vault (3,3) position
+
+For Part 2, we'll modify the algorithm to continue exploring all paths even after reaching the vault, keeping track of the longest path found.
+
+We'll use the Digest::MD5 library for hashing and implement helper methods for clarity and efficiency.

@@ -1,0 +1,10 @@
+The timeout error suggests that the previous solution was likely using an inefficient approach, possibly iterating through time steps one by one until a solution was found. This could take a very long time for large input values.
+
+To fix this, we can use a more mathematical approach. Instead of simulating each time step, we can calculate the positions of the discs at any given time using modular arithmetic. We can then use the Chinese Remainder Theorem (CRT) to find the first time when all discs align correctly.
+
+The key observations are:
+1. Each disc's position at time t can be calculated as (initial_position + t + disc_number) % num_positions
+2. We want this to be 0 for all discs simultaneously
+3. This forms a system of linear congruences that can be solved with CRT
+
+By using this approach, we can find the solution in constant time regardless of how large the actual time value is, avoiding the timeout issue.

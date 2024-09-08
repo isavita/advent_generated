@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input to extract sensor and beacon positions.
+2. For each sensor, calculate its Manhattan distance to its closest beacon.
+3. For Part 1, we'll focus on the row y=2000000 and determine the ranges that are covered by sensors on this row.
+4. For Part 2, we'll use a more efficient approach:
+   - Instead of checking every possible position, we'll check the perimeter just outside each sensor's range.
+   - We'll use the fact that the distress beacon must be in a position that's just outside the range of all sensors.
+   - We'll implement this by checking each line that's one step beyond a sensor's range.
+5. Once we find the position of the distress beacon, we'll calculate its tuning frequency.
+
+This approach avoids checking every possible position in the 4000000x4000000 grid, making it much more efficient.

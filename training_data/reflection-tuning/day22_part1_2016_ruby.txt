@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract node information (x, y coordinates, size, used, and available space).
+2. Store this information in a suitable data structure (e.g., an array of hashes).
+3. Iterate through all pairs of nodes, checking if they form a viable pair based on the given criteria.
+4. Count the number of viable pairs.
+
+To optimize the solution:
+- We'll skip the header line in the input file.
+- We'll use regular expressions to extract node information efficiently.
+- We'll use a single loop to compare each node with all others, avoiding redundant comparisons.

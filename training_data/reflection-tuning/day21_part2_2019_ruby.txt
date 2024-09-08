@@ -1,0 +1,19 @@
+To solve this problem, we need to create a springscript program that will allow the springdroid to navigate the hull without falling into space. The key is to create a set of instructions that will make the droid jump at the right moments.
+
+For Part 1, we need to consider the following:
+1. Jump if there's a hole in the next step (NOT A)
+2. But only if there's ground to land on (D)
+3. We also need to consider situations where we need to jump over multiple holes
+
+For Part 2, we have more sensors available, which allows us to make more informed decisions. We can:
+1. Look further ahead to decide when to jump
+2. Consider more complex patterns of holes and ground
+
+The approach will be:
+1. Read the Intcode program from the input file
+2. Create an Intcode computer to run the program
+3. Define springscript instructions for both parts
+4. Run the Intcode program with our springscript instructions
+5. Parse the output to get the hull damage report
+
+We'll use a simplified Intcode computer implementation, focusing on the ASCII input/output functionality needed for this problem.

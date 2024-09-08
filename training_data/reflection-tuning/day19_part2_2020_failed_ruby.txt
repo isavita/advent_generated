@@ -1,0 +1,8 @@
+The error in the previous solution seems to be that it's not correctly handling the changes introduced in Part 2. The output for both Part 1 and Part 2 is the same (122), which suggests that the code isn't properly implementing the updated rules for 8 and 11 in Part 2.
+
+To fix this, we need to:
+1. Implement a separate parsing logic for Part 2 that handles the recursive rules.
+2. Use a different approach for rule matching in Part 2, possibly using a recursive function or a more complex regex pattern.
+3. Ensure that we're correctly counting the matches for both parts separately.
+
+The solution will likely involve creating a recursive function to handle the updated rules 8 and 11, and using this function in combination with the existing rule matching for Part 2.

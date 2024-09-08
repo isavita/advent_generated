@@ -1,0 +1,11 @@
+To solve this problem, we need to implement a simulation of two programs running concurrently, each with its own set of registers and message queue. We'll use classes to represent the programs and their states. The main challenge is to handle the communication between the two programs and detect when they reach a deadlock.
+
+Here's the approach:
+1. Create a Program class to represent each program's state and operations.
+2. Implement methods for each instruction (snd, rcv, set, add, mul, mod, jgz).
+3. Create two instances of the Program class, one for program 0 and one for program 1.
+4. Run the programs alternately, executing one instruction at a time for each program.
+5. Keep track of the number of times program 1 sends a value.
+6. Detect a deadlock when both programs are waiting to receive and their queues are empty.
+
+The solution will be efficient as it simulates the exact behavior described in the problem without unnecessary computations.

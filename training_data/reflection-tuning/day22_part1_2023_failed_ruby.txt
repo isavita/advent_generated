@@ -1,0 +1,8 @@
+To solve this problem, we need to follow these steps:
+1. Parse the input to create a list of bricks with their coordinates.
+2. Simulate the falling of bricks until they all settle.
+3. Determine which bricks are supporting which other bricks.
+4. For each brick, check if removing it would cause any other bricks to fall.
+5. Count how many bricks can be safely disintegrated.
+
+We'll use a 3D grid to represent the space and simulate the falling of bricks. We'll also keep track of which bricks are supporting others and which bricks are being supported by each brick. This will allow us to efficiently check if a brick can be safely removed.

@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Convert the hexadecimal input to binary
+2. Parse the binary data to extract packets and their sub-packets
+3. Implement a recursive function to evaluate packets based on their type ID
+4. For Part 1, sum up all version numbers
+5. For Part 2, evaluate the expression represented by the packets
+
+We'll use a class to represent packets and implement methods for parsing and evaluating. The main challenge is to correctly handle the different packet types and their nested structure.

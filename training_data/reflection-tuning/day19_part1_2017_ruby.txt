@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Find the starting point (first '|' in the first row)
+3. Traverse the path, keeping track of direction and collecting letters
+4. Stop when we reach the end of the path
+5. Print the collected letters
+
+We'll use a 2D array to represent the diagram and implement a function to move through it. We'll keep track of the current position, direction, and collected letters. The program will move step by step, changing direction when necessary, until it reaches the end of the path.

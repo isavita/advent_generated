@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input numbers from the file.
+2. Create a list of tuples (value, original_index) to keep track of the original order.
+3. Implement a mixing function that moves each number according to its value.
+4. For Part 1, mix the list once. For Part 2, apply the decryption key and mix 10 times.
+5. Find the position of 0 after mixing.
+6. Calculate the sum of the 1000th, 2000th, and 3000th numbers after 0.
+
+To optimize performance, we can use modular arithmetic to calculate the new positions without actually moving elements multiple times around the list. We'll use a circular linked list-like structure to make insertions and removals efficient.

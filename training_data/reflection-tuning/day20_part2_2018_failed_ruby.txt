@@ -1,0 +1,10 @@
+Based on the incorrect output, it seems the Part 1 solution is working correctly (983 is a reasonable answer for the largest number of doors), but Part 2 is returning 0, which is likely incorrect. The issue is probably in the logic for counting rooms with paths of at least 1000 doors.
+
+The error might be in how we're tracking or counting the rooms that meet the criteria for Part 2. We might be resetting the count or not properly incrementing it. Alternatively, we might be using the wrong condition to check for rooms with paths of at least 1000 doors.
+
+To fix this, we should ensure that we're:
+1. Properly tracking the distance to each room during our traversal.
+2. Correctly counting rooms that have a shortest path of at least 1000 doors.
+3. Not resetting this count accidentally during the traversal.
+
+I'll modify the solution to address these potential issues, focusing on the Part 2 logic while keeping the Part 1 solution intact.

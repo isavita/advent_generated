@@ -1,0 +1,14 @@
+To solve this problem, we need to simulate a network of 50 Intcode computers. Here's the approach:
+
+1. Implement an Intcode computer class that can run the given program.
+2. Create 50 instances of this computer, each with a unique network address from 0 to 49.
+3. Implement a packet system to handle sending and receiving packets between computers.
+4. Run the network simulation until a packet is sent to address 255.
+5. Return the Y value of that packet.
+
+Key points to consider:
+- We need to handle input/output for the Intcode computers efficiently.
+- We should use a queue system for packets to ensure they're processed in order.
+- We need to keep track of the state of each computer and handle their execution in a round-robin fashion.
+
+For efficiency, we'll use a simple array to represent the network and a hash to store packets for each address.

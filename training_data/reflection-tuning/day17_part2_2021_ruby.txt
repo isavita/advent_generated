@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input to extract the target area coordinates.
+2. Implement a function to simulate the probe's trajectory and check if it hits the target area.
+3. For Part 1, we can use the fact that the maximum height is reached when the y velocity becomes 0 again. The maximum y velocity we can use is the absolute value of the lower y bound of the target area minus 1.
+4. For Part 2, we need to iterate through possible x and y velocities and count how many hit the target area. We can optimize this by:
+   - Limiting the x velocity range from 1 to the maximum x of the target area.
+   - Limiting the y velocity range from the minimum y of the target area to the absolute value of the minimum y minus 1.
+
+This approach avoids unnecessary calculations and provides an efficient solution for both parts.

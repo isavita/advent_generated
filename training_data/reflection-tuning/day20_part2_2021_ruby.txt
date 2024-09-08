@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse the enhancement algorithm and the initial image.
+2. Create a function to enhance the image, which will:
+   - Pad the image with a border of dark pixels.
+   - Create a new image by applying the enhancement algorithm to each pixel.
+   - Handle the infinite nature of the image by tracking the state of the "infinite" pixels.
+3. Enhance the image the required number of times (2 for Part 1, 50 for Part 2).
+4. Count the number of lit pixels in the final image.
+
+To optimize for efficiency:
+- We'll use a Set to store lit pixel coordinates, which provides O(1) lookup and insertion.
+- We'll only store coordinates of lit pixels to save memory.
+- We'll dynamically expand the image boundaries as needed during enhancement.

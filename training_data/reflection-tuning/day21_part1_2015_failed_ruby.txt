@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the input file to get the boss's stats.
+2. Define the available items (weapons, armor, and rings).
+3. Generate all possible combinations of items (1 weapon, 0-1 armor, 0-2 rings).
+4. For each combination, simulate the fight and check if the player wins.
+5. Keep track of the minimum gold spent on winning combinations.
+6. Return the least amount of gold spent on a winning combination.
+
+We'll use a recursive approach to generate item combinations and a helper function to simulate the fight. We'll optimize by stopping the fight simulation early if it's clear the player can't win.

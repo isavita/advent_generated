@@ -1,0 +1,5 @@
+To solve this problem efficiently, we can use a hash to store the monkeys and their jobs. We'll parse the input file and create a hash where each key is a monkey's name, and the value is either a number or an operation with two other monkey names.
+
+We'll then create a recursive function to evaluate each monkey's job. If the monkey's job is a number, we return it. If it's an operation, we recursively evaluate the two monkeys involved in the operation and then perform the operation.
+
+To optimize performance, we can use memoization to cache the results of each monkey's evaluation, so we don't recalculate values unnecessarily.

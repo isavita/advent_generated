@@ -1,0 +1,8 @@
+The timeout error suggests that the previous solution was likely using a brute-force approach, checking each house one by one until finding the answer. This method is inefficient for large input numbers. To optimize the solution, we can use a more mathematical approach:
+
+1. Instead of calculating presents for each house, we can calculate the sum of factors for each number.
+2. We can use a sieve-like approach to efficiently calculate these sums.
+3. We'll implement this for both parts of the problem, adjusting for the different rules in Part Two.
+4. We'll use a more efficient loop that increases by larger steps to find the answer faster.
+
+This approach should significantly reduce the computation time and avoid the timeout error.

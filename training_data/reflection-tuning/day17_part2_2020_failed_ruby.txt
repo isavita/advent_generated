@@ -1,0 +1,5 @@
+The error message indicates that we're trying to add a nil value to an integer, specifically in the line where we're calculating the new coordinates for neighbors. This suggests that one of the coordinate values (likely 'w') is nil when we're trying to add it to the corresponding delta value.
+
+The issue is probably in the `neighbors` method. It seems that we're trying to handle both 3D and 4D coordinates with the same method, but not all coordinates have a 'w' value. We need to modify our approach to handle both 3D and 4D cases correctly.
+
+To fix this, we can modify the `neighbors` method to handle both 3D and 4D coordinates. We'll check the length of the input coordinate array and adjust our behavior accordingly. This way, we can use the same method for both parts of the problem without causing nil errors.

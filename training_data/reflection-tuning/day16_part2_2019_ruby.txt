@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to consider a few key points:
+
+1. For Part 1, we can implement the FFT algorithm as described, using array operations to perform the calculations for each phase.
+
+2. For Part 2, the naive approach of repeating the input 10000 times and applying the FFT algorithm would be extremely slow and memory-intensive. We need to exploit a pattern in the FFT calculation.
+
+3. The key observation for Part 2 is that for the second half of the list, each element only depends on the sum of elements after it. This is because the pattern for these elements starts with enough zeros to ignore all previous elements.
+
+4. Since our message is in the second half of the list (as the offset is more than half the total length), we can work backwards from the end of the list, maintaining a running sum.
+
+5. We only need to calculate the elements from the offset to the end of the list, which significantly reduces the computation time.
+
+Let's implement this solution step by step.

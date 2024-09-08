@@ -1,0 +1,7 @@
+Based on the output provided, it seems that Part 1 was solved correctly (56490240862410), but Part 2 is missing. The main issue is likely that the code doesn't implement the changes required for Part 2 of the problem. To fix this, we need to:
+
+1. Modify the 'root' monkey's operation to be an equality check instead of addition.
+2. Treat the 'humn' monkey as a variable that we need to solve for.
+3. Implement a method to find the value that 'humn' should yell to make root's equality check pass.
+
+We can approach this by creating a binary search function to find the correct 'humn' value. We'll modify the original monkey evaluation to handle the new requirements and implement a search algorithm to find the correct 'humn' value.

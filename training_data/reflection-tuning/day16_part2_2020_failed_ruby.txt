@@ -1,0 +1,5 @@
+The error message indicates that we're trying to call the `first` method on an Integer (0), which is not a valid operation. This suggests that the `fields` variable in the `determine_field_mapping` method is not an array as expected, but instead is an integer. 
+
+To fix this, we need to ensure that `fields` is always an array before we try to access its first element. This could be happening because we're not properly initializing or updating the `fields` variable in our loop. We should check how `fields` is being set and make sure it's always an array of field indices.
+
+One possible fix would be to initialize `fields` as an array of all possible field indices at the beginning of the method, and then remove indices that don't match the criteria as we go through the tickets. This way, `fields` will always be an array, even if it becomes empty.

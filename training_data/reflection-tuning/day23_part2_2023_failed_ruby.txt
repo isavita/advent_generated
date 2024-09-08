@@ -1,0 +1,5 @@
+The error message indicates a stack overflow due to excessive recursion in the `dfs` function. This is likely caused by the depth-first search going too deep or getting stuck in cycles. To fix this, we can change our approach from a recursive DFS to an iterative one using a stack. This will prevent the stack overflow error and allow us to handle larger inputs.
+
+Additionally, we should implement a more efficient way to track visited nodes, possibly using a set instead of modifying the grid directly. This will allow us to backtrack and explore all possible paths without permanently marking cells as visited.
+
+For Part Two, we need to ignore the slope directions and treat all paths as regular paths. We can achieve this by modifying our neighbor selection logic.

@@ -1,0 +1,9 @@
+The error message indicates that there's an undefined local variable or method `current_face` in the `move` method. This suggests that `current_face` is not properly defined or accessible within the scope of the `move` method. To fix this, we need to ensure that `current_face` is properly defined and accessible. It's likely that `current_face` should be an instance variable (`@current_face`) or a parameter passed to the `move` method.
+
+Additionally, the error occurs in a block within the `move` method, which suggests that we might need to restructure the method to properly handle the cube faces and wrapping logic.
+
+To address this, we'll:
+1. Define `@current_face` as an instance variable
+2. Update the `move` method to handle cube face transitions
+3. Implement proper wrapping logic for the cube
+4. Ensure all necessary variables are properly initialized and accessible

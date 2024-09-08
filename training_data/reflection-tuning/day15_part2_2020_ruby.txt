@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to consider the following:
+
+1. We need to keep track of the last time each number was spoken.
+2. For each turn, we need to calculate the next number based on the rules.
+3. We need to handle both part 1 (2020th number) and part 2 (30000000th number).
+
+The most efficient approach would be to use a hash to store the last occurrence of each number. This allows for O(1) lookup time. We'll use a single method that can solve both parts of the problem by accepting the target turn as a parameter.
+
+To optimize for speed, we'll use a while loop instead of a more idiomatic Ruby enumeration, as it's slightly faster for large numbers of iterations.
+
+We'll read the starting numbers from the input file, then process the game until we reach the target turn.

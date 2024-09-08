@@ -1,0 +1,10 @@
+To solve this problem, we need to follow these steps:
+1. Generate the 128x128 grid using the knot hash algorithm for each row.
+2. Count the total number of used squares (Part 1).
+3. Implement a flood fill algorithm to count the number of regions (Part 2).
+
+For the knot hash, we'll need to implement the algorithm as described in the problem. Then, we'll convert the hexadecimal output to binary.
+
+For Part 2, we'll use a depth-first search (DFS) to flood fill and count the regions. We'll iterate through each cell in the grid, and when we find a used square that hasn't been visited, we'll start a new region and use DFS to mark all connected squares as part of that region.
+
+The solution will be efficient as we'll only traverse the grid once for each part of the problem.

@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. For Part Two, we can observe a pattern:
+
+1. The winning position follows a specific sequence based on the number of elves.
+2. This sequence resets every time the number of elves reaches a power of 3.
+3. The pattern is: 1, 2, 3, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...
+
+We can use this pattern to calculate the winning position directly without simulating the entire process. Here's how we can implement this:
+
+1. Find the largest power of 3 that's less than or equal to the number of elves.
+2. Calculate the difference between the number of elves and this power of 3.
+3. Use this difference to determine the winning position based on the observed pattern.
+
+This approach will be much faster than simulating the process, especially for large numbers of elves.

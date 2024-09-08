@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to:
+1. Parse the input and create a 3D representation of the bricks.
+2. Simulate the falling of bricks to their final positions.
+3. Build a graph of support relationships between bricks.
+4. For each brick, calculate how many other bricks would fall if it were removed.
+
+Key optimizations:
+- Use a hash to store the bricks for quick access.
+- Use sets to efficiently track supporting and supported-by relationships.
+- Use a queue for the falling simulation to avoid unnecessary iterations.
+- Implement a depth-first search (DFS) to count falling bricks efficiently.

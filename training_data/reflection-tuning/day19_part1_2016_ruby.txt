@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can observe that the pattern follows a specific sequence. Instead of simulating the entire process, which would be time-consuming for large inputs, we can use a mathematical approach.
+
+The sequence follows what's known as the Josephus problem. For a power of 2, the winning position is always 1. For other numbers, we can use the formula:
+
+W(n) = 2L(n) + 1
+
+Where:
+- W(n) is the winning position for n elves
+- L(n) is the left-over when we subtract the largest power of 2 less than or equal to n
+
+This approach allows us to solve the problem in O(log n) time complexity, which is much more efficient than a simulation-based approach.

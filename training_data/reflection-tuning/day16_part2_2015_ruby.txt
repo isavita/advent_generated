@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Parse the input file to create a list of Aunts Sue with their attributes.
+2. Define the MFCSAM readings.
+3. For Part 1, find the Aunt Sue that matches all the MFCSAM readings exactly.
+4. For Part 2, find the Aunt Sue that matches the MFCSAM readings with the new interpretation:
+   - 'cats' and 'trees' should be greater than the MFCSAM reading
+   - 'pomeranians' and 'goldfish' should be less than the MFCSAM reading
+   - Other attributes should match exactly
+
+We'll use a hash to store the MFCSAM readings and an array of hashes for the Aunts Sue. Then, we'll iterate through the Aunts Sue to find the matches for both parts.

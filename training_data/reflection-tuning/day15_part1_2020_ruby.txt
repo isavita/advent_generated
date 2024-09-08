@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can use a hash to keep track of the last turn each number was spoken. This allows us to quickly look up whether a number has been spoken before and when it was last spoken. We'll iterate through turns until we reach the 2020th turn, updating our hash and calculating the next number based on the rules given.
+
+Key steps:
+1. Read the starting numbers from the input file.
+2. Initialize a hash to store the last turn each number was spoken.
+3. Iterate through turns from the length of the starting numbers + 1 to 2020.
+4. For each turn, calculate the next number based on whether the previous number was new or a repeat.
+5. Update the hash with the current turn for the spoken number.
+6. Return the last spoken number after 2020 turns.
+
+This approach has a time complexity of O(n) where n is the number of turns (2020 in this case), and a space complexity of O(m) where m is the number of unique numbers spoken.

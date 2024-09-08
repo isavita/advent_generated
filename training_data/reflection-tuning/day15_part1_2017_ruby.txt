@@ -1,0 +1,12 @@
+To solve this problem efficiently, we need to:
+1. Read the starting values for generators A and B from the input file.
+2. Implement the generation logic for both generators.
+3. Compare the lowest 16 bits of each generated pair.
+4. Count the matches over 40 million iterations.
+
+To optimize the solution:
+- We'll use bitwise operations to compare the lowest 16 bits.
+- We'll implement the generation logic inline to avoid function call overhead.
+- We'll use a single loop for both generators to reduce code complexity.
+
+The key is to efficiently generate the next value and perform the comparison without unnecessary conversions or operations.

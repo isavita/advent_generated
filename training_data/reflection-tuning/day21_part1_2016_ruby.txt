@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Read the instructions from the input file.
+2. Implement each operation as a separate method.
+3. Apply the operations in order to the initial password "abcdefgh".
+4. Print the final scrambled password.
+
+The key is to carefully implement each operation, ensuring we handle edge cases and follow the instructions precisely. We'll use a single string variable to represent the password and modify it in-place for efficiency.

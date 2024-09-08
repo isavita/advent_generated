@@ -1,0 +1,17 @@
+To solve this problem, we need to:
+1. Parse the input file to extract tile IDs and their borders.
+2. Find matching borders between tiles.
+3. Identify corner tiles (tiles with only two matching borders).
+4. Multiply the IDs of the corner tiles.
+
+The key insights are:
+- We only need to consider the borders of each tile, not the entire tile content.
+- Corner tiles will have exactly two borders that don't match with any other tile.
+- We can use a hash to efficiently store and look up border patterns.
+
+The approach will be:
+1. Read and parse the input file.
+2. Extract borders for each tile (top, right, bottom, left).
+3. Create a hash to count occurrences of each border pattern (including reversed patterns for flipped tiles).
+4. Identify tiles with exactly two unique borders (corner tiles).
+5. Multiply the IDs of these corner tiles.

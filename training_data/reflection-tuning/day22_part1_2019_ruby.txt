@@ -1,0 +1,11 @@
+To solve this problem, we need to simulate the shuffling process on a deck of 10007 cards. Instead of actually manipulating the deck, we can track the position of card 2019 through each shuffle operation. This approach is more efficient as we only need to update a single number for each operation.
+
+Here's the approach:
+1. Start with the position of card 2019 (which is initially 2019).
+2. For each shuffle operation:
+   - For "deal into new stack", reverse the position.
+   - For "cut N", adjust the position based on the cut.
+   - For "deal with increment N", use modular arithmetic to find the new position.
+3. After applying all operations, the final position is our answer.
+
+This method is efficient because it performs constant-time operations for each shuffle instruction, regardless of the deck size.

@@ -1,0 +1,10 @@
+To solve this problem, we need to implement the scrambling operations as described and then apply them to the initial password. For Part Two, we need to reverse the process. Here's how we can approach this:
+
+1. Create functions for each scrambling operation.
+2. Parse the input file to get the list of operations.
+3. For Part One, apply the operations in order to the initial password.
+4. For Part Two, we need to reverse each operation and apply them in reverse order.
+   - For most operations, reversing is straightforward.
+   - The tricky part is the "rotate based on position of letter X" operation, which we'll need to brute force.
+
+We'll create a class `Scrambler` to encapsulate the logic and provide methods for both scrambling and unscrambling.

@@ -1,0 +1,5 @@
+The error message indicates that we're trying to use the `<<` method on a nil object. This typically happens when we're trying to append to an array that hasn't been initialized. In the context of building a graph, it suggests that we're trying to add an edge to a vertex that doesn't exist in our graph structure.
+
+To fix this, we need to ensure that every vertex in our graph is initialized with an empty array before we try to add edges to it. We can do this by modifying our `build_graph` method to first initialize all vertices with empty arrays, and then add the edges.
+
+Additionally, we should make sure that we're handling both directions of the portal connections, as the maze allows bidirectional travel through portals.

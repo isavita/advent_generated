@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the initial configuration from the input file.
+2. Create a function to count neighbors for each light.
+3. Implement the rules for updating lights in each step.
+4. Create separate functions for Part 1 and Part 2 to handle the different rules.
+5. Run the simulation for 100 steps for both parts.
+6. Count the number of lights on after 100 steps.
+
+For efficiency:
+- Use a 2D array to represent the grid.
+- Only update the state in-place after checking all lights in each step.
+- Use modulo arithmetic to handle edge cases for neighbor counting.

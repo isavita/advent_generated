@@ -1,0 +1,7 @@
+To solve this problem efficiently, we need to implement two different evaluation methods:
+1. For Part 1: Left-to-right evaluation with equal precedence for addition and multiplication.
+2. For Part 2: Addition before multiplication.
+
+We can use a recursive approach to handle parentheses in both cases. For Part 1, we'll simply evaluate expressions from left to right. For Part 2, we'll first split the expression by multiplication, evaluate each addition subexpression, and then multiply the results.
+
+To make the code more efficient and cleaner, we'll use regular expressions to tokenize the input and handle parentheses recursively. We'll also use a helper method to evaluate simple expressions without parentheses for both parts.

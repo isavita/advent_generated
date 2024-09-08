@@ -1,0 +1,11 @@
+To solve this problem, we need to implement both the regular Combat game and the Recursive Combat game. Here's the approach:
+
+1. Parse the input file to get the initial decks for both players.
+2. Implement the regular Combat game for Part 1.
+3. Implement the Recursive Combat game for Part 2, which includes:
+   - Checking for repeated configurations to prevent infinite games
+   - Recursively playing sub-games when conditions are met
+4. Calculate the score of the winning player's deck
+5. Run both parts and print the results
+
+We'll use arrays to represent the decks and implement the game logic as described in the problem statement. For Part 2, we'll use recursion and a set to keep track of previous configurations.

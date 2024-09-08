@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the input file and parse the instructions.
+2. Implement a simple interpreter that can execute these instructions.
+3. Keep track of the number of times the 'mul' instruction is invoked.
+4. Use a hash to represent the registers for easy access and modification.
+5. Implement a method for each instruction type (set, sub, mul, jnz).
+6. Use a loop to execute instructions, updating the program counter accordingly.
+7. Handle the 'jnz' instruction carefully to modify the program counter.
+8. Return the count of 'mul' instructions executed.
+
+This approach should provide an efficient solution as it directly simulates the program execution without unnecessary complexity.

@@ -1,0 +1,10 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in a maze-like structure. We'll use a queue to keep track of positions to explore, and a set to remember visited states. 
+
+The main steps of the solution will be:
+1. Initialize the BFS with the starting position and an empty path.
+2. For each step, generate the MD5 hash of the passcode + current path.
+3. Check which doors are open based on the hash.
+4. Add valid next positions to the queue.
+5. Continue until we reach the vault or exhaust all possibilities.
+
+We'll need to use Ruby's 'digest' library for MD5 hashing. To keep the solution efficient, we'll avoid generating paths that lead outside the 4x4 grid.

@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Parse the input file to get the information about each Aunt Sue.
+2. Define the MFCSAM readings as a hash.
+3. Compare each Aunt Sue's attributes with the MFCSAM readings.
+4. Find the Aunt Sue that matches all the known attributes.
+
+The efficient approach would be to:
+- Store each Aunt Sue's information in a hash for quick access.
+- Use a single loop to go through all Aunts and check their attributes against the MFCSAM readings.
+- Break the loop as soon as we find a match for all known attributes.

@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to recognize that performing the shuffling operations 101741582076661 times on a deck of 119315717514047 cards is not feasible through direct simulation. Instead, we need to use modular arithmetic and linear congruences to model the shuffling process.
+
+The key insights are:
+1. Each shuffling operation can be represented as a linear function (ax + b) mod m, where m is the deck size.
+2. Composing multiple shuffles results in another linear function.
+3. We can use the modular exponentiation algorithm to efficiently compute the result of applying the shuffle many times.
+
+The approach will be:
+1. Parse the input to create a single linear function representing the entire shuffle process.
+2. Use modular exponentiation to apply this function 101741582076661 times.
+3. Inverse the final function to find which card ends up at position 2020.
+
+We'll use Ruby's built-in support for big integers to handle the large numbers involved.

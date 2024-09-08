@@ -1,0 +1,16 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Keep track of the current bitmask
+3. Apply the bitmask to values before writing them to memory
+4. Sum all values in memory at the end
+
+We can use a hash to represent memory, where the keys are memory addresses and the values are the masked values. For the bitmask, we'll create two integers: one for the bits to be set (1s) and one for the bits to be cleared (0s). This way, we can efficiently apply the mask using bitwise operations.
+
+The algorithm will be:
+1. Initialize an empty hash for memory and set initial mask values
+2. For each line in the input:
+   - If it's a mask, update the mask values
+   - If it's a memory operation, apply the mask and store the result
+3. Sum all values in memory and return the result
+
+This approach is efficient as it uses bitwise operations and minimizes string manipulations.

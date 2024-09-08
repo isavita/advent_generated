@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Initialize a string representing the initial order of programs (a to p)
+3. Parse each dance move and apply it to our string
+4. For each move type:
+   - Spin (s): Use string slicing to move the last X characters to the front
+   - Exchange (x): Swap characters at given indices
+   - Partner (p): Find the indices of the given characters and swap them
+5. After applying all moves, print the final order of programs
+
+We'll use a single string to represent the program order and manipulate it directly for efficiency. We'll also use regular expressions to parse the dance moves quickly.

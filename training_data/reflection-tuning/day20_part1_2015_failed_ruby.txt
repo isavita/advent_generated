@@ -1,0 +1,5 @@
+The error message indicates that we're trying to use the `+` method on a nil value. This suggests that we're attempting to add to a value in the `presents` hash that doesn't exist yet. The issue is likely that we're not initializing the value for each house before adding to it. To fix this, we need to ensure that each house has an initial value of 0 before we start adding presents to it.
+
+We can solve this by using the `Hash.new(0)` constructor, which creates a hash that returns 0 for any key that hasn't been set yet. This way, when we try to add presents to a house for the first time, it will start from 0 instead of nil.
+
+Additionally, we should optimize the solution to avoid checking every elf for every house. Instead, we can iterate through the elves and update only the houses they visit. This will be much more efficient, especially for large input values.

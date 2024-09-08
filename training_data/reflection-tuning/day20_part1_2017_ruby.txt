@@ -1,0 +1,11 @@
+To solve this problem, we need to consider the long-term behavior of the particles. The key insight is that the acceleration determines the long-term trajectory of each particle. Particles with the smallest acceleration magnitude will eventually be closest to the origin.
+
+Here's the approach:
+1. Parse the input file to extract particle information.
+2. For each particle, calculate the magnitude of its acceleration (sum of absolute values of ax, ay, az).
+3. Find the particle with the smallest acceleration magnitude.
+4. If there are multiple particles with the same smallest acceleration, compare their velocity magnitudes.
+5. If velocities are also equal, compare their initial position magnitudes.
+6. Return the index of the particle that will stay closest to <0,0,0> in the long term.
+
+This approach is efficient because it doesn't require simulating the particles over time. Instead, it uses the properties that determine long-term behavior.

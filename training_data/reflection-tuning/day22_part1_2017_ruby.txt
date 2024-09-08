@@ -1,0 +1,10 @@
+To solve this problem efficiently, we need to:
+1. Parse the input file to create the initial grid.
+2. Implement the virus carrier's movement and infection logic.
+3. Use a hash to store infected nodes, allowing for an infinite grid.
+4. Simulate 10000 bursts and count the number of infections caused.
+
+Key optimizations:
+- Use a hash to store only infected nodes, saving memory for large grids.
+- Use complex numbers for position and direction, simplifying movement calculations.
+- Pre-calculate the initial grid center to place the virus carrier.

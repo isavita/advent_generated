@@ -1,0 +1,9 @@
+To solve this problem efficiently, we need to:
+1. Implement a function to check if a point is affected by the tractor beam.
+2. For Part 1, iterate through the 50x50 grid and count affected points.
+3. For Part 2, we need to find the closest 100x100 square that fits in the beam.
+   - We can start from a reasonable position and move diagonally until we find a valid square.
+   - To check if a square fits, we only need to check its top-left and bottom-right corners.
+   - Once we find a valid square, we can return the result as per the formula given.
+
+The key to efficiency is minimizing the number of checks we perform and avoiding unnecessary iterations.

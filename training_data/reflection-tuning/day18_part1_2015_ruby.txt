@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the initial configuration from the input file.
+2. Implement a function to count the number of active neighbors for each cell.
+3. Create a function to apply the rules and update the grid for each step.
+4. Repeat the update process for 100 steps.
+5. Count the number of lights that are on after 100 steps.
+
+We'll use a 2D array to represent the grid, where '#' is true (on) and '.' is false (off). We'll create helper functions for counting neighbors and updating the grid. To optimize performance, we'll use two grids and swap between them instead of creating a new grid each step.

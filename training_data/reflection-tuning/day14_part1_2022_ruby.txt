@@ -1,0 +1,12 @@
+To solve this problem, we need to follow these steps:
+1. Parse the input file to create a map of the rock structures.
+2. Implement a function to simulate the falling sand.
+3. Count the number of sand units that come to rest before sand starts flowing into the abyss.
+
+The approach will be:
+1. Use a hash to represent the cave, where keys are [x, y] coordinates and values are the content ('#' for rock, 'o' for sand).
+2. Find the maximum y-coordinate to determine the abyss level.
+3. Simulate sand falling until it reaches the abyss.
+4. Count the number of sand units that come to rest.
+
+We'll use a recursive function to simulate the sand falling, which will make the code more concise and efficient.

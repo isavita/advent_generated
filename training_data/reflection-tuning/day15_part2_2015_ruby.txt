@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Parse the input file to extract ingredient properties.
+2. Generate all possible combinations of ingredients that sum to 100 teaspoons.
+3. Calculate the score for each combination.
+4. Find the maximum score for Part 1.
+5. For Part 2, add a calorie check and find the maximum score with exactly 500 calories.
+
+We can use a recursive function to generate all combinations efficiently. To optimize, we can prune branches that exceed 100 teaspoons or 500 calories (for Part 2).

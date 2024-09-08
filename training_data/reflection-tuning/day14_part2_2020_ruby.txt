@@ -1,0 +1,12 @@
+To solve this problem efficiently, we need to:
+1. Parse the input file line by line.
+2. Keep track of the current bitmask.
+3. For Part 1:
+   - Apply the bitmask to values before writing to memory.
+   - Use a hash to store memory addresses and their values.
+4. For Part 2:
+   - Apply the bitmask to memory addresses, generating all possible combinations for floating bits.
+   - Write the value to all generated addresses.
+5. Sum up all values in memory at the end.
+
+We'll use bitwise operations for efficiency and generate floating bit combinations recursively.

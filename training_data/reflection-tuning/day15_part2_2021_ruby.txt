@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can use Dijkstra's algorithm to find the shortest path in a weighted graph. The cave can be represented as a 2D grid where each cell is a node, and the risk level is the weight of the edge to that node.
+
+For Part 1, we'll implement Dijkstra's algorithm using a priority queue (which we'll simulate using Ruby's built-in Array and sort method for simplicity).
+
+For Part 2, we'll need to expand the original map to 5x5 tiles, adjusting the risk levels as described. Then we'll apply the same Dijkstra's algorithm to the expanded map.
+
+To optimize for large inputs, we'll use a more efficient priority queue implementation (like a binary heap) in a real-world scenario, but for this solution, we'll keep it simple with Ruby's built-in Array operations.

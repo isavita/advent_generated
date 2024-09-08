@@ -1,0 +1,7 @@
+The error message indicates that we're trying to perform subtraction on a nil value. This suggests that one of the coordinate values (specifically in the z-coordinate) is not being properly set or accessed. The issue likely occurs when we're trying to calculate the dimensions of a cuboid.
+
+To fix this, we need to ensure that all coordinate values are properly initialized and accessed. We should add checks to make sure we're not trying to access nil values, and possibly adjust how we're storing or accessing the coordinate data.
+
+One approach could be to use a more robust data structure for storing cuboid information, such as a Struct or a dedicated class. This would allow us to have better control over the data and add validation to ensure all required values are present.
+
+Additionally, we should add error handling to gracefully manage cases where expected data might be missing, rather than allowing the program to crash with a NoMethodError.

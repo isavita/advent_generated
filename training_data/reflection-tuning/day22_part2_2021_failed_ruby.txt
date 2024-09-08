@@ -1,0 +1,9 @@
+To solve this problem efficiently, we need to consider the following approach:
+
+1. Instead of tracking individual cubes, we'll work with cuboids (3D rectangles).
+2. We'll use a technique called "sweep line" algorithm, but in 3D.
+3. We'll sort all the x, y, and z coordinates and compress them to reduce the problem space.
+4. We'll iterate through the compressed coordinates, calculating the volume of "on" cuboids at each step.
+5. We'll use a 2D segment tree to efficiently manage the active areas in the y-z plane for each x slice.
+
+This approach allows us to handle large coordinate ranges without explicitly storing each cube, making it suitable for both Part 1 and Part 2 of the problem.

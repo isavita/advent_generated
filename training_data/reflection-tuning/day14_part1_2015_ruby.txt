@@ -1,0 +1,14 @@
+To solve this problem, we need to:
+1. Parse the input file to extract information about each reindeer.
+2. Simulate the race for 2503 seconds.
+3. Calculate the distance traveled by each reindeer.
+4. Find the maximum distance traveled.
+
+We can create a Reindeer class to encapsulate the properties and behavior of each reindeer. The main program will read the input, create Reindeer objects, simulate the race, and find the winner.
+
+To calculate the distance efficiently, we can:
+- Determine how many full cycles (flying + resting) fit within 2503 seconds.
+- Calculate the distance covered in full cycles.
+- Add the distance covered in the remaining time.
+
+This approach avoids simulating each second individually, making it more efficient for larger time periods.

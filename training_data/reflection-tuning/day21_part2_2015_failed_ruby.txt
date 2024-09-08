@@ -1,0 +1,5 @@
+The error message indicates that we're trying to add an Array to an Integer, which is not a valid operation in Ruby. This suggests that in our `generate_combinations` method, we're likely trying to sum up an array of items directly, instead of summing their individual cost, damage, or armor values.
+
+To fix this, we need to ensure that when we're calculating the sum of costs, damages, or armors, we're actually summing the specific attributes of each item, not the entire item array.
+
+Additionally, the error seems to be occurring in a recursive call, which might indicate that we're not handling the base case of our recursion correctly. We should make sure that we're returning the correct type (an array of combinations) at each step of the recursion.

@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Parse the input to get the target area coordinates.
+2. Simulate the probe's trajectory for various initial velocities.
+3. Find the highest y position reached among all valid trajectories.
+
+We can optimize by:
+- Calculating the maximum x velocity (beyond which the probe will overshoot on the first step).
+- Calculating the minimum x velocity (below which the probe will never reach the target area).
+- Calculating the maximum y velocity (beyond which the probe will always overshoot).
+- Calculating the minimum y velocity (below which the probe will undershoot on the first step).
+
+We'll then iterate through these bounded ranges of velocities, simulate each trajectory, and keep track of the highest y position reached for valid trajectories.

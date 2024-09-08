@@ -1,0 +1,11 @@
+To solve this problem, we need to implement a simulation of the game with all the spells and their effects. The key challenge is to find the least amount of mana spent to win. This suggests using a breadth-first search (BFS) or a priority queue-based search to explore different spell combinations.
+
+Here's the approach:
+1. Define the game state (player HP, mana, boss HP, active effects, etc.)
+2. Implement the spells and their effects
+3. Create a function to simulate a turn (player's turn and boss's turn)
+4. Use a priority queue (min-heap) to explore game states, prioritizing by mana spent
+5. Keep track of the minimum mana spent to win
+6. Implement the main game loop that explores all possible spell combinations
+
+We'll use a priority queue to always explore the least expensive (in terms of mana) game states first. This will ensure we find the optimal solution efficiently.

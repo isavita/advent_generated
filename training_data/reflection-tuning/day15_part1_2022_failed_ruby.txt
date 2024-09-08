@@ -1,0 +1,5 @@
+The error message indicates that we're trying to call the `end=` method on a Range object, which doesn't exist. In Ruby, Range objects are immutable, so we can't directly modify their end point. Instead, we need to create a new Range object with the updated end point. 
+
+To fix this, we should replace the line that's causing the error with code that creates a new Range object with the updated end point. We'll need to modify our approach to work with immutable Range objects throughout the `merge_ranges` method.
+
+Additionally, we should ensure that we're properly parsing the input and calculating the coverage ranges for the specified y-coordinate. The previous solution might not have included this part of the problem.

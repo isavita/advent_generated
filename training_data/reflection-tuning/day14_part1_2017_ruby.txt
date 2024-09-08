@@ -1,0 +1,11 @@
+To solve this problem, we need to follow these steps:
+1. Read the input key string from the file.
+2. Generate 128 knot hashes, one for each row.
+3. Convert each knot hash to binary.
+4. Count the number of '1' bits in all 128 rows combined.
+
+For the knot hash calculation, we'll need to implement the algorithm from Day 10. We'll create a separate method for this.
+
+To optimize the solution, we can:
+- Use bitwise operations to convert hexadecimal to binary.
+- Count '1' bits directly in the hexadecimal representation instead of converting to binary first.

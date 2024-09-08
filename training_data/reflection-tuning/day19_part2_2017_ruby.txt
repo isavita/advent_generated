@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a 2D array.
+2. Find the starting point (the first '|' in the top row).
+3. Traverse the path, keeping track of:
+   - Current position (row, column)
+   - Current direction
+   - Letters encountered
+   - Total steps taken
+4. Implement logic to change direction at '+' intersections.
+5. Stop when we reach the end of the path (no valid next step).
+6. Return the collected letters (Part 1) and total steps (Part 2).
+
+We'll use a simple state machine approach for direction changes and a hash to map directions to coordinate changes.

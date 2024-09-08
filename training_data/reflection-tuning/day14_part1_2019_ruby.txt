@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Parse the input file to create a map of reactions.
+2. Implement a recursive function to calculate the required ORE for a given chemical and quantity.
+3. Use a memoization technique to optimize the calculation for repeated chemicals.
+4. Start the calculation from 1 FUEL and recursively calculate the required ORE.
+
+The key points in the implementation are:
+- Using a hash to store the reactions for quick lookup.
+- Implementing a depth-first search to calculate the required materials.
+- Using a hash to store excess materials to minimize waste.
+- Rounding up the required quantity to the nearest multiple of the reaction output.
