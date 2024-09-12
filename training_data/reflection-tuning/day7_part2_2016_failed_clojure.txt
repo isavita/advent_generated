@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. For each line, split it into supernet and hypernet sequences.
+3. Implement functions to check for ABBA and ABA patterns.
+4. For Part 1, count IPs that have ABBA in supernet but not in hypernet.
+5. For Part 2, find ABA patterns in supernet and check for corresponding BAB in hypernet.
+6. Use efficient string processing and avoid unnecessary computations.
+7. Utilize Clojure's built-in functions for string manipulation and sequence processing.

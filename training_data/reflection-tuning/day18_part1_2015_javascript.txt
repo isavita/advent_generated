@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the initial configuration from the input file.
+2. Create a 2D array to represent the grid of lights.
+3. Implement a function to count the number of active neighbors for each light.
+4. Create a function to perform one step of the animation, applying the rules to each light.
+5. Repeat the animation step 100 times.
+6. Count the number of lights that are on after 100 steps.
+
+To optimize performance:
+- We can use a single 2D array and update it in-place, swapping between two arrays to avoid creating new arrays in each step.
+- We can use bitwise operations to represent on/off states (1 for on, 0 for off).
+- We can pre-calculate the grid dimensions to avoid repeated calculations.

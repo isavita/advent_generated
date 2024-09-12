@@ -1,0 +1,15 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Parse each line into opponent's move and our move
+3. Calculate the score for each round based on the given rules
+4. Sum up all the scores
+
+For Part 1:
+- We'll create a map for move scores and outcome scores
+- Calculate score based on our move and the outcome
+
+For Part 2:
+- We'll create a map for required outcomes and a map for what move to choose based on opponent's move and required outcome
+- Calculate score based on the chosen move and the required outcome
+
+We can use Clojure's file reading capabilities, map functions, and reduce to efficiently solve this problem.

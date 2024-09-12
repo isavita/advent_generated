@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Parse the input file to separate rules and messages.
+2. Create a function to build a regular expression from the rules.
+3. Use the regular expression to match messages against rule 0.
+4. Count the number of messages that completely match rule 0.
+
+The key to efficiency here is to use regular expressions. We can convert the rules into a single regular expression, which can then be used to quickly match against all messages. We'll use a Map to store the rules and build the regex recursively.

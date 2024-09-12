@@ -1,0 +1,15 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. For each line (passphrase), split it into words
+3. Check if there are any duplicate words in the passphrase
+4. Count the number of valid passphrases (those without duplicates)
+5. Print the final count
+
+We can use Clojure's built-in functions to make this solution concise and efficient:
+- `slurp` to read the entire file
+- `clojure.string/split-lines` to split the file content into lines
+- `clojure.string/split` to split each line into words
+- `set` to create a set of unique words
+- `count` to compare the number of unique words with the total number of words
+
+By using `reduce` with an accumulator, we can count the valid passphrases in a single pass through the data.

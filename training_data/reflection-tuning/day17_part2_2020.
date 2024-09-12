@@ -1,0 +1,78 @@
+const fs = require('fs');
+
+class ConwayCubes4D {
+    constructor(initialState) {
+        this.activeCubes = new Set();
+        this.parseInitialState(initialState);
+    }
+
+    parseInitialState(state) {
+        state.split('\n').forEach((row, y) => {
+            row.split('').forEach((cell, x) => {
+                if (cell === '#') {
+                    this.activeCubes.add(`${x},${y},0,0`);
+                }
+            });
+        });
+    }
+
+    getNeighbors(cube) {
+        const [x, y, z, w] = cube.split(',').map(Number);
+        const neighbors = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    for (let dw = -1; dw <= 1; dw++) {
+                        if (dx !== 0 || dy !== 0 || dz !== 0 || dw !== 0) {
+                            neighbors.push(`${x+dx},${y+dy},${z+dz},${w+dw}`);
+                        }
+                    }
+                }
+            }
+        }
+        return neighbors;
+    }
+
+    cycle() {
+        const newActiveCubes = new Set();
+        const consideredCubes = new Set();
+
+        for (const cube of this.activeCubes) {
+            consideredCubes.add(cube);
+            this.getNeighbors(cube).forEach(neighbor => consideredCubes.add(neighbor));
+        }
+
+        for (const cube of consideredCubes) {
+            const activeNeighbors = this.getNeighbors(cube).filter(n => this.activeCubes.has(n)).length;
+            if (this.activeCubes.has(cube)) {
+                if (activeNeighbors === 2 || activeNeighbors === 3) {
+                    newActiveCubes.add(cube);
+                }
+            } else if (activeNeighbors === 3) {
+                newActiveCubes.add(cube);
+            }
+        }
+
+        this.activeCubes = newActiveCubes;
+    }
+
+    runCycles(n) {
+        for (let i = 0; i < n; i++) {
+            this.cycle();
+        }
+    }
+
+    getActiveCount() {
+        return this.activeCubes.size;
+    }
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Create ConwayCubes4D instance and run simulation
+const conwayCubes = new ConwayCubes4D(input);
+conwayCubes.runCycles(6);
+
+// Print the result
+console.log(conwayCubes.getActiveCount());

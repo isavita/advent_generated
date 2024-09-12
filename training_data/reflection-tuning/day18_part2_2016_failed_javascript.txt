@@ -1,0 +1,11 @@
+Looking at the previous output, it seems the solution for Part 1 (3943) is likely incorrect, as it's much higher than the example given (which had 38 safe tiles in 10 rows). The Part 2 answer (39999943) also seems suspiciously high and close to the total number of tiles (400000 * width of input).
+
+The issue might be in the logic for counting safe tiles or in the rule implementation for determining trap/safe tiles. It's possible that the code is counting traps instead of safe tiles, or that the rules for determining new tiles are not correctly implemented.
+
+To fix this, we should:
+1. Ensure we're counting safe tiles (.) and not trap tiles (^)
+2. Double-check the implementation of the rules for determining new tiles
+3. Verify that we're correctly handling the edges of each row
+4. Make sure we're processing the correct number of rows (40 for Part 1, 400000 for Part 2)
+
+Let's rewrite the solution with these considerations in mind.

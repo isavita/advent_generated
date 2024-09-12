@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can use a set to keep track of unique house coordinates visited by Santa and Robo-Santa. We'll represent each house as a tuple of (x, y) coordinates. As we process each move, we'll update the position of Santa or Robo-Santa and add the new position to the set.
+
+For Part One, we'll use a single position tracker. For Part Two, we'll use two position trackers, alternating between them for each move. 
+
+We'll read the input from "input.txt" and process it character by character. After processing all moves, the size of the set will give us the number of houses that received at least one present.
+
+To make the solution concise and efficient, we'll use Clojure's built-in functions like reduce, conj, and count. We'll also use destructuring to simplify coordinate updates.

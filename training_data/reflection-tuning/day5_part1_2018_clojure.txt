@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can use a stack-based approach. We'll iterate through each character of the input string, comparing it with the top of the stack. If they react (same letter but different case), we pop the top element off the stack. Otherwise, we push the current character onto the stack. This process effectively simulates the reaction process.
+
+Key steps:
+1. Read the input from "input.txt"
+2. Define a helper function to check if two characters react
+3. Use reduce to process the string, building up the stack of remaining characters
+4. Count the remaining characters in the stack
+
+This approach is efficient as it processes the string in a single pass, with O(n) time complexity where n is the length of the input string.

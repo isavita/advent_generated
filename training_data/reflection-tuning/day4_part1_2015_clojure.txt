@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the secret key from the input file.
+2. Implement a function to generate MD5 hashes.
+3. Iterate through numbers, starting from 1, until we find a hash that starts with at least five zeroes.
+4. Use efficient string manipulation and comparison to check the hash prefix.
+5. Optimize the solution by using lazy sequences and early termination.
+
+The key to efficiency here is to use Clojure's built-in functions for MD5 hashing and to avoid unnecessary string conversions. We'll use java.security.MessageDigest for MD5 hashing and java.math.BigInteger for converting byte arrays to hexadecimal strings.

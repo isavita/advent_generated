@@ -1,0 +1,10 @@
+To solve this problem, we need to implement a breadth-first search (BFS) algorithm. BFS is ideal for finding the shortest path in a maze-like structure. We'll use a queue to keep track of paths to explore, and a set to avoid revisiting the same positions. 
+
+The key steps are:
+1. Initialize the search with the starting position and an empty path.
+2. For each step, generate the MD5 hash of the passcode + current path.
+3. Check which doors are open based on the hash.
+4. Add new valid positions to the queue.
+5. Continue until we reach the vault (bottom-right corner).
+
+We'll need to use a MD5 hashing function, which we can import from a crypto library. For efficiency, we'll use a custom Point class to represent positions and precompute the directions.

@@ -1,0 +1,5 @@
+The error message indicates that there's an issue with the number of arguments being passed to a vector at line 22 in the solve-part2 function. This suggests that we're trying to use a vector as a function, which is not correct. The error is likely caused by trying to call a vector with two arguments instead of accessing its elements properly.
+
+To fix this, we need to ensure that we're using vector access correctly, probably using the `get` function or the `nth` function when we want to retrieve elements from a vector. We should also double-check that we're passing the correct number of arguments to our functions.
+
+Additionally, we should make sure that our solve-part2 function is correctly implementing the logic to check multiple slopes and multiply the results together.

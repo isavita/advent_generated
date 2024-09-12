@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse each line into start and end values of blocked IP ranges.
+2. Sort these ranges based on their start values.
+3. Merge overlapping ranges to simplify our blocked IP list.
+4. For Part 1, find the first gap between ranges or before the first range, which will be the lowest unblocked IP.
+5. For Part 2, calculate the total number of blocked IPs by summing the sizes of merged ranges, then subtract from the total possible IPs (4294967296) to get the number of allowed IPs.
+
+This approach allows us to handle large ranges efficiently without storing individual IPs.

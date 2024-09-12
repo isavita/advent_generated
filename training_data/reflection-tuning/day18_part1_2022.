@@ -1,0 +1,30 @@
+const fs = require('fs');
+
+function calculateSurfaceArea(input) {
+    const cubes = new Set(input.split('\n').map(line => line.trim()));
+    let surfaceArea = 0;
+
+    for (const cube of cubes) {
+        const [x, y, z] = cube.split(',').map(Number);
+        const adjacentPositions = [
+            `${x+1},${y},${z}`, `${x-1},${y},${z}`,
+            `${x},${y+1},${z}`, `${x},${y-1},${z}`,
+            `${x},${y},${z+1}`, `${x},${y},${z-1}`
+        ];
+
+        for (const pos of adjacentPositions) {
+            if (!cubes.has(pos)) {
+                surfaceArea++;
+            }
+        }
+    }
+
+    return surfaceArea;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Calculate and print the result
+const result = calculateSurfaceArea(input);
+console.log(result);

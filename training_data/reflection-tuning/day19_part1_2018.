@@ -1,0 +1,55 @@
+const fs = require('fs');
+
+class CPU {
+    constructor(ipRegister, instructions) {
+        this.registers = [0, 0, 0, 0, 0, 0];
+        this.ip = 0;
+        this.ipRegister = ipRegister;
+        this.instructions = instructions;
+    }
+
+    execute() {
+        while (this.ip >= 0 && this.ip < this.instructions.length) {
+            this.registers[this.ipRegister] = this.ip;
+            const [opcode, a, b, c] = this.instructions[this.ip];
+            this[opcode](a, b, c);
+            this.ip = this.registers[this.ipRegister];
+            this.ip++;
+        }
+        return this.registers[0];
+    }
+
+    addr(a, b, c) { this.registers[c] = this.registers[a] + this.registers[b]; }
+    addi(a, b, c) { this.registers[c] = this.registers[a] + b; }
+    mulr(a, b, c) { this.registers[c] = this.registers[a] * this.registers[b]; }
+    muli(a, b, c) { this.registers[c] = this.registers[a] * b; }
+    banr(a, b, c) { this.registers[c] = this.registers[a] & this.registers[b]; }
+    bani(a, b, c) { this.registers[c] = this.registers[a] & b; }
+    borr(a, b, c) { this.registers[c] = this.registers[a] | this.registers[b]; }
+    bori(a, b, c) { this.registers[c] = this.registers[a] | b; }
+    setr(a, b, c) { this.registers[c] = this.registers[a]; }
+    seti(a, b, c) { this.registers[c] = a; }
+    gtir(a, b, c) { this.registers[c] = a > this.registers[b] ? 1 : 0; }
+    gtri(a, b, c) { this.registers[c] = this.registers[a] > b ? 1 : 0; }
+    gtrr(a, b, c) { this.registers[c] = this.registers[a] > this.registers[b] ? 1 : 0; }
+    eqir(a, b, c) { this.registers[c] = a === this.registers[b] ? 1 : 0; }
+    eqri(a, b, c) { this.registers[c] = this.registers[a] === b ? 1 : 0; }
+    eqrr(a, b, c) { this.registers[c] = this.registers[a] === this.registers[b] ? 1 : 0; }
+}
+
+function parseInput(input) {
+    const lines = input.trim().split('\n');
+    const ipRegister = parseInt(lines[0].split(' ')[1]);
+    const instructions = lines.slice(1).map(line => {
+        const [opcode, ...params] = line.split(' ');
+        return [opcode, ...params.map(Number)];
+    });
+    return { ipRegister, instructions };
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+const { ipRegister, instructions } = parseInput(input);
+const cpu = new CPU(ipRegister, instructions);
+const result = cpu.execute();
+
+console.log(result);

@@ -1,0 +1,72 @@
+const fs = require('fs');
+
+// Read boss stats from input file
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const bossHP = parseInt(input[0].split(': ')[1]);
+const bossDamage = parseInt(input[1].split(': ')[1]);
+const bossArmor = parseInt(input[2].split(': ')[1]);
+
+// Define items
+const weapons = [
+    { name: 'Dagger', cost: 8, damage: 4, armor: 0 },
+    { name: 'Shortsword', cost: 10, damage: 5, armor: 0 },
+    { name: 'Warhammer', cost: 25, damage: 6, armor: 0 },
+    { name: 'Longsword', cost: 40, damage: 7, armor: 0 },
+    { name: 'Greataxe', cost: 74, damage: 8, armor: 0 }
+];
+
+const armors = [
+    { name: 'No Armor', cost: 0, damage: 0, armor: 0 },
+    { name: 'Leather', cost: 13, damage: 0, armor: 1 },
+    { name: 'Chainmail', cost: 31, damage: 0, armor: 2 },
+    { name: 'Splintmail', cost: 53, damage: 0, armor: 3 },
+    { name: 'Bandedmail', cost: 75, damage: 0, armor: 4 },
+    { name: 'Platemail', cost: 102, damage: 0, armor: 5 }
+];
+
+const rings = [
+    { name: 'No Ring', cost: 0, damage: 0, armor: 0 },
+    { name: 'Damage +1', cost: 25, damage: 1, armor: 0 },
+    { name: 'Damage +2', cost: 50, damage: 2, armor: 0 },
+    { name: 'Damage +3', cost: 100, damage: 3, armor: 0 },
+    { name: 'Defense +1', cost: 20, damage: 0, armor: 1 },
+    { name: 'Defense +2', cost: 40, damage: 0, armor: 2 },
+    { name: 'Defense +3', cost: 80, damage: 0, armor: 3 }
+];
+
+function simulateFight(playerDamage, playerArmor) {
+    let playerHP = 100;
+    let currentBossHP = bossHP;
+
+    while (true) {
+        currentBossHP -= Math.max(1, playerDamage - bossArmor);
+        if (currentBossHP <= 0) return true;
+
+        playerHP -= Math.max(1, bossDamage - playerArmor);
+        if (playerHP <= 0) return false;
+    }
+}
+
+function findMinGold(weapon, armor, ring1, ring2) {
+    const totalCost = weapon.cost + armor.cost + ring1.cost + ring2.cost;
+    const totalDamage = weapon.damage + armor.damage + ring1.damage + ring2.damage;
+    const totalArmor = weapon.armor + armor.armor + ring1.armor + ring2.armor;
+
+    return simulateFight(totalDamage, totalArmor) ? totalCost : Infinity;
+}
+
+let minGold = Infinity;
+
+for (const weapon of weapons) {
+    for (const armor of armors) {
+        for (let i = 0; i < rings.length; i++) {
+            for (let j = i; j < rings.length; j++) {
+                if (i === j && i !== 0) continue; // Skip using the same ring twice, except for 'No Ring'
+                const cost = findMinGold(weapon, armor, rings[i], rings[j]);
+                minGold = Math.min(minGold, cost);
+            }
+        }
+    }
+}
+
+console.log(minGold);

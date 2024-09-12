@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse each line into a hand and bid.
+2. Define a function to determine the type of each hand (Five of a kind, Four of a kind, etc.).
+3. Create a custom comparator function that compares hands based on their type and then card by card if needed.
+4. Sort the hands using this comparator.
+5. Calculate the total winnings by multiplying each hand's bid by its rank (position in the sorted list).
+
+For efficiency, we'll use Clojure's built-in sorting and mapping functions, and we'll create a lookup map for card values to avoid repeated comparisons.

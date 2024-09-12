@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse the orbit relationships.
+2. Create a map where each object is a key, and its value is the object it orbits.
+3. Implement a function to count the number of orbits for a single object by traversing up the orbit chain.
+4. Sum up the orbit counts for all objects in the map.
+
+The key to efficiency here is to use a map data structure for quick lookups of orbit relationships. We'll also use recursion to count orbits, which is a natural fit for Clojure's functional paradigm.

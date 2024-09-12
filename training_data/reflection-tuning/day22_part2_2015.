@@ -1,0 +1,81 @@
+const fs = require('fs');
+
+const SPELLS = [
+    { name: 'Magic Missile', cost: 53, damage: 4 },
+    { name: 'Drain', cost: 73, damage: 2, heal: 2 },
+    { name: 'Shield', cost: 113, duration: 6, armor: 7 },
+    { name: 'Poison', cost: 173, duration: 6, damage: 3 },
+    { name: 'Recharge', cost: 229, duration: 5, mana: 101 }
+];
+
+function simulateBattle(playerHP, playerMana, bossHP, bossDamage, hardMode = false) {
+    let minManaSpent = Infinity;
+
+    function dfs(hp, mana, bossHp, manaSpent, activeEffects, playerTurn) {
+        if (manaSpent >= minManaSpent) return;
+        if (bossHp <= 0) {
+            minManaSpent = Math.min(minManaSpent, manaSpent);
+            return;
+        }
+        if (hp <= 0) return;
+
+        if (playerTurn && hardMode) {
+            hp--;
+            if (hp <= 0) return;
+        }
+
+        let armor = 0;
+        activeEffects = activeEffects.map(effect => {
+            if (effect.name === 'Shield') armor = effect.armor;
+            if (effect.name === 'Poison') bossHp -= effect.damage;
+            if (effect.name === 'Recharge') mana += effect.mana;
+            return { ...effect, duration: effect.duration - 1 };
+        }).filter(effect => effect.duration > 0);
+
+        if (bossHp <= 0) {
+            minManaSpent = Math.min(minManaSpent, manaSpent);
+            return;
+        }
+
+        if (playerTurn) {
+            for (const spell of SPELLS) {
+                if (spell.cost > mana) continue;
+                if (activeEffects.some(effect => effect.name === spell.name)) continue;
+
+                let newEffects = [...activeEffects];
+                let newHp = hp;
+                let newMana = mana - spell.cost;
+                let newBossHp = bossHp;
+
+                if (spell.duration) {
+                    newEffects.push({ ...spell });
+                } else {
+                    newBossHp -= spell.damage || 0;
+                    newHp += spell.heal || 0;
+                }
+
+                dfs(newHp, newMana, newBossHp, manaSpent + spell.cost, newEffects, false);
+            }
+        } else {
+            hp -= Math.max(1, bossDamage - armor);
+            dfs(hp, mana, bossHp, manaSpent, activeEffects, true);
+        }
+    }
+
+    dfs(playerHP, playerMana, bossHP, 0, [], true);
+    return minManaSpent;
+}
+
+function main() {
+    const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+    const bossHP = parseInt(input[0].split(': ')[1]);
+    const bossDamage = parseInt(input[1].split(': ')[1]);
+
+    const part1 = simulateBattle(50, 500, bossHP, bossDamage);
+    console.log('Part 1:', part1);
+
+    const part2 = simulateBattle(50, 500, bossHP, bossDamage, true);
+    console.log('Part 2:', part2);
+}
+
+main();

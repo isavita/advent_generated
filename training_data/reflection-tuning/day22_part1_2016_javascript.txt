@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract node information (x, y coordinates, size, used, and available space).
+2. Store the parsed data in an array of node objects.
+3. Iterate through the array twice (nested loops) to compare each node with every other node.
+4. For each pair, check if it meets the viability criteria:
+   - Node A is not empty
+   - Node A and B are not the same
+   - Node A's used space fits in Node B's available space
+5. Count the viable pairs and return the result.
+
+To optimize, we can:
+- Use early continue statements to skip unnecessary comparisons.
+- Use efficient data structures (objects) for quick access to node properties.

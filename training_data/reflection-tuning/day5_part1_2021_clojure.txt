@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read and parse the input file
+2. Filter out diagonal lines, keeping only horizontal and vertical lines
+3. Generate all points for each line
+4. Count the occurrences of each point
+5. Count how many points have at least 2 occurrences
+
+We can use Clojure's efficient data structures like sets and maps to handle the point counting. We'll use the `frequencies` function to count point occurrences efficiently.

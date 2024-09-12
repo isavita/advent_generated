@@ -1,0 +1,58 @@
+const { PriorityQueue } = require('@datastructures-js/priority-queue');
+
+function findShortestPath(maze) {
+    const rows = maze.length;
+    const cols = maze[0].length;
+    let start;
+    const keys = new Set();
+    const doors = new Set();
+
+    // Find start position and all keys
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            if (maze[i][j] === '@') start = [i, j];
+            if (maze[i][j] >= 'a' && maze[i][j] <= 'z') keys.add(maze[i][j]);
+            if (maze[i][j] >= 'A' && maze[i][j] <= 'Z') doors.add(maze[i][j]);
+        }
+    }
+
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    const queue = new PriorityQueue((a, b) => a[2] - b[2]);
+    queue.enqueue([start[0], start[1], 0, new Set()]);
+    const visited = new Set();
+
+    while (!queue.isEmpty()) {
+        const [x, y, steps, collectedKeys] = queue.dequeue();
+        const state = `${x},${y},${[...collectedKeys].sort().join('')}`;
+
+        if (visited.has(state)) continue;
+        visited.add(state);
+
+        if (collectedKeys.size === keys.size) return steps;
+
+        for (const [dx, dy] of directions) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || nx >= rows || ny < 0 || ny >= cols || maze[nx][ny] === '#') continue;
+
+            const cell = maze[nx][ny];
+            if (cell >= 'A' && cell <= 'Z' && !collectedKeys.has(cell.toLowerCase())) continue;
+
+            const newKeys = new Set(collectedKeys);
+            if (cell >= 'a' && cell <= 'z') newKeys.add(cell);
+
+            queue.enqueue([nx, ny, steps + 1, newKeys]);
+        }
+    }
+
+    return -1; // No path found
+}
+
+// Example usage
+const maze = [
+    '#########',
+    '#b.A.@.a#',
+    '#########'
+];
+
+console.log(findShortestPath(maze)); // Should output 8

@@ -1,0 +1,35 @@
+const fs = require('fs');
+
+function findLowestUnblockedIP(input) {
+    // Parse input and sort ranges
+    const ranges = input.split('\n')
+        .map(line => line.split('-').map(Number))
+        .sort((a, b) => a[0] - b[0]);
+
+    // Merge overlapping ranges
+    const mergedRanges = [];
+    for (let range of ranges) {
+        if (!mergedRanges.length || range[0] > mergedRanges[mergedRanges.length - 1][1] + 1) {
+            mergedRanges.push(range);
+        } else {
+            mergedRanges[mergedRanges.length - 1][1] = Math.max(mergedRanges[mergedRanges.length - 1][1], range[1]);
+        }
+    }
+
+    // Find the lowest unblocked IP
+    let lowestUnblockedIP = 0;
+    for (let range of mergedRanges) {
+        if (lowestUnblockedIP < range[0]) {
+            return lowestUnblockedIP;
+        }
+        lowestUnblockedIP = Math.max(lowestUnblockedIP, range[1] + 1);
+    }
+
+    return lowestUnblockedIP;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Solve and print the result
+console.log(findLowestUnblockedIP(input));

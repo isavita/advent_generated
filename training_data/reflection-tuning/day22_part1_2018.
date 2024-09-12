@@ -1,0 +1,40 @@
+const fs = require('fs');
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const depth = parseInt(input[0].split(': ')[1]);
+const [targetX, targetY] = input[1].split(': ')[1].split(',').map(Number);
+
+const MOD = 20183;
+
+function calculateGeologicIndex(x, y, erosionLevels) {
+    if ((x === 0 && y === 0) || (x === targetX && y === targetY)) return 0;
+    if (y === 0) return x * 16807;
+    if (x === 0) return y * 48271;
+    return erosionLevels[y][x - 1] * erosionLevels[y - 1][x];
+}
+
+function calculateErosionLevel(geologicIndex) {
+    return (geologicIndex + depth) % MOD;
+}
+
+function getRegionType(erosionLevel) {
+    return erosionLevel % 3;
+}
+
+function calculateTotalRiskLevel() {
+    let totalRisk = 0;
+    const erosionLevels = Array(targetY + 1).fill().map(() => Array(targetX + 1).fill(0));
+
+    for (let y = 0; y <= targetY; y++) {
+        for (let x = 0; x <= targetX; x++) {
+            const geologicIndex = calculateGeologicIndex(x, y, erosionLevels);
+            erosionLevels[y][x] = calculateErosionLevel(geologicIndex);
+            totalRisk += getRegionType(erosionLevels[y][x]);
+        }
+    }
+
+    return totalRisk;
+}
+
+console.log(calculateTotalRiskLevel());

@@ -1,0 +1,12 @@
+The timeout error suggests that the previous solution was likely too slow for handling such a large number of rocks (1000000000000) in Part Two. To address this, we need to implement a more efficient algorithm that can detect patterns in the rock tower's growth.
+
+The key insight is that the rock shapes and jet patterns repeat cyclically. This means that after a certain number of rocks, the tower's growth pattern will start repeating. If we can detect this cycle, we can extrapolate the tower's height for a large number of rocks without simulating each rock individually.
+
+Here's the approach I would take:
+1. Implement the simulation for a smaller number of rocks (e.g., the first 10000).
+2. For each rock, store a state that includes the current rock index, jet pattern index, and the shape of the top of the tower.
+3. Detect when we've seen a state before, which indicates the start of a cycle.
+4. Calculate the height gained and the number of rocks dropped in one cycle.
+5. Use this information to extrapolate the height for 1000000000000 rocks.
+
+This approach should significantly reduce the computation time and avoid the timeout error.

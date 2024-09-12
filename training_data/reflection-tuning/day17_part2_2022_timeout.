@@ -1,0 +1,95 @@
+const fs = require('fs');
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+const CHAMBER_WIDTH = 7;
+const ROCKS = [
+    [0b0011110],
+    [0b0001000, 0b0011100, 0b0001000],
+    [0b0011100, 0b0000100, 0b0000100],
+    [0b0010000, 0b0010000, 0b0010000, 0b0010000],
+    [0b0011000, 0b0011000]
+];
+
+function simulateRocks(jetPattern, totalRocks) {
+    let tower = [];
+    let jetIndex = 0;
+    let height = 0;
+    let states = new Map();
+
+    for (let rockCount = 0; rockCount < totalRocks; rockCount++) {
+        let rockIndex = rockCount % ROCKS.length;
+        let rock = ROCKS[rockIndex];
+        let rockY = height + 3;
+        let rockX = 2;
+
+        while (true) {
+            // Apply jet
+            let jet = jetPattern[jetIndex % jetPattern.length];
+            jetIndex++;
+
+            let newX = jet === '>' ? rockX + 1 : rockX - 1;
+            if (newX >= 0 && newX + rock[0].toString(2).length - 1 < CHAMBER_WIDTH && !collision(rock, newX, rockY, tower)) {
+                rockX = newX;
+            }
+
+            // Fall down
+            if (rockY > 0 && !collision(rock, rockX, rockY - 1, tower)) {
+                rockY--;
+            } else {
+                // Place rock
+                placeRock(rock, rockX, rockY, tower);
+                height = Math.max(height, rockY + rock.length);
+                break;
+            }
+        }
+
+        // Check for cycle
+        let state = `${rockIndex},${jetIndex % jetPattern.length},${getTopShape(tower, height)}`;
+        if (states.has(state)) {
+            let [prevRockCount, prevHeight] = states.get(state);
+            let cycleLength = rockCount - prevRockCount;
+            let cycleHeight = height - prevHeight;
+            let remainingCycles = Math.floor((totalRocks - rockCount) / cycleLength);
+            
+            if (remainingCycles > 0) {
+                height += remainingCycles * cycleHeight;
+                rockCount += remainingCycles * cycleLength;
+            }
+        } else {
+            states.set(state, [rockCount, height]);
+        }
+    }
+
+    return height;
+}
+
+function collision(rock, x, y, tower) {
+    for (let i = 0; i < rock.length; i++) {
+        let row = y + i;
+        if (row < tower.length && (tower[row] & (rock[i] << x)) !== 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function placeRock(rock, x, y, tower) {
+    while (tower.length <= y + rock.length - 1) {
+        tower.push(0);
+    }
+    for (let i = 0; i < rock.length; i++) {
+        tower[y + i] |= rock[i] << x;
+    }
+}
+
+function getTopShape(tower, height) {
+    let shape = '';
+    for (let i = 0; i < 10 && height - i >= 0; i++) {
+        shape += (tower[height - i] || 0).toString(2).padStart(7, '0');
+    }
+    return shape;
+}
+
+console.log("Part 1:", simulateRocks(input, 2022));
+console.log("Part 2:", simulateRocks(input, 1000000000000));

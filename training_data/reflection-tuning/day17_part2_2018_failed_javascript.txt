@@ -1,0 +1,13 @@
+To solve this problem, we need to simulate the flow of water through the clay structure. Here's my approach:
+
+1. Parse the input to create a 2D grid representing the clay structure.
+2. Implement a recursive function to simulate water flow:
+   - Water flows down until it hits clay or settled water.
+   - If blocked, it spreads left and right.
+   - If it can flow off an edge, mark those tiles as flowing.
+   - If contained on both sides, mark those tiles as settled.
+3. Start the water flow from the spring (500, 0).
+4. Count the number of water tiles (both flowing and settled) for Part 1.
+5. Count only the settled water tiles for Part 2.
+
+To optimize, we'll use a Set to store clay positions and objects to store water states. This will be more memory-efficient than a full 2D array for large inputs.

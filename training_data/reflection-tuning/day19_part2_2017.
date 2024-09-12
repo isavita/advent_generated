@@ -1,0 +1,36 @@
+const fs = require('fs');
+
+function solveMaze(input) {
+    const grid = input.split('\n').map(line => line.split(''));
+    const rows = grid.length, cols = grid[0].length;
+    let x = 0, y = grid[0].indexOf('|');
+    let dx = 1, dy = 0;
+    let letters = '', steps = 0;
+
+    while (true) {
+        steps++;
+        x += dx;
+        y += dy;
+
+        if (x < 0 || x >= rows || y < 0 || y >= cols || grid[x][y] === ' ') break;
+
+        const char = grid[x][y];
+        if (char >= 'A' && char <= 'Z') letters += char;
+
+        if (char === '+') {
+            if (dx !== 0) {
+                dx = 0;
+                dy = grid[x][y-1] !== ' ' ? -1 : 1;
+            } else {
+                dy = 0;
+                dx = grid[x-1][y] !== ' ' ? -1 : 1;
+            }
+        }
+    }
+
+    console.log(`Part 1: ${letters}`);
+    console.log(`Part 2: ${steps}`);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+solveMaze(input);

@@ -1,0 +1,133 @@
+class IntcodeComputer {
+    constructor(program, address) {
+        this.memory = program.split(',').map(Number);
+        this.ip = 0;
+        this.relativeBase = 0;
+        this.inputs = [address];
+        this.outputs = [];
+        this.halted = false;
+    }
+
+    run() {
+        while (!this.halted) {
+            const opcode = this.memory[this.ip] % 100;
+            const modes = Math.floor(this.memory[this.ip] / 100).toString().padStart(3, '0').split('').reverse().map(Number);
+
+            switch (opcode) {
+                case 1: this.add(modes); break;
+                case 2: this.multiply(modes); break;
+                case 3: if (!this.input(modes)) return; break;
+                case 4: this.output(modes); return; break;
+                case 5: this.jumpIfTrue(modes); break;
+                case 6: this.jumpIfFalse(modes); break;
+                case 7: this.lessThan(modes); break;
+                case 8: this.equals(modes); break;
+                case 9: this.adjustRelativeBase(modes); break;
+                case 99: this.halted = true; break;
+                default: throw new Error(`Unknown opcode: ${opcode}`);
+            }
+        }
+    }
+
+    getParam(mode, value) {
+        if (mode === 0) return this.memory[value] || 0;
+        if (mode === 1) return value;
+        if (mode === 2) return this.memory[this.relativeBase + value] || 0;
+    }
+
+    setParam(mode, value, result) {
+        if (mode === 0) this.memory[value] = result;
+        if (mode === 2) this.memory[this.relativeBase + value] = result;
+    }
+
+    add(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.setParam(modes[2], this.memory[this.ip + 3], p1 + p2);
+        this.ip += 4;
+    }
+
+    multiply(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.setParam(modes[2], this.memory[this.ip + 3], p1 * p2);
+        this.ip += 4;
+    }
+
+    input(modes) {
+        if (this.inputs.length === 0) {
+            this.inputs.push(-1);
+        }
+        const input = this.inputs.shift();
+        this.setParam(modes[0], this.memory[this.ip + 1], input);
+        this.ip += 2;
+        return true;
+    }
+
+    output(modes) {
+        const output = this.getParam(modes[0], this.memory[this.ip + 1]);
+        this.outputs.push(output);
+        this.ip += 2;
+    }
+
+    jumpIfTrue(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.ip = p1 !== 0 ? p2 : this.ip + 3;
+    }
+
+    jumpIfFalse(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.ip = p1 === 0 ? p2 : this.ip + 3;
+    }
+
+    lessThan(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.setParam(modes[2], this.memory[this.ip + 3], p1 < p2 ? 1 : 0);
+        this.ip += 4;
+    }
+
+    equals(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        const p2 = this.getParam(modes[1], this.memory[this.ip + 2]);
+        this.setParam(modes[2], this.memory[this.ip + 3], p1 === p2 ? 1 : 0);
+        this.ip += 4;
+    }
+
+    adjustRelativeBase(modes) {
+        const p1 = this.getParam(modes[0], this.memory[this.ip + 1]);
+        this.relativeBase += p1;
+        this.ip += 2;
+    }
+}
+
+function solvePuzzle(input) {
+    const computers = new Array(50).fill(null).map((_, i) => new IntcodeComputer(input, i));
+    const packetQueue = new Array(50).fill(null).map(() => []);
+
+    while (true) {
+        for (let i = 0; i < 50; i++) {
+            const computer = computers[i];
+            computer.run();
+
+            while (computer.outputs.length >= 3) {
+                const [address, X, Y] = computer.outputs.splice(0, 3);
+                if (address === 255) {
+                    return Y;
+                }
+                packetQueue[address].push([X, Y]);
+            }
+
+            if (packetQueue[i].length > 0) {
+                const [X, Y] = packetQueue[i].shift();
+                computer.inputs.push(X, Y);
+            }
+        }
+    }
+}
+
+// Example usage:
+// const input = "your_intcode_program_here";
+// console.log(solvePuzzle(input));

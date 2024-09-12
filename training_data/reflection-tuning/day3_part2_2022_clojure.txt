@@ -1,0 +1,17 @@
+To solve this problem efficiently, we can follow these steps:
+
+1. Read the input file line by line.
+2. For Part 1:
+   - Split each line into two halves (compartments).
+   - Find the common character between the two compartments.
+   - Calculate the priority of the common item.
+   - Sum up all priorities.
+3. For Part 2:
+   - Group the lines into sets of three.
+   - Find the common character among all three lines in each group.
+   - Calculate the priority of the common item.
+   - Sum up all priorities.
+4. We'll create a helper function to calculate the priority of a character.
+5. Use efficient Clojure functions like reduce, map, and set operations for better performance.
+
+The solution will use Clojure's built-in functions for file reading, string manipulation, and set operations to solve both parts of the problem concisely and efficiently.

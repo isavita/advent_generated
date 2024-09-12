@@ -1,0 +1,148 @@
+const fs = require('fs');
+
+class BinaryHeap {
+    constructor(scoreFunction) {
+        this.content = [];
+        this.scoreFunction = scoreFunction;
+    }
+
+    push(element) {
+        this.content.push(element);
+        this.bubbleUp(this.content.length - 1);
+    }
+
+    pop() {
+        const result = this.content[0];
+        const end = this.content.pop();
+        if (this.content.length > 0) {
+            this.content[0] = end;
+            this.sinkDown(0);
+        }
+        return result;
+    }
+
+    bubbleUp(n) {
+        const element = this.content[n];
+        const score = this.scoreFunction(element);
+        while (n > 0) {
+            const parentN = Math.floor((n + 1) / 2) - 1;
+            const parent = this.content[parentN];
+            if (score >= this.scoreFunction(parent)) break;
+            this.content[parentN] = element;
+            this.content[n] = parent;
+            n = parentN;
+        }
+    }
+
+    sinkDown(n) {
+        const length = this.content.length;
+        const element = this.content[n];
+        const elemScore = this.scoreFunction(element);
+
+        while (true) {
+            let child2N = (n + 1) * 2;
+            let child1N = child2N - 1;
+            let swap = null;
+
+            if (child1N < length) {
+                const child1 = this.content[child1N];
+                const child1Score = this.scoreFunction(child1);
+                if (child1Score < elemScore) swap = child1N;
+            }
+
+            if (child2N < length) {
+                const child2 = this.content[child2N];
+                const child2Score = this.scoreFunction(child2);
+                if (child2Score < (swap === null ? elemScore : this.scoreFunction(this.content[child1N]))) {
+                    swap = child2N;
+                }
+            }
+
+            if (swap === null) break;
+
+            this.content[n] = this.content[swap];
+            this.content[swap] = element;
+            n = swap;
+        }
+    }
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const depth = parseInt(input[0].split(': ')[1]);
+const [targetX, targetY] = input[1].split(': ')[1].split(',').map(Number);
+
+const erosionLevel = (x, y, depth, target, cache) => {
+    if (cache[`${x},${y}`]) return cache[`${x},${y}`];
+    let geologicIndex;
+    if ((x === 0 && y === 0) || (x === target.x && y === target.y)) {
+        geologicIndex = 0;
+    } else if (y === 0) {
+        geologicIndex = x * 16807;
+    } else if (x === 0) {
+        geologicIndex = y * 48271;
+    } else {
+        geologicIndex = erosionLevel(x-1, y, depth, target, cache) * erosionLevel(x, y-1, depth, target, cache);
+    }
+    const result = (geologicIndex + depth) % 20183;
+    cache[`${x},${y}`] = result;
+    return result;
+};
+
+const part1 = () => {
+    let risk = 0;
+    const cache = {};
+    for (let y = 0; y <= targetY; y++) {
+        for (let x = 0; x <= targetX; x++) {
+            risk += erosionLevel(x, y, depth, {x: targetX, y: targetY}, cache) % 3;
+        }
+    }
+    return risk;
+};
+
+const part2 = () => {
+    const cache = {};
+    const queue = new BinaryHeap(state => state.time);
+    const visited = new Set();
+    
+    queue.push({x: 0, y: 0, tool: 'torch', time: 0});
+    
+    while (queue.content.length) {
+        const current = queue.pop();
+        
+        if (current.x === targetX && current.y === targetY && current.tool === 'torch') {
+            return current.time;
+        }
+        
+        const key = `${current.x},${current.y},${current.tool}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        
+        const type = erosionLevel(current.x, current.y, depth, {x: targetX, y: targetY}, cache) % 3;
+        
+        // Change tool
+        ['torch', 'climbing gear', 'neither'].forEach(tool => {
+            if (tool !== current.tool && (type === 0 && tool !== 'neither') || 
+                (type === 1 && tool !== 'torch') || 
+                (type === 2 && tool !== 'climbing gear')) {
+                queue.push({x: current.x, y: current.y, tool, time: current.time + 7});
+            }
+        });
+        
+        // Move
+        [[0, 1], [1, 0], [0, -1], [-1, 0]].forEach(([dx, dy]) => {
+            const newX = current.x + dx;
+            const newY = current.y + dy;
+            if (newX >= 0 && newY >= 0) {
+                const newType = erosionLevel(newX, newY, depth, {x: targetX, y: targetY}, cache) % 3;
+                if ((newType === 0 && current.tool !== 'neither') || 
+                    (newType === 1 && current.tool !== 'torch') || 
+                    (newType === 2 && current.tool !== 'climbing gear')) {
+                    queue.push({x: newX, y: newY, tool: current.tool, time: current.time + 1});
+                }
+            }
+        });
+    }
+};
+
+console.log("Part 1:", part1());
+console.log("Part 2:", part2());

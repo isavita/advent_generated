@@ -1,0 +1,40 @@
+const fs = require('fs');
+
+function playDiracDice(player1Start, player2Start) {
+    let positions = [player1Start, player2Start];
+    let scores = [0, 0];
+    let dieValue = 0;
+    let rollCount = 0;
+
+    function rollDie() {
+        dieValue = dieValue % 100 + 1;
+        rollCount++;
+        return dieValue;
+    }
+
+    function takeTurn(player) {
+        let move = rollDie() + rollDie() + rollDie();
+        positions[player] = (positions[player] + move - 1) % 10 + 1;
+        scores[player] += positions[player];
+        return scores[player] >= 1000;
+    }
+
+    let currentPlayer = 0;
+    while (true) {
+        if (takeTurn(currentPlayer)) {
+            break;
+        }
+        currentPlayer = 1 - currentPlayer;
+    }
+
+    let losingScore = Math.min(scores[0], scores[1]);
+    return losingScore * rollCount;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const player1Start = parseInt(input[0].split(': ')[1]);
+const player2Start = parseInt(input[1].split(': ')[1]);
+
+const result = playDiracDice(player1Start, player2Start);
+console.log(result);

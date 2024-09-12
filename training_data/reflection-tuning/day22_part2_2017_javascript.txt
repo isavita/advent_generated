@@ -1,0 +1,13 @@
+To solve this problem efficiently, we need to consider the following:
+
+1. Representing the grid: Since the grid is infinite, we can use a Map or object to store only the infected nodes, using their coordinates as keys.
+
+2. Tracking the virus carrier: We need to keep track of its position and direction.
+
+3. Implementing the logic: We'll create functions to handle the turning, infecting/cleaning, and moving of the virus carrier.
+
+4. Optimizing for large numbers: Since we need to simulate 10,000,000 bursts, we should avoid unnecessary operations and use efficient data structures.
+
+5. For Part Two, we'll modify our approach to handle the four states (clean, weakened, infected, flagged) and adjust the logic accordingly.
+
+The solution will involve creating a class to encapsulate the virus simulation logic, with methods to handle each step of the process. We'll use a Map to store the grid state efficiently.

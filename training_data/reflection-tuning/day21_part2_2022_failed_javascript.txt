@@ -1,0 +1,8 @@
+Based on the error message, it seems that Part 1 was solved correctly, but Part 2 is returning undefined. This suggests that the implementation for Part 2 is either missing or incomplete. The main issue is likely that we haven't properly implemented the changes required for Part 2, such as changing the root monkey's operation to equality check and finding the value that the 'humn' monkey should yell.
+
+To fix this, we need to:
+1. Modify the root monkey's operation to be an equality check.
+2. Implement a method to find the value that 'humn' should yell to make root's equality check pass.
+3. This will likely involve some form of reverse calculation or binary search to find the correct 'humn' value.
+
+Let's revise the code to include these changes and properly solve Part 2.

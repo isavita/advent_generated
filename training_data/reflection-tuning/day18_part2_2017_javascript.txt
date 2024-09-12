@@ -1,0 +1,15 @@
+To solve this problem, we need to implement a simulation of two programs running concurrently, each with its own set of registers and message queue. We'll create a Program class to represent each program, and a main function to run the simulation. The key points to consider are:
+
+1. Each program has its own registers and message queue.
+2. Programs run independently and can send/receive messages to/from each other.
+3. We need to track how many times program 1 sends a value.
+4. The simulation should continue until both programs are deadlocked (waiting for input).
+
+We'll implement the following approach:
+1. Create a Program class with methods for each instruction.
+2. Implement a step function in the Program class to execute one instruction.
+3. Create two instances of the Program class, one for each program.
+4. Run the programs alternately, one step at a time, until both are waiting for input.
+5. Keep track of the number of times program 1 sends a value.
+
+This approach ensures that both programs run concurrently and allows us to detect deadlocks.

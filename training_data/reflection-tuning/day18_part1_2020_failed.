@@ -1,0 +1,70 @@
+function evaluateExpression(expr) {
+    function calculate(tokens) {
+        let stack = [];
+        let currentNum = '';
+        let operator = '+';
+
+        function evalStack() {
+            if (currentNum !== '') {
+                stack.push(parseInt(currentNum));
+                currentNum = '';
+            }
+            let result = stack[0];
+            for (let i = 1; i < stack.length; i += 2) {
+                if (stack[i] === '+') result += stack[i + 1];
+                else if (stack[i] === '*') result *= stack[i + 1];
+            }
+            return result;
+        }
+
+        for (let i = 0; i < tokens.length; i++) {
+            let char = tokens[i];
+            if (char === ' ') continue;
+            if (char >= '0' && char <= '9') {
+                currentNum += char;
+            } else if (char === '(') {
+                let parenthesesCount = 1;
+                let j = i + 1;
+                while (parenthesesCount > 0) {
+                    if (tokens[j] === '(') parenthesesCount++;
+                    if (tokens[j] === ')') parenthesesCount--;
+                    j++;
+                }
+                let subExpr = tokens.slice(i + 1, j - 1);
+                let subResult = calculate(subExpr);
+                stack.push(operator);
+                stack.push(subResult);
+                i = j - 1;
+            } else {
+                if (currentNum !== '') {
+                    stack.push(operator);
+                    stack.push(parseInt(currentNum));
+                    currentNum = '';
+                }
+                operator = char;
+            }
+        }
+        
+        if (currentNum !== '') {
+            stack.push(operator);
+            stack.push(parseInt(currentNum));
+        }
+
+        return evalStack();
+    }
+
+    return calculate(expr);
+}
+
+function sumExpressions(input) {
+    const lines = input.split('\n');
+    return lines.reduce((sum, line) => sum + evaluateExpression(line), 0);
+}
+
+// Example usage:
+const input = `2 * 3 + (4 * 5)
+5 + (8 * 3 + 9 + 3 * 4 * 3)
+5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
+((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2`;
+
+console.log(sumExpressions(input));

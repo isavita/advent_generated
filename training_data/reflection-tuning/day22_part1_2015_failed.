@@ -1,0 +1,59 @@
+const fs = require('fs');
+
+const input = fs.readFileSync('input.txt', 'utf8').split('\n');
+const bossHitPoints = parseInt(input[0].split(': ')[1]);
+const bossDamage = parseInt(input[1].split(': ')[1]);
+
+const spells = [
+  { name: 'Magic Missile', cost: 53, damage: 4 },
+  { name: 'Drain', cost: 73, damage: 2, heal: 2 },
+  { name: 'Shield', cost: 113, turns: 6, armor: 7 },
+  { name: 'Poison', cost: 173, turns: 6, damage: 3 },
+  { name: 'Recharge', cost: 229, turns: 5, mana: 101 }
+];
+
+let minManaSpent = Infinity;
+
+function simulateBattle(playerHP, playerMana, bossHP, manaSpent, activeEffects, playerTurn) {
+  if (manaSpent >= minManaSpent) return;
+
+  // Apply effects
+  let armor = 0;
+  activeEffects = activeEffects.map(effect => {
+    if (effect.name === 'Shield') armor = effect.armor;
+    if (effect.name === 'Poison') bossHP -= effect.damage;
+    if (effect.name === 'Recharge') playerMana += effect.mana;
+    return { ...effect, turns: effect.turns - 1 };
+  }).filter(effect => effect.turns > 0);
+
+  if (bossHP <= 0) {
+    minManaSpent = Math.min(minManaSpent, manaSpent);
+    return;
+  }
+
+  if (playerTurn) {
+    for (const spell of spells) {
+      if (spell.cost > playerMana) continue;
+      if (activeEffects.some(effect => effect.name === spell.name)) continue;
+
+      let newPlayerHP = playerHP;
+      let newPlayerMana = playerMana - spell.cost;
+      let newBossHP = bossHP;
+      let newActiveEffects = [...activeEffects];
+
+      if (spell.damage) newBossHP -= spell.damage;
+      if (spell.heal) newPlayerHP += spell.heal;
+      if (spell.turns) newActiveEffects.push({ ...spell });
+
+      simulateBattle(newPlayerHP, newPlayerMana, newBossHP, manaSpent + spell.cost, newActiveEffects, false);
+    }
+  } else {
+    playerHP -= Math.max(1, bossDamage - armor);
+    if (playerHP > 0) {
+      simulateBattle(playerHP, playerMana, bossHP, manaSpent, activeEffects, true);
+    }
+  }
+}
+
+simulateBattle(50, 500, bossHitPoints, 0, [], true);
+console.log(minManaSpent);

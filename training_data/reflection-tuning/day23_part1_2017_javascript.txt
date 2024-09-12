@@ -1,0 +1,12 @@
+To solve this problem, we need to simulate the execution of the given instructions. Here's the approach:
+
+1. Read the input file and parse each line into an instruction.
+2. Initialize all registers (a through h) to 0.
+3. Create a counter for the number of times the 'mul' instruction is invoked.
+4. Implement a function to execute each type of instruction.
+5. Iterate through the instructions, executing them and updating the registers accordingly.
+6. Keep track of the program counter to handle jumps.
+7. Count the 'mul' instructions as they are executed.
+8. Print the final count of 'mul' instructions.
+
+The key to efficiency here is to use a simple object to represent the registers and a switch statement to handle different instruction types quickly.

@@ -1,0 +1,62 @@
+const fs = require('fs');
+
+class Particle {
+    constructor(id, p, v, a) {
+        this.id = id;
+        this.p = p;
+        this.v = v;
+        this.a = a;
+    }
+
+    update() {
+        for (let i = 0; i < 3; i++) {
+            this.v[i] += this.a[i];
+            this.p[i] += this.v[i];
+        }
+    }
+
+    distance() {
+        return Math.abs(this.p[0]) + Math.abs(this.p[1]) + Math.abs(this.p[2]);
+    }
+}
+
+function parseInput(input) {
+    return input.split('\n').map((line, id) => {
+        const [p, v, a] = line.match(/<(.+?)>/g).map(x => 
+            x.slice(1, -1).split(',').map(Number)
+        );
+        return new Particle(id, p, v, a);
+    });
+}
+
+function simulatePartOne(particles, iterations) {
+    for (let i = 0; i < iterations; i++) {
+        particles.forEach(p => p.update());
+    }
+    return particles.reduce((closest, p) => 
+        p.distance() < particles[closest].distance() ? p.id : closest
+    , 0);
+}
+
+function simulatePartTwo(particles, iterations) {
+    for (let i = 0; i < iterations; i++) {
+        const positions = new Map();
+        particles = particles.filter(p => {
+            p.update();
+            const pos = p.p.join(',');
+            if (positions.has(pos)) {
+                positions.get(pos).push(p);
+                return false;
+            }
+            positions.set(pos, [p]);
+            return true;
+        });
+    }
+    return particles.length;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const particles = parseInput(input);
+
+console.log("Part One:", simulatePartOne([...particles], 1000));
+console.log("Part Two:", simulatePartTwo([...particles], 1000));

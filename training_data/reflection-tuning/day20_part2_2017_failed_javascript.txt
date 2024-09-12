@@ -1,0 +1,18 @@
+To solve this problem, we need to approach it in two parts:
+
+1. For Part One:
+   - Parse the input to create particle objects with position, velocity, and acceleration.
+   - Implement a function to update particle positions over time.
+   - Calculate the Manhattan distance for each particle from the origin.
+   - Find the particle that stays closest to the origin in the long term.
+
+2. For Part Two:
+   - Implement collision detection after each update.
+   - Remove colliding particles.
+   - Continue updating and checking for collisions until no more collisions occur.
+   - Count the remaining particles.
+
+The key to efficiency here is to:
+- Use a Map to store particles by their position for quick collision checks.
+- Run the simulation for a sufficient number of iterations to ensure long-term behavior is captured.
+- Use vector operations for updating particle properties.

@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into the enhancement algorithm and the initial image.
+2. Implement a function to enhance the image, considering the infinite nature of the image.
+3. Create a function to count lit pixels in the image.
+4. Enhance the image twice for Part 1 and 50 times for Part 2.
+5. Handle the edge case where the infinite background may flip between light and dark.
+
+The key challenges are:
+- Efficiently representing and manipulating the infinite image.
+- Handling the edge pixels correctly, especially when the algorithm causes the infinite background to flip.
+
+We can use a Set to store only the lit pixels' coordinates, which is memory-efficient for sparse images. We'll also keep track of whether the infinite background is lit or dark.

@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Parse the input into layers based on the image dimensions (25x6)
+3. Find the layer with the fewest 0 digits
+4. Count the number of 1s and 2s in that layer
+5. Multiply these counts and return the result
+
+We can use Clojure's sequence functions to efficiently process the data. We'll partition the input into layers, then use frequencies to count digits in each layer. We'll find the layer with the minimum count of 0s, then calculate the product of 1s and 2s in that layer.

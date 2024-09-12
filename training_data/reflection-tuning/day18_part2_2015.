@@ -1,0 +1,58 @@
+const fs = require('fs');
+
+function readInput(filename) {
+    return fs.readFileSync(filename, 'utf8').trim().split('\n').map(row => row.split('').map(c => c === '#'));
+}
+
+function countLights(grid) {
+    return grid.flat().filter(Boolean).length;
+}
+
+function simulateStep(grid, keepCornersOn = false) {
+    const rows = grid.length;
+    const cols = grid[0].length;
+    const newGrid = Array(rows).fill().map(() => Array(cols).fill(false));
+
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            let onNeighbors = 0;
+            for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                    if (di === 0 && dj === 0) continue;
+                    const ni = i + di, nj = j + dj;
+                    if (ni >= 0 && ni < rows && nj >= 0 && nj < cols && grid[ni][nj]) {
+                        onNeighbors++;
+                    }
+                }
+            }
+            newGrid[i][j] = grid[i][j] ? (onNeighbors === 2 || onNeighbors === 3) : (onNeighbors === 3);
+        }
+    }
+
+    if (keepCornersOn) {
+        newGrid[0][0] = newGrid[0][cols-1] = newGrid[rows-1][0] = newGrid[rows-1][cols-1] = true;
+    }
+
+    return newGrid;
+}
+
+function simulate(grid, steps, keepCornersOn = false) {
+    let currentGrid = grid;
+    if (keepCornersOn) {
+        currentGrid[0][0] = currentGrid[0][currentGrid[0].length-1] = currentGrid[currentGrid.length-1][0] = currentGrid[currentGrid.length-1][currentGrid[0].length-1] = true;
+    }
+    for (let i = 0; i < steps; i++) {
+        currentGrid = simulateStep(currentGrid, keepCornersOn);
+    }
+    return currentGrid;
+}
+
+const initialGrid = readInput('input.txt');
+
+// Part 1
+const part1Result = countLights(simulate(initialGrid, 100));
+console.log("Part 1:", part1Result);
+
+// Part 2
+const part2Result = countLights(simulate(initialGrid, 100, true));
+console.log("Part 2:", part2Result);

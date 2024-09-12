@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Parse the input file into a sequence of instructions.
+2. Implement a function to execute the boot code and detect loops.
+3. For Part 1, run the boot code and return the accumulator value before the loop.
+4. For Part 2, iterate through the instructions, changing one jmp to nop or nop to jmp at a time, and check if the program terminates normally.
+
+The key aspects of the solution:
+- Use a vector to store instructions for easy access by index.
+- Use a set to keep track of visited instructions for loop detection.
+- Implement a function to execute instructions and handle different operation types.
+- For Part 2, use a helper function to swap jmp and nop instructions.

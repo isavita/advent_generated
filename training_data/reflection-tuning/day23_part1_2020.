@@ -1,0 +1,61 @@
+const fs = require('fs');
+
+class Cup {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+    }
+}
+
+function simulateCrabCups(input, moves) {
+    const cups = new Map();
+    let current = new Cup(parseInt(input[0]));
+    cups.set(current.value, current);
+    let prev = current;
+
+    for (let i = 1; i < input.length; i++) {
+        const cup = new Cup(parseInt(input[i]));
+        cups.set(cup.value, cup);
+        prev.next = cup;
+        prev = cup;
+    }
+    prev.next = current;  // Make it circular
+
+    const max = Math.max(...cups.keys());
+
+    for (let move = 0; move < moves; move++) {
+        // Pick up three cups
+        const pickup = [current.next, current.next.next, current.next.next.next];
+        current.next = pickup[2].next;
+
+        // Find destination
+        let destValue = current.value - 1 || max;
+        while (pickup.some(cup => cup.value === destValue)) {
+            destValue = destValue - 1 || max;
+        }
+        const destination = cups.get(destValue);
+
+        // Place picked up cups after destination
+        pickup[2].next = destination.next;
+        destination.next = pickup[0];
+
+        // Move to next cup
+        current = current.next;
+    }
+
+    return cups.get(1);
+}
+
+function getResult(cup) {
+    let result = '';
+    let current = cup.next;
+    while (current.value !== 1) {
+        result += current.value;
+        current = current.next;
+    }
+    return result;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const finalCup = simulateCrabCups(input, 100);
+console.log(getResult(finalCup));

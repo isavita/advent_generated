@@ -1,0 +1,15 @@
+To solve this problem efficiently, we need to implement two different evaluation methods:
+1. For Part 1: Evaluate left-to-right with equal precedence for addition and multiplication.
+2. For Part 2: Evaluate addition before multiplication.
+
+We can use a recursive approach to handle parentheses in both cases. For Part 2, we'll need to split the expression into terms separated by multiplication, evaluate each term (which may contain additions), and then multiply the results.
+
+Key steps:
+1. Read input from file
+2. Implement a function to evaluate expressions for Part 1
+3. Implement a function to evaluate expressions for Part 2
+4. Process each line of input with both methods
+5. Sum up the results for both parts
+6. Print the final answers
+
+We'll use regular expressions to parse the expressions and the `eval` function for simple calculations within parentheses.

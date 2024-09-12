@@ -1,0 +1,7 @@
+To solve this problem efficiently in Clojure, we'll follow these steps:
+1. Read and parse the input file, sorting the entries chronologically.
+2. Process the sorted entries to create a map of guard IDs to their sleep patterns.
+3. Implement both strategies to find the required guard and minute combinations.
+4. Calculate and return the final answers for both parts.
+
+We'll use Clojure's built-in functions for sorting, grouping, and reducing to efficiently process the data. We'll also use regular expressions to parse the input lines.

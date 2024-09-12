@@ -1,0 +1,15 @@
+To solve this problem, we need to approach it in two steps:
+
+1. For Part 1:
+   - Parse the input file to get the coordinates of each cube.
+   - Create a set of all cube positions for efficient lookup.
+   - For each cube, check its six adjacent positions. If a position is not occupied by another cube, increment the surface area count.
+
+2. For Part 2:
+   - We need to find the exterior surface area, excluding any internal air pockets.
+   - We can use a flood fill algorithm starting from a point outside the lava droplet.
+   - First, determine the bounds of the droplet and create a slightly larger bounding box.
+   - Perform a 3D flood fill from a corner of this bounding box, marking all reachable air cubes.
+   - Count the surfaces of lava cubes that are adjacent to these reachable air cubes.
+
+This approach will efficiently solve both parts of the problem in a single pass through the data.

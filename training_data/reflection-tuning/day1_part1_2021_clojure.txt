@@ -1,0 +1,6 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse each line as an integer.
+2. Use the `partition` function to create pairs of consecutive measurements.
+3. Count the number of pairs where the second measurement is greater than the first.
+
+This approach allows us to process the data in a single pass, making it efficient. We'll use Clojure's sequence functions to keep the code concise and functional.

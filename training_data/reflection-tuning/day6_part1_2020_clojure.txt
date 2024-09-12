@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and split it into groups (separated by blank lines).
+2. For each group, we need to:
+   a. Combine all answers into a single string.
+   b. Convert the string to a set to remove duplicates.
+   c. Count the number of unique characters (yes answers).
+3. Sum up the counts from all groups.
+
+We can use Clojure's powerful sequence functions to achieve this concisely. We'll use `slurp` to read the file, `clojure.string/split` to separate groups, `mapcat` to flatten the answers within each group, `set` to get unique answers, and `count` to get the number of unique answers. Finally, we'll use `reduce` to sum up all the counts.

@@ -1,0 +1,88 @@
+const fs = require('fs');
+
+class IntcodeComputer {
+    constructor(program) {
+        this.memory = program.split(',').map(Number);
+        this.pointer = 0;
+        this.relativeBase = 0;
+    }
+
+    run(inputs) {
+        while (true) {
+            const opcode = this.memory[this.pointer] % 100;
+            const modes = Math.floor(this.memory[this.pointer] / 100).toString().padStart(3, '0').split('').reverse().map(Number);
+
+            if (opcode === 99) return null;
+
+            const getParam = (index) => {
+                const mode = modes[index - 1];
+                const value = this.memory[this.pointer + index];
+                if (mode === 0) return this.memory[value] || 0;
+                if (mode === 1) return value;
+                if (mode === 2) return this.memory[this.relativeBase + value] || 0;
+            };
+
+            const setParam = (index, value) => {
+                const mode = modes[index - 1];
+                const address = mode === 2 ? this.relativeBase + this.memory[this.pointer + index] : this.memory[this.pointer + index];
+                this.memory[address] = value;
+            };
+
+            switch (opcode) {
+                case 1: // Add
+                    setParam(3, getParam(1) + getParam(2));
+                    this.pointer += 4;
+                    break;
+                case 2: // Multiply
+                    setParam(3, getParam(1) * getParam(2));
+                    this.pointer += 4;
+                    break;
+                case 3: // Input
+                    setParam(1, inputs.shift());
+                    this.pointer += 2;
+                    break;
+                case 4: // Output
+                    const output = getParam(1);
+                    this.pointer += 2;
+                    return output;
+                case 5: // Jump-if-true
+                    this.pointer = getParam(1) !== 0 ? getParam(2) : this.pointer + 3;
+                    break;
+                case 6: // Jump-if-false
+                    this.pointer = getParam(1) === 0 ? getParam(2) : this.pointer + 3;
+                    break;
+                case 7: // Less than
+                    setParam(3, getParam(1) < getParam(2) ? 1 : 0);
+                    this.pointer += 4;
+                    break;
+                case 8: // Equals
+                    setParam(3, getParam(1) === getParam(2) ? 1 : 0);
+                    this.pointer += 4;
+                    break;
+                case 9: // Adjust relative base
+                    this.relativeBase += getParam(1);
+                    this.pointer += 2;
+                    break;
+            }
+        }
+    }
+}
+
+function countAffectedPoints(program) {
+    let affectedPoints = 0;
+
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            const computer = new IntcodeComputer(program);
+            const output = computer.run([x, y]);
+            if (output === 1) {
+                affectedPoints++;
+            }
+        }
+    }
+
+    return affectedPoints;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+console.log(countAffectedPoints(input));

@@ -1,0 +1,52 @@
+const fs = require('fs');
+const crypto = require('crypto');
+
+class Point {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+const directions = [
+    new Point(0, -1), // Up
+    new Point(0, 1),  // Down
+    new Point(-1, 0), // Left
+    new Point(1, 0)   // Right
+];
+const dirChars = 'UDLR';
+
+function isOpen(char) {
+    return 'bcdef'.includes(char);
+}
+
+function isValidPosition(p) {
+    return p.x >= 0 && p.x < 4 && p.y >= 0 && p.y < 4;
+}
+
+function findShortestPath(passcode) {
+    const queue = [{ pos: new Point(0, 0), path: '' }];
+    
+    while (queue.length > 0) {
+        const { pos, path } = queue.shift();
+        
+        if (pos.x === 3 && pos.y === 3) return path;
+        
+        const hash = crypto.createHash('md5').update(passcode + path).digest('hex');
+        
+        for (let i = 0; i < 4; i++) {
+            if (isOpen(hash[i])) {
+                const newPos = new Point(pos.x + directions[i].x, pos.y + directions[i].y);
+                if (isValidPosition(newPos)) {
+                    queue.push({ pos: newPos, path: path + dirChars[i] });
+                }
+            }
+        }
+    }
+    
+    return null; // No path found
+}
+
+const passcode = fs.readFileSync('input.txt', 'utf8').trim();
+const shortestPath = findShortestPath(passcode);
+console.log(shortestPath);

@@ -1,0 +1,14 @@
+To solve this problem efficiently, we need to consider the following:
+
+1. The circular nature of the cup arrangement suggests using a linked list structure.
+2. We need quick access to any cup by its label, which suggests using a Map for O(1) lookups.
+3. The operations involve moving cups around, which is efficient with a linked list.
+
+Approach:
+1. Create a circular linked list to represent the cups.
+2. Use a Map to store references to each cup node for quick access.
+3. Implement the move operation as described in the problem.
+4. Repeat the move operation 100 times.
+5. After 100 moves, traverse the list starting from cup 1 to get the final order.
+
+This approach will be efficient as it avoids array manipulations and uses constant-time operations for most steps.

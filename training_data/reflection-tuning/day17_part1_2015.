@@ -1,0 +1,26 @@
+const fs = require('fs');
+
+function findCombinations(containers, target, index = 0, currentSum = 0) {
+    if (currentSum === target) {
+        return 1;
+    }
+    if (currentSum > target || index >= containers.length) {
+        return 0;
+    }
+
+    // Include the current container
+    const withCurrent = findCombinations(containers, target, index + 1, currentSum + containers[index]);
+    // Exclude the current container
+    const withoutCurrent = findCombinations(containers, target, index + 1, currentSum);
+
+    return withCurrent + withoutCurrent;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8');
+const containers = input.trim().split('\n').map(Number);
+
+// Find combinations
+const totalCombinations = findCombinations(containers, 150);
+
+console.log(totalCombinations);

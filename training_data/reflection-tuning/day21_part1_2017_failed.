@@ -1,0 +1,63 @@
+const fs = require('fs');
+
+// Read and parse input
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const rules = new Map();
+
+input.forEach(line => {
+    const [from, to] = line.split(' => ');
+    rules.set(from, to);
+});
+
+// Helper functions
+const flipAndRotate = pattern => {
+    const variations = [
+        pattern,
+        pattern.split('/').map(row => row.split('').reverse().join('')).join('/'),
+        pattern.split('/').reverse().join('/'),
+        pattern.split('/').map(row => row.split('')).reverse().map(col => col.join('')).join('/')
+    ];
+    return variations.flatMap(v => [v, v.split('/').map(row => row.split('')).reverse().map(col => col.join('')).join('/')]);
+};
+
+const enhance = grid => {
+    const size = grid.length;
+    const divSize = size % 2 === 0 ? 2 : 3;
+    const newSize = size / divSize * (divSize + 1);
+    const newGrid = Array(newSize).fill().map(() => Array(newSize).fill('.'));
+
+    for (let y = 0; y < size; y += divSize) {
+        for (let x = 0; x < size; x += divSize) {
+            const square = [];
+            for (let i = 0; i < divSize; i++) {
+                square.push(grid[y + i].slice(x, x + divSize).join(''));
+            }
+            const pattern = square.join('/');
+            const variations = flipAndRotate(pattern);
+            let newPattern;
+            for (const variation of variations) {
+                if (rules.has(variation)) {
+                    newPattern = rules.get(variation);
+                    break;
+                }
+            }
+            const newSquare = newPattern.split('/');
+            for (let i = 0; i < newSquare.length; i++) {
+                for (let j = 0; j < newSquare.length; j++) {
+                    newGrid[y / divSize * (divSize + 1) + i][x / divSize * (divSize + 1) + j] = newSquare[i][j];
+                }
+            }
+        }
+    }
+    return newGrid;
+};
+
+// Main process
+let grid = ['.#.', '..#', '###'];
+
+for (let i = 0; i < 5; i++) {
+    grid = enhance(grid);
+}
+
+const pixelsOn = grid.flat().filter(pixel => pixel === '#').length;
+console.log(pixelsOn);

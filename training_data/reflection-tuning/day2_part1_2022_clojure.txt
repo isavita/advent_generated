@@ -1,0 +1,7 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. For each line, parse the opponent's move and our move.
+3. Calculate the score for each round based on the shape we chose and the outcome.
+4. Sum up all the scores.
+
+We'll use a map to store the scores for each shape and outcome. We'll also create a function to determine the outcome of each round. By using Clojure's built-in functions like `slurp`, `line-seq`, and `reduce`, we can create a concise and efficient solution.

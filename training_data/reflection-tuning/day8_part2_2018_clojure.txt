@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a sequence of integers.
+2. Implement a recursive function to build the tree structure and calculate the sum of metadata (Part 1).
+3. Implement another recursive function to calculate the value of nodes (Part 2).
+4. Use these functions to process the input and get the required results.
+
+The key is to use recursion effectively to traverse the tree structure. We'll use a single pass through the input to build the tree and calculate both results simultaneously, improving efficiency.

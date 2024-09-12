@@ -1,0 +1,17 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Parse each line to extract the two ranges
+3. For each pair of ranges, check if one fully contains the other
+4. Count the number of pairs where this condition is true
+
+We can implement this efficiently in Clojure using the following approach:
+- Use `slurp` to read the entire file content
+- Split the content into lines
+- Use `map` to process each line:
+  - Split each line into two ranges
+  - Parse the ranges into numbers
+  - Check if one range contains the other
+- Use `filter` to keep only the pairs where containment is true
+- Count the resulting pairs
+
+For the range containment check, we'll create a helper function that compares the start and end of both ranges.

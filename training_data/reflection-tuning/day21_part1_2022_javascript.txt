@@ -1,0 +1,10 @@
+To solve this problem, we can use a recursive approach with memoization. Here's the thought process:
+
+1. Parse the input file and create a map of monkey names to their jobs.
+2. Create a recursive function that evaluates a monkey's job:
+   - If the monkey's job is a number, return that number.
+   - If it's an operation, recursively evaluate the two operands and perform the operation.
+3. Use memoization to store already calculated results to avoid redundant calculations.
+4. Start the evaluation from the 'root' monkey.
+
+This approach ensures that we only calculate each monkey's value once and efficiently handle the dependencies between monkeys.

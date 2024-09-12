@@ -1,0 +1,27 @@
+const fs = require('fs');
+
+function countDistinctMolecules(input) {
+    const lines = input.trim().split('\n');
+    const molecule = lines.pop();
+    lines.pop(); // Remove empty line
+
+    const replacements = lines.map(line => line.split(' => '));
+    const uniqueMolecules = new Set();
+
+    for (const [from, to] of replacements) {
+        const regex = new RegExp(from, 'g');
+        let match;
+        while ((match = regex.exec(molecule)) !== null) {
+            const newMolecule = 
+                molecule.slice(0, match.index) + 
+                to + 
+                molecule.slice(match.index + from.length);
+            uniqueMolecules.add(newMolecule);
+        }
+    }
+
+    return uniqueMolecules.size;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(countDistinctMolecules(input));

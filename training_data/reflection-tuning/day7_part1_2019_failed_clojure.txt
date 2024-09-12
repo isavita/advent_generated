@@ -1,0 +1,3 @@
+The error message indicates that the program is unable to find the clojure.math.combinatorics library. This suggests that the previous solution was trying to use this library for generating combinations, but it wasn't properly included in the project dependencies. To fix this, we need to either add the library to the project's dependencies or implement our own function to generate permutations without relying on external libraries. Since we want to keep the solution self-contained, I'll opt for implementing a simple permutation function ourselves.
+
+Additionally, we'll need to implement the Intcode computer as described in the problem, and a function to run the amplifier sequence. We'll then generate all permutations of phase settings and find the maximum output signal.

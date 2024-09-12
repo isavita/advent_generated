@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the replacement rules and the medicine molecule.
+2. For each replacement rule, find all occurrences of the "from" part in the medicine molecule.
+3. For each occurrence, create a new molecule by replacing that occurrence with the "to" part.
+4. Keep track of all unique molecules created.
+5. Count the number of unique molecules.
+
+We can use a Set to store unique molecules efficiently. Regular expressions can be used to find all occurrences of a substring in the medicine molecule.

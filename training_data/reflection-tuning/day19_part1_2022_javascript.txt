@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to implement a depth-first search (DFS) with pruning. Here's the approach:
+
+1. Parse the input to extract blueprint information.
+2. For each blueprint, perform a DFS to find the maximum number of geodes that can be opened in 24 minutes.
+3. Use pruning techniques to reduce the search space:
+   - Set an upper bound on the number of robots we need for each resource.
+   - Skip building a robot if we already have enough resources to build any robot every minute.
+   - Prune branches that can't possibly beat the current best result.
+4. Calculate the quality level for each blueprint and sum them up.
+
+The key to efficiency is in the pruning strategies and avoiding unnecessary state copies during the search.

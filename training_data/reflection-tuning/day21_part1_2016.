@@ -1,0 +1,58 @@
+const fs = require('fs');
+
+function swapPosition(str, x, y) {
+    const arr = str.split('');
+    [arr[x], arr[y]] = [arr[y], arr[x]];
+    return arr.join('');
+}
+
+function swapLetter(str, x, y) {
+    return str.split('').map(char => char === x ? y : (char === y ? x : char)).join('');
+}
+
+function rotate(str, direction, steps) {
+    steps %= str.length;
+    if (direction === 'left') steps = str.length - steps;
+    return str.slice(-steps) + str.slice(0, -steps);
+}
+
+function rotateBasedOn(str, letter) {
+    let index = str.indexOf(letter);
+    let rotations = 1 + index + (index >= 4 ? 1 : 0);
+    return rotate(str, 'right', rotations);
+}
+
+function reverse(str, x, y) {
+    return str.slice(0, x) + str.slice(x, y + 1).split('').reverse().join('') + str.slice(y + 1);
+}
+
+function move(str, x, y) {
+    const arr = str.split('');
+    const [char] = arr.splice(x, 1);
+    arr.splice(y, 0, char);
+    return arr.join('');
+}
+
+function scramblePassword(password, instructions) {
+    return instructions.reduce((pwd, instruction) => {
+        const parts = instruction.split(' ');
+        switch(parts[0]) {
+            case 'swap':
+                return parts[1] === 'position' 
+                    ? swapPosition(pwd, parseInt(parts[2]), parseInt(parts[5]))
+                    : swapLetter(pwd, parts[2], parts[5]);
+            case 'rotate':
+                return parts[1] === 'based' 
+                    ? rotateBasedOn(pwd, parts[6])
+                    : rotate(pwd, parts[1], parseInt(parts[2]));
+            case 'reverse':
+                return reverse(pwd, parseInt(parts[2]), parseInt(parts[4]));
+            case 'move':
+                return move(pwd, parseInt(parts[2]), parseInt(parts[5]));
+        }
+    }, password);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const scrambledPassword = scramblePassword('abcdefgh', input);
+console.log(scrambledPassword);

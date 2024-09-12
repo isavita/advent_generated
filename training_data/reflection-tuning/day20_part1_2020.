@@ -1,0 +1,54 @@
+const fs = require('fs');
+
+function solvePuzzle(input) {
+    const tiles = parseTiles(input);
+    const edgeMap = createEdgeMap(tiles);
+    const cornerTiles = findCornerTiles(tiles, edgeMap);
+    
+    return cornerTiles.reduce((product, tileId) => product * tileId, 1);
+}
+
+function parseTiles(input) {
+    return input.split('\n\n').map(tileData => {
+        const [idLine, ...lines] = tileData.split('\n');
+        const id = parseInt(idLine.match(/\d+/)[0]);
+        return { id, data: lines };
+    });
+}
+
+function createEdgeMap(tiles) {
+    const edgeMap = new Map();
+    
+    for (const tile of tiles) {
+        const edges = getEdges(tile.data);
+        for (const edge of edges) {
+            if (!edgeMap.has(edge)) edgeMap.set(edge, []);
+            edgeMap.get(edge).push(tile.id);
+        }
+    }
+    
+    return edgeMap;
+}
+
+function getEdges(tileData) {
+    const top = tileData[0];
+    const bottom = tileData[tileData.length - 1];
+    const left = tileData.map(row => row[0]).join('');
+    const right = tileData.map(row => row[row.length - 1]).join('');
+    
+    return [top, bottom, left, right].flatMap(edge => [
+        parseInt(edge.replace(/\./g, '0').replace(/#/g, '1'), 2),
+        parseInt(edge.split('').reverse().join('').replace(/\./g, '0').replace(/#/g, '1'), 2)
+    ]);
+}
+
+function findCornerTiles(tiles, edgeMap) {
+    return tiles.filter(tile => {
+        const edges = getEdges(tile.data);
+        const uniqueEdges = edges.filter(edge => edgeMap.get(edge).length === 1);
+        return uniqueEdges.length === 4; // 2 unique edges, each counted twice (normal and flipped)
+    }).map(tile => tile.id);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solvePuzzle(input));

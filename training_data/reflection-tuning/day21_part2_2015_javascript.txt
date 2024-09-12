@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the input to get the boss's stats.
+2. Define the available items (weapons, armor, rings).
+3. Generate all possible combinations of items (1 weapon, 0-1 armor, 0-2 rings).
+4. For each combination, simulate the fight and determine if the player wins.
+5. For Part 1, find the least expensive winning combination.
+6. For Part 2, find the most expensive losing combination.
+
+We'll use a recursive function to generate item combinations and a separate function to simulate the fight. We'll keep track of the minimum cost to win and the maximum cost to lose.

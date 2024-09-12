@@ -1,0 +1,89 @@
+function simulateTetris(jetPattern, totalRocks) {
+    const shapes = [
+        [[0,0], [1,0], [2,0], [3,0]],
+        [[1,0], [0,1], [1,1], [2,1], [1,2]],
+        [[0,0], [1,0], [2,0], [2,1], [2,2]],
+        [[0,0], [0,1], [0,2], [0,3]],
+        [[0,0], [1,0], [0,1], [1,1]]
+    ];
+
+    let tower = new Set();
+    let highestPoint = -1;
+    let jetIndex = 0;
+    let stateMap = new Map();
+    let rockCount = 0;
+    let heightGain = 0;
+
+    function canMove(shape, dx, dy) {
+        return shape.every(([x, y]) => {
+            let newX = x + dx, newY = y + dy;
+            return newX >= 0 && newX < 7 && newY >= 0 && !tower.has(`${newX},${newY}`);
+        });
+    }
+
+    function dropRock(shape) {
+        let x = 2, y = highestPoint + 4;
+
+        while (true) {
+            // Apply jet
+            let jetDx = jetPattern[jetIndex] === '<' ? -1 : 1;
+            jetIndex = (jetIndex + 1) % jetPattern.length;
+            if (canMove(shape, x + jetDx, y)) x += jetDx;
+
+            // Try to fall
+            if (canMove(shape, x, y - 1)) {
+                y--;
+            } else {
+                break;
+            }
+        }
+
+        // Place the rock
+        shape.forEach(([dx, dy]) => {
+            tower.add(`${x + dx},${y + dy}`);
+            highestPoint = Math.max(highestPoint, y + dy);
+        });
+    }
+
+    function getTopShape() {
+        let top = new Array(7).fill(0);
+        for (let y = highestPoint; y >= 0; y--) {
+            for (let x = 0; x < 7; x++) {
+                if (tower.has(`${x},${y}`)) {
+                    top[x] = highestPoint - y;
+                }
+                if (Math.min(...top) > 0) return top;
+            }
+        }
+        return top;
+    }
+
+    while (rockCount < totalRocks) {
+        let shapeIndex = rockCount % shapes.length;
+        let state = `${shapeIndex},${jetIndex},${getTopShape().join(',')}`;
+
+        if (stateMap.has(state)) {
+            let [prevRocks, prevHeight] = stateMap.get(state);
+            let cycleLength = rockCount - prevRocks;
+            let cycleHeight = highestPoint - prevHeight;
+            let remainingCycles = Math.floor((totalRocks - rockCount) / cycleLength);
+
+            rockCount += remainingCycles * cycleLength;
+            heightGain += remainingCycles * cycleHeight;
+
+            if (rockCount === totalRocks) break;
+        }
+
+        stateMap.set(state, [rockCount, highestPoint]);
+
+        dropRock(shapes[shapeIndex].map(([x, y]) => [x, y]));
+        rockCount++;
+    }
+
+    return highestPoint + 1 + heightGain;
+}
+
+// Example usage
+const jetPattern = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>";
+console.log(simulateTetris(jetPattern, 2022)); // Part 1
+console.log(simulateTetris(jetPattern, 1000000000000)); // Part 2

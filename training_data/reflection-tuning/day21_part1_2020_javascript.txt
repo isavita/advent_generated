@@ -1,0 +1,14 @@
+To solve this problem, we need to:
+1. Parse the input file to extract foods, their ingredients, and allergens.
+2. Create a mapping of allergens to possible ingredients.
+3. Identify ingredients that can't contain any allergens.
+4. Count how many times these safe ingredients appear in all foods.
+
+The approach will be:
+1. Use a Map to store allergens and their possible ingredients.
+2. Use a Set to store all unique ingredients.
+3. Iterate through foods to update the allergen map and ingredient set.
+4. Find ingredients that are not in any allergen's possible ingredient list.
+5. Count occurrences of these safe ingredients in all foods.
+
+This solution should be efficient as it uses Sets and Maps for quick lookups and avoids unnecessary nested loops.

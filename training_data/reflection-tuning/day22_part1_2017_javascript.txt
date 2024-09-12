@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Parse the input file to create a 2D grid representation of the initial infection state.
+2. Implement the virus carrier's movement and infection logic.
+3. Keep track of the carrier's position and direction.
+4. Count the number of bursts that cause an infection.
+5. Run the simulation for 10000 bursts.
+
+We can use a Map to store the infected nodes, using string keys like "x,y" to represent coordinates. This allows for an infinite grid without pre-allocating a large array. We'll use directions as an array to easily rotate left or right.

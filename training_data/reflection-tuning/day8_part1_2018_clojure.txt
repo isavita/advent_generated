@@ -1,0 +1,6 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" as a sequence of numbers.
+2. Parse the tree structure recursively, keeping track of the metadata.
+3. Sum up all the metadata entries.
+
+We can create a recursive function that processes each node, consuming the input sequence as it goes. This function will return a tuple containing the remaining input and the sum of metadata for the processed subtree. The main function will call this recursive function and return the final sum.

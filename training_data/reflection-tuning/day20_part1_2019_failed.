@@ -1,0 +1,92 @@
+function solveMaze(input) {
+    const maze = input.split('\n').map(line => line.split(''));
+    const height = maze.length;
+    const width = maze[0].length;
+
+    // Find start (AA) and end (ZZ) positions
+    let start, end;
+    const portals = {};
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (maze[y][x] === '.') {
+                const label = getPortalLabel(maze, x, y);
+                if (label) {
+                    if (label === 'AA') start = [x, y];
+                    else if (label === 'ZZ') end = [x, y];
+                    else {
+                        if (!portals[label]) portals[label] = [];
+                        portals[label].push([x, y]);
+                    }
+                }
+            }
+        }
+    }
+
+    // BFS
+    const queue = [[...start, 0]]; // [x, y, steps]
+    const visited = new Set();
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+
+    while (queue.length > 0) {
+        const [x, y, steps] = queue.shift();
+        const key = `${x},${y}`;
+
+        if (x === end[0] && y === end[1]) return steps;
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        // Check adjacent tiles
+        for (const [dx, dy] of directions) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (maze[ny]?.[nx] === '.') {
+                queue.push([nx, ny, steps + 1]);
+            }
+        }
+
+        // Check for portal
+        const label = getPortalLabel(maze, x, y);
+        if (label && label !== 'AA' && label !== 'ZZ') {
+            const [px, py] = portals[label].find(([px, py]) => px !== x || py !== y);
+            queue.push([px, py, steps + 1]);
+        }
+    }
+
+    return -1; // No path found
+}
+
+function getPortalLabel(maze, x, y) {
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    for (const [dx, dy] of directions) {
+        const c1 = maze[y + dy]?.[x + dx];
+        const c2 = maze[y + dy * 2]?.[x + dx * 2];
+        if (c1 && c2 && c1.match(/[A-Z]/) && c2.match(/[A-Z]/)) {
+            return dy === -1 || dx === -1 ? c2 + c1 : c1 + c2;
+        }
+    }
+    return null;
+}
+
+// Example usage
+const input = `         A           
+         A           
+  #######.#########  
+  #######.........#  
+  #######.#######.#  
+  #######.#######.#  
+  #######.#######.#  
+  #####  B    ###.#  
+BC...##  C    ###.#  
+  ##.##       ###.#  
+  ##...DE  F  ###.#  
+  #####    G  ###.#  
+  #########.#####.#  
+DE..#######...###.#  
+  #.#########.###.#  
+FG..#########.....#  
+  ###########.#####  
+             Z       
+             Z       `;
+
+console.log(solveMaze(input));

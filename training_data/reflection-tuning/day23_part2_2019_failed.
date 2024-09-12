@@ -1,0 +1,53 @@
+const IntcodeComputer = require('./intcodeComputer'); // Assuming we have this implementation
+
+function runNetwork(program) {
+    const computers = Array(50).fill().map((_, i) => {
+        const computer = new IntcodeComputer(program);
+        computer.input(i);
+        return computer;
+    });
+
+    let nat = null;
+    let lastNatY = null;
+    let part1Answer = null;
+
+    while (true) {
+        let idle = true;
+
+        for (let i = 0; i < 50; i++) {
+            const computer = computers[i];
+            if (computer.inputQueue.length === 0) {
+                computer.input(-1);
+            }
+
+            const output = computer.runUntilOutput(3);
+            if (output.length === 3) {
+                idle = false;
+                const [address, x, y] = output;
+                if (address === 255) {
+                    nat = [x, y];
+                    if (part1Answer === null) {
+                        part1Answer = y;
+                    }
+                } else {
+                    computers[address].input(x, y);
+                }
+            }
+        }
+
+        if (idle && nat) {
+            const [x, y] = nat;
+            computers[0].input(x, y);
+            if (y === lastNatY) {
+                return { part1: part1Answer, part2: y };
+            }
+            lastNatY = y;
+            idle = false;
+        }
+    }
+}
+
+const program = [/* ... IntCode program here ... */];
+const result = runNetwork(program);
+console.log("Part 1:", result.part1);
+console.log("Part 2:", result.part2);

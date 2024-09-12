@@ -1,0 +1,84 @@
+class Node {
+    constructor(value, originalIndex) {
+        this.value = value;
+        this.originalIndex = originalIndex;
+        this.next = null;
+        this.prev = null;
+    }
+}
+
+function mix(numbers, rounds = 1, decryptionKey = 1) {
+    const nodes = numbers.map((n, i) => new Node(n * decryptionKey, i));
+    const len = nodes.length;
+
+    // Connect nodes in a circular doubly-linked list
+    for (let i = 0; i < len; i++) {
+        nodes[i].next = nodes[(i + 1) % len];
+        nodes[i].prev = nodes[(i - 1 + len) % len];
+    }
+
+    for (let round = 0; round < rounds; round++) {
+        for (let i = 0; i < len; i++) {
+            const node = nodes[i];
+            const steps = node.value % (len - 1);
+            if (steps === 0) continue;
+
+            // Remove node from current position
+            node.prev.next = node.next;
+            node.next.prev = node.prev;
+
+            // Find new position
+            let current = node;
+            if (steps > 0) {
+                for (let j = 0; j < steps; j++) current = current.next;
+                node.next = current.next;
+                node.prev = current;
+            } else {
+                for (let j = 0; j > steps; j--) current = current.prev;
+                node.prev = current.prev;
+                node.next = current;
+            }
+
+            // Insert node at new position
+            node.next.prev = node;
+            node.prev.next = node;
+        }
+    }
+
+    return nodes;
+}
+
+function findGroveCoordinates(mixed) {
+    let zeroNode = mixed.find(node => node.value === 0);
+    let result = 0;
+    let current = zeroNode;
+
+    for (let i = 1; i <= 3000; i++) {
+        current = current.next;
+        if (i % 1000 === 0) {
+            result += current.value;
+        }
+    }
+
+    return result;
+}
+
+function solve(input) {
+    const numbers = input.trim().split('\n').map(Number);
+
+    // Part 1
+    const mixed1 = mix(numbers);
+    const part1 = findGroveCoordinates(mixed1);
+
+    // Part 2
+    const decryptionKey = 811589153;
+    const mixed2 = mix(numbers, 10, decryptionKey);
+    const part2 = findGroveCoordinates(mixed2);
+
+    console.log(`Part 1: ${part1}`);
+    console.log(`Part 2: ${part2}`);
+}
+
+// Example usage:
+// const input = `1\n2\n-3\n3\n-2\n0\n4`;
+// solve(input);

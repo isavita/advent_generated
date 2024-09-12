@@ -1,0 +1,67 @@
+function solvePart2(input) {
+    const lines = input.split('\n');
+    const ipRegister = parseInt(lines[0].split(' ')[1]);
+    const instructions = lines.slice(1).map(line => {
+        const [op, ...params] = line.split(' ');
+        return [op, ...params.map(Number)];
+    });
+
+    // Analyze the program
+    const mainLoopStart = 1; // Assuming the main loop starts at instruction 1
+    const exitInstruction = instructions.findIndex(([op, a, b, c]) => op === 'eqrr' && (a === 0 || b === 0));
+
+    // Find the register that's compared with r0 for exit
+    const exitRegister = instructions[exitInstruction][1] === 0 ? instructions[exitInstruction][2] : instructions[exitInstruction][1];
+
+    // Find the maximum value this register can reach
+    let maxValue = 0;
+    for (let i = mainLoopStart; i < exitInstruction; i++) {
+        const [op, a, b, c] = instructions[i];
+        if (c === exitRegister) {
+            if (op === 'addi' || op === 'muli' || op === 'seti') {
+                maxValue = Math.max(maxValue, b);
+            } else if (op === 'addr' || op === 'mulr') {
+                maxValue = Math.max(maxValue, 2 * maxValue);
+            }
+        }
+    }
+
+    // The answer is the maximum value the exit register can reach
+    return maxValue;
+}
+
+// Example usage:
+const input = `#ip 1
+seti 123 0 3
+bani 3 456 3
+eqri 3 72 3
+addr 3 1 1
+seti 0 0 1
+seti 0 9 3
+bori 3 65536 2
+seti 10704114 0 3
+bani 2 255 5
+addr 3 5 3
+bani 3 16777215 3
+muli 3 65899 3
+bani 3 16777215 3
+gtir 256 2 5
+addr 5 1 1
+addi 1 1 1
+seti 27 1 1
+seti 0 2 5
+addi 5 1 4
+muli 4 256 4
+gtrr 4 2 4
+addr 4 1 1
+addi 1 1 1
+seti 25 1 1
+addi 5 1 5
+seti 17 8 1
+setr 5 6 2
+seti 7 4 1
+eqrr 3 0 5
+addr 5 1 1
+seti 5 8 1`;
+
+console.log(solvePart2(input));

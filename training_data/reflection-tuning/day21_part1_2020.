@@ -1,0 +1,38 @@
+const fs = require('fs');
+
+function solveAllergenAssessment(input) {
+    const foods = input.trim().split('\n').map(line => {
+        const [ingredients, allergens] = line.split(' (contains ');
+        return {
+            ingredients: ingredients.split(' '),
+            allergens: allergens ? allergens.slice(0, -1).split(', ') : []
+        };
+    });
+
+    const allergenMap = new Map();
+    const allIngredients = new Set();
+
+    foods.forEach(food => {
+        food.ingredients.forEach(ingredient => allIngredients.add(ingredient));
+        food.allergens.forEach(allergen => {
+            if (!allergenMap.has(allergen)) {
+                allergenMap.set(allergen, new Set(food.ingredients));
+            } else {
+                const possibleIngredients = allergenMap.get(allergen);
+                allergenMap.set(allergen, new Set([...possibleIngredients].filter(i => food.ingredients.includes(i))));
+            }
+        });
+    });
+
+    const potentialAllergens = new Set([...allergenMap.values()].flatMap(set => [...set]));
+    const safeIngredients = [...allIngredients].filter(ingredient => !potentialAllergens.has(ingredient));
+
+    const safeIngredientCount = foods.reduce((count, food) => {
+        return count + food.ingredients.filter(ingredient => safeIngredients.includes(ingredient)).length;
+    }, 0);
+
+    return safeIngredientCount;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solveAllergenAssessment(input));

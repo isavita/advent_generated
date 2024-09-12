@@ -1,0 +1,8 @@
+The error message "303" suggests that the previous solution might have been returning an incorrect result for a specific input. The issue could be in the logic for calculating the Manhattan distance or in the way the spiral is being generated.
+
+To fix this, we need to ensure that:
+1. We correctly generate the spiral sequence.
+2. We accurately locate the position of the input number in the spiral.
+3. We calculate the Manhattan distance correctly from that position to the center (1,1).
+
+A more robust approach would be to generate the spiral coordinates explicitly, find the coordinates for the input number, and then calculate the Manhattan distance to (0,0) (which is equivalent to (1,1) in the problem description, but easier to work with).

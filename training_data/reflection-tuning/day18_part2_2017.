@@ -1,0 +1,73 @@
+const fs = require('fs');
+
+class Program {
+    constructor(id, otherProgram) {
+        this.id = id;
+        this.registers = new Map();
+        this.registers.set('p', id);
+        this.pc = 0;
+        this.queue = [];
+        this.otherProgram = otherProgram;
+        this.waiting = false;
+        this.sendCount = 0;
+    }
+
+    getValue(x) {
+        return isNaN(x) ? (this.registers.get(x) || 0) : parseInt(x);
+    }
+
+    snd(x) {
+        this.otherProgram.queue.push(this.getValue(x));
+        if (this.id === 1) this.sendCount++;
+    }
+
+    set(x, y) { this.registers.set(x, this.getValue(y)); }
+    add(x, y) { this.registers.set(x, this.getValue(x) + this.getValue(y)); }
+    mul(x, y) { this.registers.set(x, this.getValue(x) * this.getValue(y)); }
+    mod(x, y) { this.registers.set(x, this.getValue(x) % this.getValue(y)); }
+
+    rcv(x) {
+        if (this.queue.length > 0) {
+            this.registers.set(x, this.queue.shift());
+            this.waiting = false;
+        } else {
+            this.waiting = true;
+            this.pc--;
+        }
+    }
+
+    jgz(x, y) {
+        if (this.getValue(x) > 0) {
+            this.pc += this.getValue(y) - 1;
+        }
+    }
+
+    step(instructions) {
+        if (this.pc < 0 || this.pc >= instructions.length) return false;
+        const [op, x, y] = instructions[this.pc].split(' ');
+        this[op](x, y);
+        this.pc++;
+        return true;
+    }
+}
+
+function runPrograms(instructions) {
+    const program0 = new Program(0);
+    const program1 = new Program(1);
+    program0.otherProgram = program1;
+    program1.otherProgram = program0;
+
+    while (true) {
+        const ran0 = program0.step(instructions);
+        const ran1 = program1.step(instructions);
+
+        if ((!ran0 || program0.waiting) && (!ran1 || program1.waiting)) {
+            break;
+        }
+    }
+
+    return program1.sendCount;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+console.log(runPrograms(input));

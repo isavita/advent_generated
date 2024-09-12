@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Parse each instruction into its components (register, operation, value, condition)
+3. Maintain a map of register values
+4. Evaluate the condition for each instruction
+5. If the condition is true, perform the operation on the specified register
+6. Keep track of the maximum value ever held in any register
+7. After processing all instructions, find the maximum value in any register
+8. Return both the maximum value after all instructions and the maximum value ever held
+
+We can use Clojure's built-in functions like slurp, split-lines, and re-matches for parsing. 
+We'll use an atom to keep track of the register values and another atom for the maximum value ever held.

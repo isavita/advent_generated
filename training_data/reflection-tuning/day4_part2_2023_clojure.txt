@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file, extracting the winning numbers and the numbers we have for each card.
+2. Create a function to count the number of matching numbers for each card.
+3. Initialize a vector to keep track of the number of copies of each card, starting with 1 for each original card.
+4. Iterate through the cards, updating the copies of subsequent cards based on the number of matches.
+5. Sum up the total number of cards (original + copies) at the end.
+
+The key to efficiency here is to use vectors for fast access and updates, and to process the cards in order, which allows us to update future card counts in a single pass.

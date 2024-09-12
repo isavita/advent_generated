@@ -1,0 +1,95 @@
+function parseInput(input) {
+    const monkeys = {};
+    input.split('\n').forEach(line => {
+        const [name, job] = line.split(': ');
+        if (isNaN(job)) {
+            const [left, op, right] = job.split(' ');
+            monkeys[name] = { left, op, right };
+        } else {
+            monkeys[name] = { value: Number(job) };
+        }
+    });
+    return monkeys;
+}
+
+function evaluateMonkey(monkeys, name) {
+    const monkey = monkeys[name];
+    if ('value' in monkey) return monkey.value;
+    const left = evaluateMonkey(monkeys, monkey.left);
+    const right = evaluateMonkey(monkeys, monkey.right);
+    switch (monkey.op) {
+        case '+': return left + right;
+        case '-': return left - right;
+        case '*': return left * right;
+        case '/': return left / right;
+    }
+}
+
+function findHumnValue(monkeys) {
+    const root = monkeys['root'];
+    monkeys['humn'] = { value: 'x' };
+
+    function evaluate(name) {
+        if (name === 'humn') return 'x';
+        const monkey = monkeys[name];
+        if ('value' in monkey) return monkey.value;
+        const left = evaluate(monkey.left);
+        const right = evaluate(monkey.right);
+        if (left === 'x' || right === 'x') return 'x';
+        return evaluateMonkey(monkeys, name);
+    }
+
+    const leftSide = evaluate(root.left);
+    const rightSide = evaluate(root.right);
+    
+    let target, expression;
+    if (leftSide === 'x') {
+        target = rightSide;
+        expression = leftSide;
+    } else {
+        target = leftSide;
+        expression = rightSide;
+    }
+
+    let low = 0;
+    let high = 1e14;
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        monkeys['humn'].value = mid;
+        const result = evaluateMonkey(monkeys, expression === leftSide ? root.left : root.right);
+        if (result === target) return mid;
+        if (result < target) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+}
+
+function solve(input) {
+    const monkeys = parseInput(input);
+    const part1 = evaluateMonkey(monkeys, 'root');
+    const part2 = findHumnValue(monkeys);
+    return { part1, part2 };
+}
+
+// Example usage:
+const input = `root: pppw + sjmn
+dbpl: 5
+cczh: sllz + lgvd
+zczc: 2
+ptdq: humn - dvpt
+dvpt: 3
+lfqf: 4
+humn: 5
+ljgn: 2
+sjmn: drzm * dbpl
+sllz: 4
+pppw: cczh / lfqf
+lgvd: ljgn * ptdq
+drzm: hmdt - zczc
+hmdt: 32`;
+
+const result = solve(input);
+console.log("Part 1:", result.part1);
+console.log("Part 2:", result.part2);

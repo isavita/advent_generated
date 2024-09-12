@@ -1,0 +1,12 @@
+To solve this problem efficiently, we need to use a data structure that allows for fast insertion and removal of elements, as well as quick access to specific elements. A linked list would be a good choice, but we can optimize it further by using an array to represent the linked list, where each element points to the next cup's index.
+
+For Part 1, we can simulate the moves as described in the problem statement. We'll keep track of the current cup and perform the operations for 100 moves.
+
+For Part 2, we need to scale up the solution to handle 1 million cups and 10 million moves. The basic algorithm remains the same, but we need to be more efficient. We'll use the same array-based linked list approach, but we'll only keep track of the two cups immediately after cup 1, as that's all we need for the final answer.
+
+To optimize the solution:
+1. We'll use an array to represent the circular linked list.
+2. We'll use modular arithmetic to wrap around the circle.
+3. For Part 2, we'll only update the relevant parts of the list during each move.
+
+This approach should be able to handle both parts of the problem efficiently.

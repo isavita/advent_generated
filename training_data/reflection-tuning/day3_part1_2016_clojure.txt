@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Parse each line into three numbers representing the sides of a triangle
+3. Check if the triangle is valid using the condition: sum of any two sides must be larger than the remaining side
+4. Count the number of valid triangles
+5. Print the final count
+
+We can use Clojure's file reading capabilities, string manipulation, and higher-order functions to create a concise and efficient solution.

@@ -1,0 +1,43 @@
+const fs = require('fs');
+
+function solveChallenge(input) {
+    const [rulesSection, messagesSection] = input.split('\n\n');
+    const messages = messagesSection.split('\n');
+    const rules = {};
+
+    rulesSection.split('\n').forEach(rule => {
+        const [id, content] = rule.split(': ');
+        rules[id] = content.replace(/"/g, '');
+    });
+
+    function generateRegex(ruleId, part2 = false) {
+        if (part2 && ruleId === '8') {
+            return `(${generateRegex('42', true)}+)`;
+        }
+        if (part2 && ruleId === '11') {
+            // Approximate rule 11 with up to 5 repetitions
+            const r42 = generateRegex('42', true);
+            const r31 = generateRegex('31', true);
+            return `(?:${r42}{1}${r31}{1}|${r42}{2}${r31}{2}|${r42}{3}${r31}{3}|${r42}{4}${r31}{4}|${r42}{5}${r31}{5})`;
+        }
+        if (/^[ab]$/.test(rules[ruleId])) {
+            return rules[ruleId];
+        }
+        return `(${rules[ruleId].split(' | ').map(subRule => 
+            subRule.split(' ').map(id => generateRegex(id, part2)).join('')
+        ).join('|')})`;
+    }
+
+    function countMatches(part2 = false) {
+        const regex = new RegExp(`^${generateRegex('0', part2)}$`);
+        return messages.filter(msg => regex.test(msg)).length;
+    }
+
+    const part1Result = countMatches();
+    const part2Result = countMatches(true);
+
+    return `Part 1: ${part1Result}\nPart 2: ${part2Result}`;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solveChallenge(input));

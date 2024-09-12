@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from the file and parse it into a 2D array.
+2. Find the starting point (the first '|' in the top row).
+3. Traverse the path, keeping track of the direction and collecting letters.
+4. Handle intersections ('+') by choosing the appropriate new direction.
+5. Stop when we reach the end of the path.
+
+We'll use a simple direction system (dx, dy) to move through the grid. We'll also keep track of the current position and the letters we've collected. The main challenge is handling the turns at '+' intersections, which we'll do by checking all possible directions except the opposite of our current direction.

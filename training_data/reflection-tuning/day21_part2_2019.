@@ -1,0 +1,102 @@
+const fs = require('fs');
+
+class IntcodeComputer {
+    constructor(memory) {
+        this.memory = memory.split(',').map(Number);
+        this.pointer = 0;
+        this.relativeBase = 0;
+        this.input = [];
+        this.output = [];
+    }
+
+    run() {
+        while (true) {
+            const opcode = this.memory[this.pointer] % 100;
+            const modes = Math.floor(this.memory[this.pointer] / 100).toString().padStart(3, '0').split('').reverse().map(Number);
+
+            if (opcode === 99) break;
+
+            const params = [
+                this.getParam(1, modes[0]),
+                this.getParam(2, modes[1]),
+                this.getWriteAddress(3, modes[2])
+            ];
+
+            switch (opcode) {
+                case 1: this.memory[params[2]] = params[0] + params[1]; this.pointer += 4; break;
+                case 2: this.memory[params[2]] = params[0] * params[1]; this.pointer += 4; break;
+                case 3:
+                    if (this.input.length === 0) return 'WAIT_INPUT';
+                    this.memory[this.getWriteAddress(1, modes[0])] = this.input.shift();
+                    this.pointer += 2;
+                    break;
+                case 4: this.output.push(params[0]); this.pointer += 2; break;
+                case 5: this.pointer = params[0] !== 0 ? params[1] : this.pointer + 3; break;
+                case 6: this.pointer = params[0] === 0 ? params[1] : this.pointer + 3; break;
+                case 7: this.memory[params[2]] = params[0] < params[1] ? 1 : 0; this.pointer += 4; break;
+                case 8: this.memory[params[2]] = params[0] === params[1] ? 1 : 0; this.pointer += 4; break;
+                case 9: this.relativeBase += params[0]; this.pointer += 2; break;
+            }
+        }
+        return 'HALT';
+    }
+
+    getParam(offset, mode) {
+        const value = this.memory[this.pointer + offset];
+        if (mode === 0) return this.memory[value] || 0;
+        if (mode === 1) return value;
+        if (mode === 2) return this.memory[this.relativeBase + value] || 0;
+    }
+
+    getWriteAddress(offset, mode) {
+        const value = this.memory[this.pointer + offset];
+        return mode === 2 ? this.relativeBase + value : value;
+    }
+}
+
+function runSpringdroid(program, instructions, command) {
+    const computer = new IntcodeComputer(program);
+    const input = instructions.concat(command, '').join('\n').split('').map(c => c.charCodeAt(0));
+    computer.input = input;
+
+    while (true) {
+        const status = computer.run();
+        if (status === 'HALT') break;
+    }
+
+    const damage = computer.output.pop();
+    if (damage > 255) return damage;
+
+    console.log(computer.output.map(c => String.fromCharCode(c)).join(''));
+    return null;
+}
+
+const program = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Part 1
+const instructionsPart1 = [
+    'NOT A J',
+    'NOT B T',
+    'OR T J',
+    'NOT C T',
+    'OR T J',
+    'AND D J'
+];
+const damagePart1 = runSpringdroid(program, instructionsPart1, 'WALK');
+console.log('Part 1:', damagePart1);
+
+// Part 2
+const instructionsPart2 = [
+    'NOT A J',
+    'NOT B T',
+    'OR T J',
+    'NOT C T',
+    'OR T J',
+    'AND D J',
+    'NOT E T',
+    'NOT T T',
+    'OR H T',
+    'AND T J'
+];
+const damagePart2 = runSpringdroid(program, instructionsPart2, 'RUN');
+console.log('Part 2:', damagePart2);

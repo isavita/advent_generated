@@ -1,0 +1,12 @@
+The error message indicates that we're trying to access the 'x' property of an undefined object. This suggests that the stack is empty when we're trying to access its last element. This could happen if we're not properly handling the case where we encounter a closing parenthesis ')' and the stack becomes empty.
+
+To fix this, we should add a check to ensure the stack is not empty before trying to access its last element. Additionally, we should make sure we're properly handling the branching logic when we encounter parentheses and pipes.
+
+Here's how we can approach the solution:
+1. Use a stack to keep track of the current position and the maximum distance.
+2. Iterate through each character in the regex.
+3. For each direction (N, S, E, W), update the current position and max distance.
+4. When we encounter an opening parenthesis '(', push the current state onto the stack.
+5. When we encounter a closing parenthesis ')', pop the state from the stack.
+6. When we encounter a pipe '|', reset to the last state on the stack without popping it.
+7. Ensure we check if the stack is empty before accessing its last element.

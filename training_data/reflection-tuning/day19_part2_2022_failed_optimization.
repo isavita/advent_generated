@@ -1,0 +1,89 @@
+function parseBlueprint(blueprint) {
+    const costs = blueprint.match(/\d+/g).map(Number);
+    return {
+        id: costs[0],
+        oreCost: costs[1],
+        clayCost: costs[2],
+        obsidianCost: [costs[3], costs[4]],
+        geodeCost: [costs[5], costs[6]]
+    };
+}
+
+function getMaxGeodes(blueprint, totalTime) {
+    const maxCosts = {
+        ore: Math.max(blueprint.oreCost, blueprint.clayCost, blueprint.obsidianCost[0], blueprint.geodeCost[0]),
+        clay: blueprint.obsidianCost[1],
+        obsidian: blueprint.geodeCost[1]
+    };
+
+    const memo = new Map();
+
+    function dfs(time, robots, resources) {
+        if (time === 0) return resources.geode;
+
+        const key = `${time},${robots.ore},${robots.clay},${robots.obsidian},${resources.ore},${resources.clay},${resources.obsidian}`;
+        if (memo.has(key)) return memo.get(key);
+
+        let maxGeodes = resources.geode + robots.geode * time;
+
+        // Prune if we can't possibly beat the current max
+        const potentialGeodes = maxGeodes + (time * (time - 1)) / 2;
+        if (potentialGeodes <= memo.get('max') || 0) return maxGeodes;
+
+        // Try building each type of robot
+        for (const robotType of ['geode', 'obsidian', 'clay', 'ore']) {
+            if (robotType !== 'geode' && robots[robotType] >= maxCosts[robotType]) continue;
+
+            const cost = robotType === 'geode' ? blueprint.geodeCost :
+                         robotType === 'obsidian' ? blueprint.obsidianCost :
+                         robotType === 'clay' ? blueprint.clayCost : blueprint.oreCost;
+
+            let waitTime = 0;
+            if (robotType === 'geode' || robotType === 'obsidian') {
+                if (robots[cost[1] === 'clay' ? 'clay' : 'obsidian'] === 0) continue;
+                waitTime = Math.max(
+                    Math.ceil((cost[0] - resources.ore) / robots.ore),
+                    Math.ceil((cost[1] - resources[cost[1] === 'clay' ? 'clay' : 'obsidian']) / robots[cost[1] === 'clay' ? 'clay' : 'obsidian'])
+                );
+            } else {
+                waitTime = Math.ceil((cost - resources.ore) / robots.ore);
+            }
+
+            if (waitTime >= time) continue;
+
+            const newTime = time - waitTime - 1;
+            const newRobots = {...robots, [robotType]: robots[robotType] + 1};
+            const newResources = {
+                ore: resources.ore + robots.ore * (waitTime + 1) - (robotType === 'geode' || robotType === 'obsidian' ? cost[0] : cost),
+                clay: resources.clay + robots.clay * (waitTime + 1) - (robotType === 'obsidian' ? cost[1] : 0),
+                obsidian: resources.obsidian + robots.obsidian * (waitTime + 1) - (robotType === 'geode' ? cost[1] : 0),
+                geode: resources.geode + robots.geode * (waitTime + 1)
+            };
+
+            maxGeodes = Math.max(maxGeodes, dfs(newTime, newRobots, newResources));
+        }
+
+        memo.set(key, maxGeodes);
+        memo.set('max', Math.max(memo.get('max') || 0, maxGeodes));
+        return maxGeodes;
+    }
+
+    return dfs(totalTime, {ore: 1, clay: 0, obsidian: 0, geode: 0}, {ore: 0, clay: 0, obsidian: 0, geode: 0});
+}
+
+function part1(input) {
+    const blueprints = input.split('\n').map(parseBlueprint);
+    return blueprints.reduce((sum, blueprint) => sum + blueprint.id * getMaxGeodes(blueprint, 24), 0);
+}
+
+function part2(input) {
+    const blueprints = input.split('\n').slice(0, 3).map(parseBlueprint);
+    return blueprints.reduce((product, blueprint) => product * getMaxGeodes(blueprint, 32), 1);
+}
+
+// Example usage:
+const input = `Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
+Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.`;
+
+console.log("Part 1:", part1(input));
+console.log("Part 2:", part2(input));

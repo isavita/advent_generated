@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the input file and parse each line into a data structure.
+2. Identify all programs that are supporting other programs.
+3. Find the program that is not being supported by any other program.
+
+The most efficient approach would be to:
+1. Create a set of all program names.
+2. Create a set of all programs that are being supported.
+3. The difference between these two sets will give us the bottom program.
+
+This approach is efficient as it only requires a single pass through the input data and uses set operations for the final calculation.

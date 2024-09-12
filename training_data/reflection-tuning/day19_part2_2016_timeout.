@@ -1,0 +1,78 @@
+class Node {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+        this.prev = null;
+    }
+}
+
+class CircularList {
+    constructor() {
+        this.head = null;
+        this.size = 0;
+    }
+
+    add(value) {
+        const newNode = new Node(value);
+        if (!this.head) {
+            this.head = newNode;
+            newNode.next = newNode;
+            newNode.prev = newNode;
+        } else {
+            newNode.next = this.head;
+            newNode.prev = this.head.prev;
+            this.head.prev.next = newNode;
+            this.head.prev = newNode;
+        }
+        this.size++;
+    }
+
+    remove(node) {
+        if (this.size === 1) {
+            this.head = null;
+        } else {
+            node.prev.next = node.next;
+            node.next.prev = node.prev;
+            if (node === this.head) {
+                this.head = node.next;
+            }
+        }
+        this.size--;
+    }
+}
+
+function solvePart1(n) {
+    const elves = Array.from({ length: n }, (_, i) => i + 1);
+    let current = 0;
+    while (elves.length > 1) {
+        const next = (current + 1) % elves.length;
+        elves.splice(next, 1);
+        current = next % elves.length;
+    }
+    return elves[0];
+}
+
+function solvePart2(n) {
+    const circle = new CircularList();
+    for (let i = 1; i <= n; i++) {
+        circle.add(i);
+    }
+
+    let current = circle.head;
+    let opposite = circle.head;
+    for (let i = 0; i < Math.floor(n / 2); i++) {
+        opposite = opposite.next;
+    }
+
+    while (circle.size > 1) {
+        circle.remove(opposite);
+        opposite = circle.size % 2 === 0 ? opposite.next : opposite.next.next;
+        current = current.next;
+    }
+
+    return current.value;
+}
+
+const input = 3014603;
+console.log("Part 1:", solvePart1(input));
+console.log("Part 2:", solvePart2(input));

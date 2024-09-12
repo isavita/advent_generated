@@ -1,0 +1,9 @@
+Based on the incorrect output, it seems the main issue is in Part 2, where the result is 0. This suggests that the code is not correctly identifying or counting the water tiles that are at rest (represented by '~'). The Part 1 result of 10 also seems low, indicating that the water flow simulation might not be comprehensive enough.
+
+To fix this, we need to ensure that:
+1. The water simulation correctly fills all possible spaces, including spreading horizontally when it can't go down.
+2. We properly distinguish between flowing water ('|') and water at rest ('~').
+3. We correctly count both types of water for Part 1, but only water at rest for Part 2.
+4. We handle the boundaries of the scan area correctly.
+
+The solution likely needs a more robust water flow simulation that can handle complex scenarios like overflowing and settling in cavities.

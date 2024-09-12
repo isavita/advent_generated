@@ -1,0 +1,11 @@
+To solve this problem efficiently, we need to consider a few key points:
+
+1. For Part One, we can simulate the spinlock process directly, as the number of iterations (2017) is relatively small.
+
+2. For Part Two, simulating 50 million insertions would be too slow. However, we can observe that we only need to track the value that comes after 0, which is always at index 1 in the circular buffer.
+
+3. We don't need to maintain the entire buffer for Part Two. We only need to keep track of the current position, the buffer size, and the value at index 1.
+
+4. For both parts, we'll use modular arithmetic to handle the circular nature of the buffer efficiently.
+
+Given these considerations, we'll implement two separate functions: one for Part One that simulates the full process, and another for Part Two that only tracks the necessary information.

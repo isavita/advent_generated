@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into a 2D array or vector of characters.
+2. Iterate through each character in the schematic.
+3. When we find a number, we need to check its surroundings (including diagonals) for symbols.
+4. If a symbol is found adjacent to the number, we add it to our sum.
+5. We need to be careful to handle multi-digit numbers correctly.
+
+An efficient approach would be to:
+- Use a single pass through the schematic.
+- Keep track of the current number we're building and whether it's adjacent to a symbol.
+- Use helper functions to check for symbols and to process complete numbers.

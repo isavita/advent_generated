@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Parse each line to extract the policy and password
+3. Check if the password meets the policy
+4. Count the number of valid passwords
+
+We can use Clojure's built-in functions to read the file and process the data efficiently. We'll use regular expressions to parse each line, and create helper functions to check password validity. The solution will be functional and concise.

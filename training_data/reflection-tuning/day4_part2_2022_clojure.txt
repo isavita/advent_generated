@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse each line into pairs of ranges.
+2. For each pair, we'll check for both full containment and any overlap.
+3. We'll use Clojure's built-in functions to streamline the process.
+4. To check for containment, we'll compare the start and end of each range.
+5. To check for overlap, we'll see if the end of one range is greater than or equal to the start of the other range, and vice versa.
+6. We'll use reduce to count the number of pairs that satisfy each condition.
+7. Finally, we'll print both results (for Part One and Part Two).

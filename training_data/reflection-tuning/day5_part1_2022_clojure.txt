@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the initial state of the stacks from the input file.
+2. Parse the movement instructions.
+3. Execute the movement instructions on the stacks.
+4. Read the top crate from each stack at the end.
+
+We'll use Clojure's built-in functions to read the file and process the data. We'll represent the stacks as a vector of vectors, where each inner vector represents a stack. We'll use regular expressions to parse the movement instructions.
+
+The main challenge is to efficiently update the stacks during the movement process. We'll use Clojure's immutable data structures and update-in function to modify the stacks.

@@ -1,0 +1,80 @@
+class State {
+    constructor(playerHP, playerMana, bossHP, bossDamage, manaSpent = 0, effects = {}) {
+        this.playerHP = playerHP;
+        this.playerMana = playerMana;
+        this.bossHP = bossHP;
+        this.bossDamage = bossDamage;
+        this.manaSpent = manaSpent;
+        this.effects = {...effects};
+    }
+
+    clone() {
+        return new State(this.playerHP, this.playerMana, this.bossHP, this.bossDamage, this.manaSpent, {...this.effects});
+    }
+}
+
+const spells = {
+    'Magic Missile': {cost: 53, damage: 4},
+    'Drain': {cost: 73, damage: 2, heal: 2},
+    'Shield': {cost: 113, turns: 6, armor: 7},
+    'Poison': {cost: 173, turns: 6, damage: 3},
+    'Recharge': {cost: 229, turns: 5, mana: 101}
+};
+
+function applyEffects(state) {
+    if (state.effects.Shield) state.effects.Shield--;
+    if (state.effects.Poison) {
+        state.bossHP -= 3;
+        state.effects.Poison--;
+    }
+    if (state.effects.Recharge) {
+        state.playerMana += 101;
+        state.effects.Recharge--;
+    }
+}
+
+function simulateBattle(initialState) {
+    let minMana = Infinity;
+
+    function dfs(state, isPlayerTurn) {
+        if (state.manaSpent >= minMana) return;
+        if (state.bossHP <= 0) {
+            minMana = Math.min(minMana, state.manaSpent);
+            return;
+        }
+        if (state.playerHP <= 0) return;
+
+        applyEffects(state);
+
+        if (isPlayerTurn) {
+            for (const [spell, details] of Object.entries(spells)) {
+                if (state.playerMana < details.cost) continue;
+                if (state.effects[spell]) continue;
+
+                let newState = state.clone();
+                newState.playerMana -= details.cost;
+                newState.manaSpent += details.cost;
+
+                if (spell === 'Magic Missile' || spell === 'Drain') {
+                    newState.bossHP -= details.damage;
+                    if (spell === 'Drain') newState.playerHP += details.heal;
+                } else {
+                    newState.effects[spell] = details.turns;
+                }
+
+                dfs(newState, false);
+            }
+        } else {
+            let damage = state.bossDamage - (state.effects.Shield ? 7 : 0);
+            state.playerHP -= Math.max(1, damage);
+            dfs(state, true);
+        }
+    }
+
+    dfs(initialState, true);
+    return minMana;
+}
+
+// Example usage:
+const initialState = new State(50, 500, 55, 8); // Adjust boss HP and damage as per your input
+console.log(simulateBattle(initialState));

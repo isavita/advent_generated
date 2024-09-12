@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Parse the input rules into a map for quick lookup.
+2. Implement a function to split the grid into smaller squares (2x2 or 3x3).
+3. Implement a function to enhance each small square using the rules.
+4. Implement a function to join the enhanced squares back into a larger grid.
+5. Create a main loop to iterate the process for the required number of times.
+6. Count the number of '#' pixels after the iterations.
+
+For efficiency:
+- Use a Set to store active pixels instead of a 2D array.
+- Precompute all possible rotations and flips for each rule to avoid runtime transformations.
+- Use a hash function to quickly match patterns to rules.

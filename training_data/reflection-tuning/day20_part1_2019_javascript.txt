@@ -1,0 +1,12 @@
+To solve this maze problem efficiently, we can use a Breadth-First Search (BFS) algorithm. Here's the approach:
+
+1. Parse the input to create a 2D grid representation of the maze.
+2. Identify all portals, including the start (AA) and end (ZZ) points.
+3. Create a graph representation where each node is a walkable position, and edges represent possible moves (including portal teleportations).
+4. Use BFS to find the shortest path from AA to ZZ.
+5. Count the steps in the shortest path.
+
+The key optimizations are:
+- Using a Set to keep track of visited positions to avoid revisiting.
+- Using a Queue for BFS to ensure we explore the shortest paths first.
+- Pre-computing portal connections to avoid repeated searches during pathfinding.

@@ -1,0 +1,180 @@
+const fs = require('fs');
+
+// Read input
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n\n');
+
+// Parse tiles
+const tiles = input.map(tile => {
+    const [id, ...lines] = tile.split('\n');
+    return {
+        id: parseInt(id.match(/\d+/)[0]),
+        data: lines
+    };
+});
+
+// Helper functions for tile manipulation
+function rotateClockwise(tile) {
+    return tile.map((_, i) => tile.map(row => row[row.length - 1 - i]).join(''));
+}
+
+function flipHorizontal(tile) {
+    return tile.map(row => row.split('').reverse().join(''));
+}
+
+function getEdges(tile) {
+    return [
+        tile[0],
+        tile.map(row => row[row.length - 1]).join(''),
+        tile[tile.length - 1],
+        tile.map(row => row[0]).join('')
+    ];
+}
+
+// Find matching edges
+function findMatches(tiles) {
+    const matches = {};
+    for (let i = 0; i < tiles.length; i++) {
+        const edges1 = getEdges(tiles[i].data);
+        for (let j = i + 1; j < tiles.length; j++) {
+            const edges2 = getEdges(tiles[j].data);
+            for (let e1 = 0; e1 < 4; e1++) {
+                for (let e2 = 0; e2 < 4; e2++) {
+                    if (edges1[e1] === edges2[e2] || edges1[e1] === edges2[e2].split('').reverse().join('')) {
+                        matches[tiles[i].id] = matches[tiles[i].id] || [];
+                        matches[tiles[j].id] = matches[tiles[j].id] || [];
+                        matches[tiles[i].id].push(tiles[j].id);
+                        matches[tiles[j].id].push(tiles[i].id);
+                    }
+                }
+            }
+        }
+    }
+    return matches;
+}
+
+// Assemble tiles
+function assembleTiles(tiles, matches) {
+    const size = Math.sqrt(tiles.length);
+    const assembled = new Array(size).fill().map(() => new Array(size));
+    const used = new Set();
+
+    function backtrack(row, col) {
+        if (row === size) return true;
+        if (col === size) return backtrack(row + 1, 0);
+
+        for (const tile of tiles) {
+            if (used.has(tile.id)) continue;
+
+            for (let rotation = 0; rotation < 4; rotation++) {
+                for (let flip = 0; flip < 2; flip++) {
+                    if (checkFit(assembled, tile.data, row, col, size)) {
+                        assembled[row][col] = tile;
+                        used.add(tile.id);
+                        if (backtrack(row, col + 1)) return true;
+                        used.delete(tile.id);
+                        assembled[row][col] = null;
+                    }
+                    tile.data = flipHorizontal(tile.data);
+                }
+                tile.data = rotateClockwise(tile.data);
+            }
+        }
+        return false;
+    }
+
+    backtrack(0, 0);
+    return assembled;
+}
+
+function checkFit(assembled, tileData, row, col, size) {
+    if (row > 0) {
+        const topTile = assembled[row - 1][col].data;
+        if (topTile[topTile.length - 1] !== tileData[0]) return false;
+    }
+    if (col > 0) {
+        const leftTile = assembled[row][col - 1].data;
+        if (leftTile.map(row => row[row.length - 1]).join('') !== tileData.map(row => row[0]).join('')) return false;
+    }
+    return true;
+}
+
+// Remove borders and combine tiles
+function combineImage(assembled) {
+    const tileSize = assembled[0][0].data.length - 2;
+    const imageSize = assembled.length * tileSize;
+    const image = new Array(imageSize).fill().map(() => '');
+
+    for (let i = 0; i < assembled.length; i++) {
+        for (let j = 0; j < assembled[i].length; j++) {
+            const tile = assembled[i][j].data.slice(1, -1).map(row => row.slice(1, -1));
+            for (let r = 0; r < tileSize; r++) {
+                image[i * tileSize + r] += tile[r];
+            }
+        }
+    }
+
+    return image;
+}
+
+// Define sea monster pattern
+const seaMonster = [
+    '                  # ',
+    '#    ##    ##    ###',
+    ' #  #  #  #  #  #   '
+];
+
+// Search for sea monsters
+function findSeaMonsters(image) {
+    const monsterHeight = seaMonster.length;
+    const monsterWidth = seaMonster[0].length;
+    let monsterCount = 0;
+
+    for (let i = 0; i <= image.length - monsterHeight; i++) {
+        for (let j = 0; j <= image[i].length - monsterWidth; j++) {
+            if (checkSeaMonster(image, i, j)) {
+                monsterCount++;
+            }
+        }
+    }
+
+    return monsterCount;
+}
+
+function checkSeaMonster(image, startRow, startCol) {
+    for (let i = 0; i < seaMonster.length; i++) {
+        for (let j = 0; j < seaMonster[i].length; j++) {
+            if (seaMonster[i][j] === '#' && image[startRow + i][startCol + j] !== '#') {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Main execution
+const matches = findMatches(tiles);
+const assembled = assembleTiles(tiles, matches);
+
+// Part 1
+const corners = tiles.filter(tile => matches[tile.id].length === 2);
+const part1 = corners.reduce((acc, tile) => acc * tile.id, 1);
+console.log('Part 1:', part1);
+
+// Part 2
+let image = combineImage(assembled);
+let maxMonsters = 0;
+
+for (let rotation = 0; rotation < 4; rotation++) {
+    for (let flip = 0; flip < 2; flip++) {
+        const monsters = findSeaMonsters(image);
+        maxMonsters = Math.max(maxMonsters, monsters);
+        image = flipHorizontal(image);
+    }
+    image = rotateClockwise(image);
+}
+
+const totalHashes = image.join('').split('').filter(c => c === '#').length;
+const monsterHashes = seaMonster.join('').split('').filter(c => c === '#').length;
+const part2 = totalHashes - (maxMonsters * monsterHashes);
+
+console.log('Part 2:', part2);

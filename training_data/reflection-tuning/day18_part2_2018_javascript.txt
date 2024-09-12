@@ -1,0 +1,10 @@
+To solve this problem efficiently, we need to:
+1. Parse the input file to create a 2D grid representing the lumber collection area.
+2. Implement a function to simulate one minute of changes.
+3. Create a function to count the number of wooded acres and lumberyards.
+4. For Part 1, simply run the simulation for 10 minutes and calculate the result.
+5. For Part 2, we need to optimize for 1,000,000,000 minutes. The key insight is that the pattern will eventually repeat. We can:
+   a. Run the simulation until we detect a repeating pattern.
+   b. Calculate how many minutes are left after the pattern starts repeating.
+   c. Use modular arithmetic to find the state after 1,000,000,000 minutes.
+6. Finally, calculate and return the resource value for both parts.

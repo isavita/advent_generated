@@ -1,0 +1,96 @@
+const fs = require('fs');
+
+// Helper functions
+const rotations = [
+    ([x, y, z]) => [x, y, z],
+    ([x, y, z]) => [x, z, -y],
+    ([x, y, z]) => [x, -y, -z],
+    ([x, y, z]) => [x, -z, y],
+    ([x, y, z]) => [-x, y, -z],
+    ([x, y, z]) => [-x, z, y],
+    ([x, y, z]) => [-x, -y, z],
+    ([x, y, z]) => [-x, -z, -y],
+    ([x, y, z]) => [y, z, x],
+    ([x, y, z]) => [y, x, -z],
+    ([x, y, z]) => [y, -z, -x],
+    ([x, y, z]) => [y, -x, z],
+    ([x, y, z]) => [-y, z, -x],
+    ([x, y, z]) => [-y, x, z],
+    ([x, y, z]) => [-y, -z, x],
+    ([x, y, z]) => [-y, -x, -z],
+    ([x, y, z]) => [z, x, y],
+    ([x, y, z]) => [z, y, -x],
+    ([x, y, z]) => [z, -x, -y],
+    ([x, y, z]) => [z, -y, x],
+    ([x, y, z]) => [-z, x, -y],
+    ([x, y, z]) => [-z, y, x],
+    ([x, y, z]) => [-z, -x, y],
+    ([x, y, z]) => [-z, -y, -x],
+];
+
+const add = (a, b) => a.map((x, i) => x + b[i]);
+const sub = (a, b) => a.map((x, i) => x - b[i]);
+const manhattan = (a, b) => a.reduce((sum, x, i) => sum + Math.abs(x - b[i]), 0);
+
+function findOverlap(scanner1, scanner2) {
+    for (let rotation of rotations) {
+        const rotated = scanner2.map(rotation);
+        const differences = {};
+
+        for (let beacon1 of scanner1) {
+            for (let beacon2 of rotated) {
+                const diff = sub(beacon1, beacon2).toString();
+                differences[diff] = (differences[diff] || 0) + 1;
+
+                if (differences[diff] >= 12) {
+                    return { rotation, translation: diff.split(',').map(Number) };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function solve(input) {
+    const scanners = input.split('\n\n').map(scanner => 
+        scanner.split('\n').slice(1).map(line => line.split(',').map(Number))
+    );
+
+    const aligned = new Set(scanners[0].map(b => b.toString()));
+    const toAlign = scanners.slice(1);
+    const scannerPositions = [[0, 0, 0]];
+
+    while (toAlign.length > 0) {
+        const scanner = toAlign.shift();
+        const overlap = findOverlap([...aligned].map(b => b.split(',').map(Number)), scanner);
+
+        if (overlap) {
+            const { rotation, translation } = overlap;
+            scannerPositions.push(translation);
+
+            for (let beacon of scanner) {
+                const rotated = rotation(beacon);
+                const position = add(rotated, translation);
+                aligned.add(position.toString());
+            }
+        } else {
+            toAlign.push(scanner);
+        }
+    }
+
+    const part1 = aligned.size;
+
+    let part2 = 0;
+    for (let i = 0; i < scannerPositions.length; i++) {
+        for (let j = i + 1; j < scannerPositions.length; j++) {
+            part2 = Math.max(part2, manhattan(scannerPositions[i], scannerPositions[j]));
+        }
+    }
+
+    return { part1, part2 };
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+const { part1, part2 } = solve(input);
+console.log('Part 1:', part1);
+console.log('Part 2:', part2);

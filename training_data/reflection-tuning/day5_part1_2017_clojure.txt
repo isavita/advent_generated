@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse it into a vector of integers.
+2. Use a loop to simulate the jumps, keeping track of the current position and the number of steps.
+3. Modify the jump offsets as we go, increasing each by 1 after it's used.
+4. Continue until we jump outside the bounds of the vector.
+5. Return the total number of steps taken.
+
+We'll use Clojure's efficient vector operations and loop/recur for optimal performance.

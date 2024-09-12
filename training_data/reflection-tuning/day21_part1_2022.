@@ -1,0 +1,43 @@
+const fs = require('fs');
+
+function solveMonkeyMath(input) {
+    const monkeys = new Map();
+    const memo = new Map();
+
+    // Parse input
+    input.split('\n').forEach(line => {
+        const [name, job] = line.split(': ');
+        monkeys.set(name, job);
+    });
+
+    function evaluate(name) {
+        if (memo.has(name)) return memo.get(name);
+
+        const job = monkeys.get(name);
+        let result;
+
+        if (/^\d+$/.test(job)) {
+            result = parseInt(job);
+        } else {
+            const [left, op, right] = job.split(' ');
+            const leftVal = evaluate(left);
+            const rightVal = evaluate(right);
+
+            switch (op) {
+                case '+': result = leftVal + rightVal; break;
+                case '-': result = leftVal - rightVal; break;
+                case '*': result = leftVal * rightVal; break;
+                case '/': result = leftVal / rightVal; break;
+            }
+        }
+
+        memo.set(name, result);
+        return result;
+    }
+
+    return Math.round(evaluate('root'));
+}
+
+// Read input from file and solve
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solveMonkeyMath(input));

@@ -1,0 +1,9 @@
+The error message indicates that there's a problem with loading the clojure.set namespace. This is likely because the code is trying to use functions from clojure.set without properly requiring it. To fix this, we need to add a namespace declaration at the beginning of the file that includes (:require [clojure.set :as set]). 
+
+Additionally, the error suggests that the code might be using some deprecated features or an outdated way of running Clojure code. To address this, we should ensure we're using up-to-date Clojure syntax and best practices.
+
+For the solution itself, we need to implement two main functions:
+1. A function to determine the order of steps (Part 1)
+2. A function to calculate the time needed with multiple workers (Part 2)
+
+We'll use a graph representation of the dependencies and topological sorting for Part 1, and a simulation approach for Part 2.

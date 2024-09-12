@@ -1,0 +1,9 @@
+To solve this problem, we need to simulate the shuffling process on a deck of 10007 cards. Instead of physically moving the cards, we can track the position of a single card (2019 in this case) through the shuffling process. This approach is more efficient than manipulating the entire deck.
+
+We'll implement three functions to represent the shuffling techniques:
+
+1. dealIntoNewStack: Reverses the position of the card.
+2. cut: Adjusts the position based on the cut value.
+3. dealWithIncrement: Uses modular arithmetic to find the new position.
+
+We'll read the input file, parse each instruction, and apply the corresponding technique to update the position of card 2019. After processing all instructions, we'll have the final position of the card.

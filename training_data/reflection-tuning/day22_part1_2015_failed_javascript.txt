@@ -1,0 +1,10 @@
+To solve this problem, we can use a depth-first search (DFS) approach with some optimizations:
+
+1. We'll create a function to simulate the game state, including player and boss stats, active effects, and mana spent.
+2. We'll implement each spell as a separate function to modify the game state.
+3. We'll use a recursive DFS function to try all possible spell combinations.
+4. To optimize, we'll keep track of the minimum mana spent to win and use it to prune branches that exceed this amount.
+5. We'll also implement the effects system to apply and update effects at the start of each turn.
+6. We'll need to handle both player and boss turns, checking for win/lose conditions after each action.
+
+The main challenge is to correctly implement the game rules and effects system while efficiently exploring all possible spell combinations.

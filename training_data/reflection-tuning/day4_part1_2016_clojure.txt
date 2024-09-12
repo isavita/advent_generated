@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Parse each line to extract the encrypted name, sector ID, and checksum
+3. For each room:
+   - Count the frequency of each letter in the encrypted name
+   - Sort the letters by frequency (descending) and then alphabetically
+   - Take the top 5 letters and compare with the checksum
+4. Sum the sector IDs of the real rooms
+
+We can use Clojure's built-in functions like frequencies, sort-by, and filter to efficiently implement this logic. We'll use regular expressions to parse the input lines.

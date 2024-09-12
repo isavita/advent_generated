@@ -1,0 +1,14 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into a 2D vector of characters.
+2. Identify all the gear symbols (*) in the schematic.
+3. For each gear, find adjacent numbers (including diagonally).
+4. If a gear has exactly two adjacent numbers, multiply them to get the gear ratio.
+5. Sum up all the gear ratios.
+
+We'll use helper functions to:
+- Read and parse the input file
+- Find adjacent positions
+- Extract full numbers from the schematic
+- Calculate gear ratios
+
+The main function will tie everything together and compute the final sum.

@@ -1,0 +1,69 @@
+const fs = require('fs');
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const ipRegister = parseInt(input.shift().split(' ')[1]);
+const instructions = input.map(line => {
+    const [op, ...args] = line.split(' ');
+    return [op, ...args.map(Number)];
+});
+
+const ops = {
+    addr: (r, a, b) => r[a] + r[b],
+    addi: (r, a, b) => r[a] + b,
+    mulr: (r, a, b) => r[a] * r[b],
+    muli: (r, a, b) => r[a] * b,
+    banr: (r, a, b) => r[a] & r[b],
+    bani: (r, a, b) => r[a] & b,
+    borr: (r, a, b) => r[a] | r[b],
+    bori: (r, a, b) => r[a] | b,
+    setr: (r, a) => r[a],
+    seti: (r, a) => a,
+    gtir: (r, a, b) => a > r[b] ? 1 : 0,
+    gtri: (r, a, b) => r[a] > b ? 1 : 0,
+    gtrr: (r, a, b) => r[a] > r[b] ? 1 : 0,
+    eqir: (r, a, b) => a === r[b] ? 1 : 0,
+    eqri: (r, a, b) => r[a] === b ? 1 : 0,
+    eqrr: (r, a, b) => r[a] === r[b] ? 1 : 0,
+};
+
+function runProgram(initialR0) {
+    const r = [initialR0, 0, 0, 0, 0, 0];
+    let ip = 0;
+    let steps = 0;
+    const seen = new Set();
+
+    while (ip >= 0 && ip < instructions.length) {
+        r[ipRegister] = ip;
+        const [op, a, b, c] = instructions[ip];
+        r[c] = ops[op](r, a, b);
+        ip = r[ipRegister] + 1;
+        steps++;
+
+        // Detect loops or halting conditions
+        const state = r.join(',');
+        if (seen.has(state)) return Infinity;
+        seen.add(state);
+
+        // Early exit condition (adjust based on program analysis)
+        if (steps > 1000000) return Infinity;
+    }
+
+    return steps;
+}
+
+let r0 = 0;
+let minSteps = Infinity;
+
+while (true) {
+    const steps = runProgram(r0);
+    if (steps < minSteps) {
+        minSteps = steps;
+        console.log(`R0: ${r0}, Steps: ${steps}`);
+    } else if (steps === Infinity) {
+        r0++;
+    } else {
+        break;
+    }
+}
+
+console.log(`Lowest non-negative integer for R0: ${r0}`);

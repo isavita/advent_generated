@@ -1,0 +1,103 @@
+// Constants for energy costs and room positions
+const ENERGY = { 'A': 1, 'B': 10, 'C': 100, 'D': 1000 };
+const ROOM_POSITIONS = { 'A': 2, 'B': 4, 'C': 6, 'D': 8 };
+const HALLWAY_POSITIONS = [0, 1, 3, 5, 7, 9, 10];
+
+function solve(initialState) {
+    const memo = new Map();
+
+    function dfs(state) {
+        if (memo.has(state)) return memo.get(state);
+        if (isOrganized(state)) return 0;
+
+        let minEnergy = Infinity;
+
+        // Move amphipods from rooms to hallway
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < state[i].length; j++) {
+                if (state[i][j] !== '.' && !canStayInRoom(state[i][j], i, state)) {
+                    for (let hallPos of HALLWAY_POSITIONS) {
+                        if (canMove(state, i, j, hallPos)) {
+                            let newState = moveToHallway(state, i, j, hallPos);
+                            let energy = ENERGY[state[i][j]] * (Math.abs(ROOM_POSITIONS[String.fromCharCode(65 + i)] - hallPos) + j + 1);
+                            let result = dfs(newState);
+                            if (result !== Infinity) {
+                                minEnergy = Math.min(minEnergy, energy + result);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Move amphipods from hallway to rooms
+        for (let i = 0; i < state[4].length; i++) {
+            if (state[4][i] !== '.') {
+                let roomIndex = state[4][i].charCodeAt(0) - 65;
+                if (canMoveToRoom(state, i, roomIndex)) {
+                    let newState = moveToRoom(state, i, roomIndex);
+                    let roomPos = ROOM_POSITIONS[state[4][i]];
+                    let depth = newState[roomIndex].lastIndexOf('.') + 1;
+                    let energy = ENERGY[state[4][i]] * (Math.abs(i - roomPos) + depth);
+                    let result = dfs(newState);
+                    if (result !== Infinity) {
+                        minEnergy = Math.min(minEnergy, energy + result);
+                    }
+                }
+            }
+        }
+
+        memo.set(state, minEnergy);
+        return minEnergy;
+    }
+
+    return dfs(initialState);
+}
+
+function isOrganized(state) {
+    return state.every((room, i) => room.every(a => a === String.fromCharCode(65 + i)));
+}
+
+function canStayInRoom(amphipod, roomIndex, state) {
+    return amphipod === String.fromCharCode(65 + roomIndex) &&
+           state[roomIndex].every(a => a === '.' || a === amphipod);
+}
+
+function canMove(state, roomIndex, depth, hallwayPos) {
+    let roomPos = ROOM_POSITIONS[String.fromCharCode(65 + roomIndex)];
+    let [start, end] = roomPos < hallwayPos ? [roomPos, hallwayPos] : [hallwayPos, roomPos];
+    return state[4].slice(start, end + 1).every(a => a === '.');
+}
+
+function canMoveToRoom(state, hallwayPos, roomIndex) {
+    let roomPos = ROOM_POSITIONS[String.fromCharCode(65 + roomIndex)];
+    let [start, end] = hallwayPos < roomPos ? [hallwayPos + 1, roomPos] : [roomPos, hallwayPos - 1];
+    return state[4].slice(start, end + 1).every(a => a === '.') &&
+           state[roomIndex].every(a => a === '.' || a === String.fromCharCode(65 + roomIndex));
+}
+
+function moveToHallway(state, roomIndex, depth, hallwayPos) {
+    let newState = state.map(row => [...row]);
+    newState[4][hallwayPos] = newState[roomIndex][depth];
+    newState[roomIndex][depth] = '.';
+    return newState;
+}
+
+function moveToRoom(state, hallwayPos, roomIndex) {
+    let newState = state.map(row => [...row]);
+    let depth = newState[roomIndex].lastIndexOf('.');
+    newState[roomIndex][depth] = newState[4][hallwayPos];
+    newState[4][hallwayPos] = '.';
+    return newState;
+}
+
+// Example usage
+let initialState = [
+    ['B', 'D', 'D', 'A'],
+    ['C', 'C', 'B', 'D'],
+    ['B', 'B', 'A', 'C'],
+    ['D', 'A', 'C', 'A'],
+    ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.']
+];
+
+console.log(solve(initialState));

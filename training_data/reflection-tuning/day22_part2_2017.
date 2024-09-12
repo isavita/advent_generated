@@ -1,0 +1,73 @@
+const fs = require('fs');
+
+class VirusCarrier {
+    constructor(grid) {
+        this.grid = new Map();
+        this.x = 0;
+        this.y = 0;
+        this.direction = 0; // 0: up, 1: right, 2: down, 3: left
+        this.infectionCount = 0;
+
+        // Initialize grid
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                if (grid[y][x] === '#') {
+                    this.grid.set(`${x - Math.floor(grid[0].length / 2)},${y - Math.floor(grid.length / 2)}`, 2);
+                }
+            }
+        }
+    }
+
+    turn(isInfected) {
+        this.direction = (this.direction + (isInfected ? 1 : 3)) % 4;
+    }
+
+    move() {
+        switch (this.direction) {
+            case 0: this.y--; break;
+            case 1: this.x++; break;
+            case 2: this.y++; break;
+            case 3: this.x--; break;
+        }
+    }
+
+    burst() {
+        const key = `${this.x},${this.y}`;
+        const currentState = this.grid.get(key) || 0;
+
+        switch (currentState) {
+            case 0: // Clean
+                this.turn(false);
+                this.grid.set(key, 1);
+                break;
+            case 1: // Weakened
+                this.infectionCount++;
+                this.grid.set(key, 2);
+                break;
+            case 2: // Infected
+                this.turn(true);
+                this.grid.set(key, 3);
+                break;
+            case 3: // Flagged
+                this.direction = (this.direction + 2) % 4;
+                this.grid.delete(key);
+                break;
+        }
+
+        this.move();
+    }
+
+    simulate(bursts) {
+        for (let i = 0; i < bursts; i++) {
+            this.burst();
+        }
+        return this.infectionCount;
+    }
+}
+
+// Read and process input
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const virus = new VirusCarrier(input);
+
+// Simulate and print result
+console.log(virus.simulate(10000000));

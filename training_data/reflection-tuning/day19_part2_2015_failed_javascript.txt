@@ -1,0 +1,7 @@
+The error in the previous solution seems to be in Part Two, where the result is "Infinity". This suggests that the algorithm used for finding the fewest number of steps from 'e' to the medicine molecule is not converging or is getting stuck in an infinite loop. 
+
+To fix this, we need to approach Part Two differently. Instead of trying to build up from 'e' to the target molecule (which can lead to an exponential number of possibilities), we should work backwards from the medicine molecule to 'e'. This reverse approach is more manageable because each step reduces the molecule's size.
+
+We can use a greedy algorithm that always applies the longest possible replacement in reverse. This isn't guaranteed to find the optimal solution in all cases, but it works well for this problem and is much faster than trying all possibilities.
+
+For Part One, the current solution seems correct (509 distinct molecules), so we'll keep that logic intact.

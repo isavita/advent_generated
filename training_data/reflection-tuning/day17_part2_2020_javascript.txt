@@ -1,0 +1,9 @@
+To solve this problem efficiently, we need to:
+1. Parse the initial state from the input file.
+2. Implement a function to simulate the Conway Cube rules in 4D space.
+3. Keep track of only the active cubes and their neighbors to optimize memory usage.
+4. Use a Set to store active cube coordinates for quick lookup and unique storage.
+5. Implement a function to get all neighbors of a given cube in 4D space.
+6. Run the simulation for 6 cycles and count the active cubes at the end.
+
+The key to efficiency is to only consider active cubes and their immediate neighbors in each cycle, rather than iterating over the entire infinite 4D space.

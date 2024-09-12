@@ -1,0 +1,53 @@
+const fs = require('fs');
+
+function solveLavaDroplet(input) {
+    const cubes = new Set(input.trim().split('\n').map(line => line.trim()));
+    const directions = [[1,0,0], [-1,0,0], [0,1,0], [0,-1,0], [0,0,1], [0,0,-1]];
+    
+    let surfaceArea = 0;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+
+    for (let cube of cubes) {
+        let [x, y, z] = cube.split(',').map(Number);
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+
+        for (let [dx, dy, dz] of directions) {
+            let neighbor = `${x+dx},${y+dy},${z+dz}`;
+            if (!cubes.has(neighbor)) surfaceArea++;
+        }
+    }
+
+    console.log("Part 1:", surfaceArea);
+
+    // Part 2: Flood fill
+    const queue = [[minX-1, minY-1, minZ-1]];
+    const visited = new Set();
+    let exteriorSurface = 0;
+
+    while (queue.length > 0) {
+        let [x, y, z] = queue.pop();
+        let key = `${x},${y},${z}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        for (let [dx, dy, dz] of directions) {
+            let nx = x + dx, ny = y + dy, nz = z + dz;
+            let nKey = `${nx},${ny},${nz}`;
+
+            if (nx < minX-1 || nx > maxX+1 || ny < minY-1 || ny > maxY+1 || nz < minZ-1 || nz > maxZ+1) continue;
+
+            if (cubes.has(nKey)) {
+                exteriorSurface++;
+            } else if (!visited.has(nKey)) {
+                queue.push([nx, ny, nz]);
+            }
+        }
+    }
+
+    console.log("Part 2:", exteriorSurface);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+solveLavaDroplet(input);

@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Parse the input to get the target area coordinates.
+2. Implement a function to simulate the probe's trajectory.
+3. For Part 1, we need to find the maximum height reached by any valid trajectory.
+4. For Part 2, we need to count all valid initial velocities.
+
+The key insights are:
+- The maximum height is reached when the initial y velocity is positive and as large as possible while still hitting the target.
+- We can limit our search space for x and y velocities based on the target area.
+- For x, we don't need to go beyond the right edge of the target area.
+- For y, we don't need to go below the bottom of the target area or above the absolute value of the bottom (as it will always miss if higher).
+
+We'll use a brute force approach within these limits, as the search space is relatively small.

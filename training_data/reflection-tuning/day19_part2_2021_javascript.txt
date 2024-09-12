@@ -1,0 +1,14 @@
+To solve this problem, we need to follow these steps:
+1. Parse the input to get the scanner data.
+2. Implement a function to find the overlapping beacons between two scanners.
+3. Implement a function to calculate the transformation (rotation and translation) between two scanners.
+4. Use these functions to build a complete map of all scanners and beacons.
+5. Count the unique beacons for Part 1.
+6. Calculate the maximum Manhattan distance between scanners for Part 2.
+
+The main challenges are:
+- Handling 24 possible orientations for each scanner.
+- Efficiently finding overlapping beacons.
+- Keeping track of scanner positions relative to scanner 0.
+
+We'll use a Set to store unique beacons and an array to store scanner positions. We'll implement helper functions for vector operations and rotations to keep the main logic clean.

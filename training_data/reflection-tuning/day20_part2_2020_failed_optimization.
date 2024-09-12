@@ -1,0 +1,113 @@
+class Tile {
+    constructor(id, data) {
+        this.id = id;
+        this.data = data;
+        this.edges = this.calculateEdges();
+    }
+
+    calculateEdges() {
+        let top = this.data[0];
+        let bottom = this.data[this.data.length - 1];
+        let left = this.data.map(row => row[0]).join('');
+        let right = this.data.map(row => row[row.length - 1]).join('');
+        return [top, right, bottom, left].map(edge => parseInt(edge.replace(/\./g, '0').replace(/#/g, '1'), 2));
+    }
+
+    rotate() {
+        this.data = this.data[0].split('').map((_, i) => this.data.map(row => row[row.length - 1 - i]).join(''));
+        this.edges = this.calculateEdges();
+    }
+
+    flip() {
+        this.data = this.data.map(row => row.split('').reverse().join(''));
+        this.edges = this.calculateEdges();
+    }
+}
+
+function solvePuzzle(input) {
+    let tiles = input.split('\n\n').map(tile => {
+        let [id, ...data] = tile.split('\n');
+        return new Tile(parseInt(id.match(/\d+/)[0]), data);
+    });
+
+    let size = Math.sqrt(tiles.length);
+    let arranged = new Array(size).fill().map(() => new Array(size));
+    let used = new Set();
+
+    function backtrack(row, col) {
+        if (row === size) return true;
+        if (col === size) return backtrack(row + 1, 0);
+
+        for (let tile of tiles) {
+            if (used.has(tile.id)) continue;
+
+            for (let i = 0; i < 8; i++) {
+                if (i === 4) tile.flip();
+                tile.rotate();
+
+                if (row > 0 && (arranged[row - 1][col].edges[2] !== tile.edges[0])) continue;
+                if (col > 0 && (arranged[row][col - 1].edges[1] !== tile.edges[3])) continue;
+
+                arranged[row][col] = tile;
+                used.add(tile.id);
+
+                if (backtrack(row, col + 1)) return true;
+
+                used.delete(tile.id);
+            }
+        }
+
+        return false;
+    }
+
+    backtrack(0, 0);
+
+    let corners = [arranged[0][0], arranged[0][size-1], arranged[size-1][0], arranged[size-1][size-1]];
+    let part1 = corners.reduce((acc, tile) => acc * tile.id, 1);
+
+    let image = arranged.flatMap(row => 
+        new Array(8).fill().map((_, i) => 
+            row.map(tile => tile.data.slice(1, -1).map(row => row.slice(1, -1))[i]).join('')
+        )
+    );
+
+    const seaMonster = [
+        '                  # ',
+        '#    ##    ##    ###',
+        ' #  #  #  #  #  #   '
+    ];
+
+    function countSeaMonsters(img) {
+        let count = 0;
+        for (let i = 0; i < img.length - seaMonster.length + 1; i++) {
+            for (let j = 0; j < img[i].length - seaMonster[0].length + 1; j++) {
+                if (seaMonster.every((row, di) => 
+                    row.split('').every((char, dj) => 
+                        char === ' ' || img[i + di][j + dj] === '#'
+                    )
+                )) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    let maxMonsters = 0;
+    for (let i = 0; i < 8; i++) {
+        if (i === 4) image = image.map(row => row.split('').reverse().join(''));
+        image = image[0].split('').map((_, j) => image.map(row => row[row.length - 1 - j]).join(''));
+        maxMonsters = Math.max(maxMonsters, countSeaMonsters(image));
+    }
+
+    let totalHashes = image.join('').split('#').length - 1;
+    let monsterHashes = maxMonsters * (seaMonster.join('').split('#').length - 1);
+    let part2 = totalHashes - monsterHashes;
+
+    return { part1, part2 };
+}
+
+// Example usage:
+// const input = `... your input here ...`;
+// const result = solvePuzzle(input);
+// console.log(result.part1, result.part2);

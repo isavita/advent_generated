@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. Transpose the lines to get columns instead of rows.
+3. For each column, count the frequency of each character.
+4. For Part 1, select the most common character in each column.
+5. For Part 2, select the least common character in each column.
+6. Combine the selected characters to form the final messages.
+
+We'll use Clojure's built-in functions like `slurp`, `line-seq`, `apply`, `map`, `frequencies`, and `apply` to efficiently process the data. We'll create separate functions for Part 1 and Part 2 to handle the different selection criteria.

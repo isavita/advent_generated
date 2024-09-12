@@ -1,0 +1,13 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. For each boarding pass, convert the binary space partitioning to a binary number:
+   - Replace F and L with 0
+   - Replace B and R with 1
+3. Convert this binary number to decimal, which gives us the seat ID directly.
+4. Keep track of the maximum seat ID as we process each boarding pass.
+5. Return the highest seat ID found.
+
+This approach is efficient because:
+- We process each boarding pass only once.
+- We avoid explicitly calculating row and column, instead directly computing the seat ID.
+- We use Clojure's built-in functions for file reading and string manipulation.

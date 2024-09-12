@@ -1,0 +1,85 @@
+const fs = require('fs');
+
+function parseRules(input) {
+    const rules = {};
+    input.split('\n').forEach(line => {
+        const [from, to] = line.split(' => ');
+        rules[from] = to.split('/');
+    });
+    return rules;
+}
+
+function rotateAndFlip(pattern) {
+    const variations = [pattern];
+    for (let i = 0; i < 3; i++) {
+        variations.push(rotate(variations[variations.length - 1]));
+    }
+    variations.push(flip(pattern));
+    for (let i = 0; i < 3; i++) {
+        variations.push(rotate(variations[variations.length - 1]));
+    }
+    return variations;
+}
+
+function rotate(pattern) {
+    return pattern[0].split('').map((_, i) => 
+        pattern.map(row => row[i]).reverse().join('')
+    );
+}
+
+function flip(pattern) {
+    return pattern.map(row => row.split('').reverse().join(''));
+}
+
+function enhance(grid, rules) {
+    const size = grid.length;
+    const divSize = size % 2 === 0 ? 2 : 3;
+    const newSize = size / divSize * (divSize + 1);
+    const newGrid = Array(newSize).fill().map(() => Array(newSize).fill('.'));
+
+    for (let y = 0; y < size; y += divSize) {
+        for (let x = 0; x < size; x += divSize) {
+            const square = [];
+            for (let i = 0; i < divSize; i++) {
+                square.push(grid[y + i].slice(x, x + divSize).join(''));
+            }
+            const enhanced = applyRule(square.join('/'), rules);
+            for (let i = 0; i < enhanced.length; i++) {
+                for (let j = 0; j < enhanced[i].length; j++) {
+                    newGrid[y / divSize * (divSize + 1) + i][x / divSize * (divSize + 1) + j] = enhanced[i][j];
+                }
+            }
+        }
+    }
+
+    return newGrid;
+}
+
+function applyRule(pattern, rules) {
+    const variations = rotateAndFlip(pattern.split('/'));
+    for (let variation of variations) {
+        const key = variation.join('/');
+        if (rules[key]) {
+            return rules[key];
+        }
+    }
+    throw new Error('No matching rule found');
+}
+
+function countOnPixels(grid) {
+    return grid.reduce((count, row) => count + row.filter(pixel => pixel === '#').length, 0);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const rules = parseRules(input);
+let grid = [
+    ['.', '#', '.'],
+    ['.', '.', '#'],
+    ['#', '#', '#']
+];
+
+for (let i = 0; i < 5; i++) {
+    grid = enhance(grid, rules);
+}
+
+console.log(countOnPixels(grid));

@@ -1,0 +1,125 @@
+class PriorityQueue {
+    constructor() {
+        this.queue = [];
+    }
+
+    enqueue(element, priority) {
+        this.queue.push({ element, priority });
+        this.sort();
+    }
+
+    dequeue() {
+        if (this.isEmpty()) return null;
+        return this.queue.shift().element;
+    }
+
+    sort() {
+        this.queue.sort((a, b) => b.priority - a.priority);
+    }
+
+    isEmpty() {
+        return this.queue.length === 0;
+    }
+}
+
+class Nanobot {
+    constructor(x, y, z, r) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.r = r;
+    }
+
+    distanceTo(x, y, z) {
+        return Math.abs(this.x - x) + Math.abs(this.y - y) + Math.abs(this.z - z);
+    }
+
+    intersectsBox(x1, y1, z1, x2, y2, z2) {
+        const dx = Math.max(x1 - this.x, 0, this.x - x2);
+        const dy = Math.max(y1 - this.y, 0, this.y - y2);
+        const dz = Math.max(z1 - this.z, 0, this.z - z2);
+        return dx + dy + dz <= this.r;
+    }
+}
+
+function parseInput(input) {
+    return input.split('\n').map(line => {
+        const [x, y, z, r] = line.match(/-?\d+/g).map(Number);
+        return new Nanobot(x, y, z, r);
+    });
+}
+
+function findBestCoordinate(nanobots) {
+    const queue = new PriorityQueue();
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+
+    nanobots.forEach(bot => {
+        minX = Math.min(minX, bot.x - bot.r);
+        maxX = Math.max(maxX, bot.x + bot.r);
+        minY = Math.min(minY, bot.y - bot.r);
+        maxY = Math.max(maxY, bot.y + bot.r);
+        minZ = Math.min(minZ, bot.z - bot.r);
+        maxZ = Math.max(maxZ, bot.z + bot.r);
+    });
+
+    queue.enqueue([minX, minY, minZ, maxX, maxY, maxZ], nanobots.length);
+
+    while (!queue.isEmpty()) {
+        const [x1, y1, z1, x2, y2, z2] = queue.dequeue();
+        
+        if (x1 === x2 && y1 === y2 && z1 === z2) {
+            return [x1, y1, z1, nanobots.filter(bot => bot.distanceTo(x1, y1, z1) <= bot.r).length];
+        }
+
+        const midX = Math.floor((x1 + x2) / 2);
+        const midY = Math.floor((y1 + y2) / 2);
+        const midZ = Math.floor((z1 + z2) / 2);
+
+        const octants = [
+            [x1, y1, z1, midX, midY, midZ],
+            [midX + 1, y1, z1, x2, midY, midZ],
+            [x1, midY + 1, z1, midX, y2, midZ],
+            [midX + 1, midY + 1, z1, x2, y2, midZ],
+            [x1, y1, midZ + 1, midX, midY, z2],
+            [midX + 1, y1, midZ + 1, x2, midY, z2],
+            [x1, midY + 1, midZ + 1, midX, y2, z2],
+            [midX + 1, midY + 1, midZ + 1, x2, y2, z2]
+        ];
+
+        for (const octant of octants) {
+            const count = nanobots.filter(bot => bot.intersectsBox(...octant)).length;
+            if (count > 0) {
+                queue.enqueue(octant, count);
+            }
+        }
+    }
+
+    return null;
+}
+
+function solvePart1(nanobots) {
+    const strongest = nanobots.reduce((max, bot) => bot.r > max.r ? bot : max);
+    return nanobots.filter(bot => strongest.distanceTo(bot.x, bot.y, bot.z) <= strongest.r).length;
+}
+
+function solvePart2(nanobots) {
+    const [x, y, z, count] = findBestCoordinate(nanobots);
+    return Math.abs(x) + Math.abs(y) + Math.abs(z);
+}
+
+// Example usage:
+const input = `pos=<0,0,0>, r=4
+pos=<1,0,0>, r=1
+pos=<4,0,0>, r=3
+pos=<0,2,0>, r=1
+pos=<0,5,0>, r=3
+pos=<0,0,3>, r=1
+pos=<1,1,1>, r=1
+pos=<1,1,2>, r=1
+pos=<1,3,1>, r=1`;
+
+const nanobots = parseInput(input);
+console.log("Part 1:", solvePart1(nanobots));
+console.log("Part 2:", solvePart2(nanobots));

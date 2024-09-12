@@ -1,0 +1,17 @@
+To solve this problem, we need to implement several key functions:
+
+1. Parsing the snailfish numbers from the input.
+2. Adding two snailfish numbers.
+3. Reducing a snailfish number (exploding and splitting).
+4. Calculating the magnitude of a snailfish number.
+
+For Part 1, we'll add all numbers in the list sequentially and calculate the magnitude of the final sum.
+
+For Part 2, we'll need to try all possible pairs of numbers, add them, and find the maximum magnitude.
+
+The main challenges are:
+- Implementing the explosion and splitting logic correctly.
+- Handling the nested structure of snailfish numbers efficiently.
+- Optimizing the solution for Part 2, as it requires many additions and magnitude calculations.
+
+We'll use a recursive approach for most operations, treating snailfish numbers as nested arrays.

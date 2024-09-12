@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse each line into a range of blocked IPs.
+2. Sort these ranges based on their start values.
+3. Merge overlapping ranges to simplify our blocked IP list.
+4. Iterate through the merged ranges, keeping track of the lowest unblocked IP.
+5. Return the first unblocked IP we find.
+
+This approach allows us to handle large ranges of IPs efficiently without having to store or check every individual IP address.

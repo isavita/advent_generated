@@ -1,0 +1,58 @@
+const fs = require('fs');
+
+function parseInput(input) {
+    const [algorithm, _, ...imageLines] = input.split('\n');
+    const image = new Set();
+    imageLines.forEach((line, y) => {
+        line.split('').forEach((char, x) => {
+            if (char === '#') image.add(`${x},${y}`);
+        });
+    });
+    return { algorithm, image };
+}
+
+function enhance(image, algorithm, step) {
+    const newImage = new Set();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    image.forEach(coord => {
+        const [x, y] = coord.split(',').map(Number);
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    });
+
+    for (let y = minY - 1; y <= maxY + 1; y++) {
+        for (let x = minX - 1; x <= maxX + 1; x++) {
+            let index = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    index = index << 1;
+                    const coord = `${x + dx},${y + dy}`;
+                    if (image.has(coord) || 
+                        (!image.has(coord) && !isInBounds(x + dx, y + dy, minX, minY, maxX, maxY) && 
+                         algorithm[0] === '#' && step % 2 === 1)) {
+                        index |= 1;
+                    }
+                }
+            }
+            if (algorithm[index] === '#') newImage.add(`${x},${y}`);
+        }
+    }
+    return newImage;
+}
+
+function isInBounds(x, y, minX, minY, maxX, maxY) {
+    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
+function countLitPixels(image) {
+    return image.size;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+let { algorithm, image } = parseInput(input);
+
+for (let i = 0; i < 2; i++) {
+    image = enhance(image, algorithm, i);
+}
+
+console.log(countLitPixels(image));

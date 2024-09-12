@@ -1,0 +1,94 @@
+function parseInput(input) {
+    return input.split('\n').map(line => {
+        const [first, second] = line.split(', ');
+        const [axis1, value1] = first.split('=');
+        const [axis2, range] = second.split('=');
+        const [start, end] = range.split('..');
+        
+        if (axis1 === 'x') {
+            return { x: parseInt(value1), yStart: parseInt(start), yEnd: parseInt(end) };
+        } else {
+            return { y: parseInt(value1), xStart: parseInt(start), xEnd: parseInt(end) };
+        }
+    });
+}
+
+function simulateWater(clay) {
+    if (!Array.isArray(clay) || clay.length === 0) {
+        return { reachableTiles: 0, retainedWater: 0 };
+    }
+
+    const clayMap = new Set();
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    clay.forEach(vein => {
+        if ('x' in vein) {
+            for (let y = vein.yStart; y <= vein.yEnd; y++) {
+                clayMap.add(`${vein.x},${y}`);
+                minX = Math.min(minX, vein.x);
+                maxX = Math.max(maxX, vein.x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            }
+        } else {
+            for (let x = vein.xStart; x <= vein.xEnd; x++) {
+                clayMap.add(`${x},${vein.y}`);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, vein.y);
+                maxY = Math.max(maxY, vein.y);
+            }
+        }
+    });
+
+    const waterMap = new Set();
+    const settledWater = new Set();
+
+    function pour(x, y) {
+        if (y > maxY) return false;
+        if (clayMap.has(`${x},${y}`)) return true;
+        if (settledWater.has(`${x},${y}`)) return true;
+        if (waterMap.has(`${x},${y}`)) return false;
+
+        waterMap.add(`${x},${y}`);
+
+        if (!pour(x, y + 1)) return false;
+
+        let left = pour(x - 1, y);
+        let right = pour(x + 1, y);
+
+        if (left && right) {
+            settledWater.add(`${x},${y}`);
+            return true;
+        }
+
+        return false;
+    }
+
+    pour(500, 0);
+
+    const reachableTiles = [...waterMap].filter(coord => {
+        const [, y] = coord.split(',').map(Number);
+        return y >= minY && y <= maxY;
+    }).length;
+
+    return {
+        reachableTiles,
+        retainedWater: settledWater.size
+    };
+}
+
+// Example usage
+const input = `x=495, y=2..7
+y=7, x=495..501
+x=501, y=3..7
+x=498, y=2..4
+x=506, y=1..2
+x=498, y=10..13
+x=504, y=10..13
+y=13, x=498..504`;
+
+const clay = parseInput(input);
+const result = simulateWater(clay);
+console.log("Part 1:", result.reachableTiles);
+console.log("Part 2:", result.retainedWater);

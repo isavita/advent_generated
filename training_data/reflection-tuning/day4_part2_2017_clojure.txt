@@ -1,0 +1,11 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+
+1. Read the input file line by line.
+2. For each line (passphrase):
+   a. Split the line into words.
+   b. For Part 1: Check if the number of unique words equals the total number of words.
+   c. For Part 2: Sort the letters in each word and then check for uniqueness.
+3. Count the valid passphrases for both parts.
+4. Print the results.
+
+We'll use Clojure's built-in functions like `line-seq`, `clojure.string/split`, `count`, `distinct`, and `frequencies` to efficiently process the data. For Part 2, we'll use `sort` to sort the letters in each word before checking for uniqueness.

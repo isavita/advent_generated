@@ -1,0 +1,11 @@
+To solve this problem efficiently, we can use a sliding window approach. We'll read the input string character by character and maintain a window of the last 14 characters (for Part Two). We'll use a set to check if all characters in the window are unique. If they are, we've found our marker.
+
+Here's the approach:
+1. Read the input from "input.txt".
+2. Define a function that takes the input string and the marker size (4 for Part One, 14 for Part Two).
+3. Use a loop to iterate through the string, maintaining a window of the last 'marker-size' characters.
+4. For each window, check if the number of unique characters equals the marker size.
+5. If we find a match, return the current index plus the marker size.
+6. Print both Part One and Part Two results.
+
+This approach is efficient as it only requires a single pass through the input string for each part, with constant-time operations at each step.

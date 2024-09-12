@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract claim information.
+2. Create a 2D vector to represent the fabric, initializing all cells to 0.
+3. Iterate through the claims, marking the claimed areas on the fabric.
+4. Count the number of cells with a value greater than 1 for Part 1.
+5. For Part 2, iterate through the claims again, checking if any claim has no overlap.
+
+We'll use a 1000x1000 vector to represent the fabric, as the problem states it's at least 1000 inches on each side. We'll use efficient Clojure functions like reduce, map, and filter to process the data.

@@ -1,0 +1,8 @@
+Based on the given output, it seems that Part One was solved correctly (160040 orbits), but Part Two's result (371) might be incorrect. The issue could be in the algorithm for finding the minimum number of orbital transfers between YOU and SAN.
+
+To fix this, we should:
+1. Ensure we're building the orbit map correctly, representing both directions (parent-to-child and child-to-parent).
+2. Implement a breadth-first search (BFS) algorithm to find the shortest path between YOU's parent and SAN's parent.
+3. Make sure we're counting the number of transfers correctly, which should be the length of the path minus 1.
+
+The error might be in the implementation of the shortest path algorithm or in how we're counting the transfers. Let's revise the solution with these considerations in mind.

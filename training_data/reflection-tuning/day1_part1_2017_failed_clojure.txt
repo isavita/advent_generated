@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input from "input.txt" as a string
+2. Convert the string into a sequence of digits
+3. Create a circular sequence by appending the first digit to the end
+4. Use a combination of map and filter to find matching adjacent digits
+5. Sum the matching digits
+
+We'll use Clojure's built-in functions like slurp, map, filter, and reduce to create a concise and efficient solution. The circular nature of the list can be handled by simply appending the first digit to the end of the sequence.

@@ -1,0 +1,30 @@
+const fs = require('fs');
+
+// Read input file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const program = input.split(',').map(Number);
+
+// Assume we have this function implemented
+function runIntcode(program, inputs) {
+    // Implementation of Intcode computer
+    // Returns the output (0 or 1)
+}
+
+function isAffected(x, y) {
+    return runIntcode([...program], [x, y]) === 1;
+}
+
+function countAffectedPoints() {
+    let count = 0;
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            if (isAffected(x, y)) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+const result = countAffectedPoints();
+console.log(result);

@@ -1,0 +1,34 @@
+const fs = require('fs');
+
+function solveProblem() {
+    const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+    const onCubes = new Set();
+
+    for (const line of input) {
+        const [action, coords] = line.split(' ');
+        const [xRange, yRange, zRange] = coords.split(',').map(range => range.slice(2).split('..').map(Number));
+
+        if (Math.abs(xRange[0]) > 50 || Math.abs(xRange[1]) > 50 ||
+            Math.abs(yRange[0]) > 50 || Math.abs(yRange[1]) > 50 ||
+            Math.abs(zRange[0]) > 50 || Math.abs(zRange[1]) > 50) {
+            continue;
+        }
+
+        for (let x = Math.max(-50, xRange[0]); x <= Math.min(50, xRange[1]); x++) {
+            for (let y = Math.max(-50, yRange[0]); y <= Math.min(50, yRange[1]); y++) {
+                for (let z = Math.max(-50, zRange[0]); z <= Math.min(50, zRange[1]); z++) {
+                    const key = `${x},${y},${z}`;
+                    if (action === 'on') {
+                        onCubes.add(key);
+                    } else {
+                        onCubes.delete(key);
+                    }
+                }
+            }
+        }
+    }
+
+    console.log(onCubes.size);
+}
+
+solveProblem();

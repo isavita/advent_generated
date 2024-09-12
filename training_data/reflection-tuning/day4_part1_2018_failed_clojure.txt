@@ -1,0 +1,5 @@
+The error message indicates that there's an issue with the number of arguments passed to the `max-key` function in the `find-sleepiest-minute` function. The `max-key` function expects at least two arguments: a function to compute the key, and one or more items to compare. It seems the previous solution might have been passing only one argument to `max-key`.
+
+To fix this, we need to ensure that `max-key` is called with the correct number of arguments. We should pass a function that extracts the value we want to compare (likely the count of sleep occurrences for each minute), and then pass the collection of minutes as separate arguments using the `apply` function.
+
+Additionally, we might need to restructure the data to ensure we're working with the correct format throughout the solution. Let's revise the code to address these issues.

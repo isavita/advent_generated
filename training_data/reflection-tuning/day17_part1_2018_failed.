@@ -1,0 +1,59 @@
+const fs = require('fs');
+
+function simulateWaterFlow(input) {
+    const clay = new Set();
+    let minY = Infinity, maxY = -Infinity;
+
+    // Parse input
+    input.split('\n').forEach(line => {
+        const [a, b] = line.split(', ');
+        const [axis1, value1] = a.split('=');
+        const [axis2, range] = b.split('=');
+        const [start, end] = range.split('..').map(Number);
+
+        for (let i = start; i <= end; i++) {
+            const x = axis1 === 'x' ? Number(value1) : i;
+            const y = axis1 === 'y' ? Number(value1) : i;
+            clay.add(`${x},${y}`);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+        }
+    });
+
+    const visited = new Set();
+    const restWater = new Set();
+
+    function flow(x, y) {
+        if (y > maxY) return false;
+        if (clay.has(`${x},${y}`)) return true;
+        if (restWater.has(`${x},${y}`)) return true;
+        if (visited.has(`${x},${y}`)) return false;
+
+        visited.add(`${x},${y}`);
+
+        if (flow(x, y + 1)) {
+            let left = x, right = x;
+            while (flow(left - 1, y) && !flow(left, y + 1)) left--;
+            while (flow(right + 1, y) && !flow(right, y + 1)) right++;
+
+            if (flow(left, y + 1) && flow(right, y + 1)) {
+                for (let i = left; i <= right; i++) {
+                    restWater.add(`${i},${y}`);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    flow(500, 0);
+
+    return [...visited].filter(coord => {
+        const y = Number(coord.split(',')[1]);
+        return y >= minY && y <= maxY;
+    }).length;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(simulateWaterFlow(input));

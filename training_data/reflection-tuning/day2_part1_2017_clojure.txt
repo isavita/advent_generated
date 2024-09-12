@@ -1,0 +1,7 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. For each line, split it into numbers and convert them to integers.
+3. Calculate the difference between the maximum and minimum values for each row.
+4. Sum up all these differences to get the final checksum.
+
+We can use Clojure's built-in functions like `slurp` to read the file, `clojure.string/split` to split each line, `map` to convert strings to integers, and `reduce` to calculate the sum. The `apply` function will help us find the max and min values easily.

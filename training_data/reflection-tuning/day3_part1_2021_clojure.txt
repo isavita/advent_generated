@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse each line as a sequence of characters.
+2. Transpose the matrix of bits to group bits by position.
+3. Count the occurrences of '0' and '1' for each position.
+4. Determine the most common bit for gamma and least common for epsilon.
+5. Convert the resulting binary strings to decimal numbers.
+6. Multiply gamma and epsilon to get the power consumption.
+
+We'll use Clojure's built-in functions like `frequencies`, `map`, and `reduce` to make the code concise and efficient.

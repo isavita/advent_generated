@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use the following approach:
+
+1. Parse the input file to extract the reboot steps.
+2. Create a 3D grid to represent the reactor core, but only for the region -50..50 in all dimensions.
+3. Iterate through each reboot step:
+   - If the step is outside the -50..50 range, skip it.
+   - For each cube within the specified cuboid and within the -50..50 range, turn it on or off as instructed.
+4. After processing all steps, count the number of cubes that are on.
+
+To optimize for memory usage, we can use a Set to store only the coordinates of cubes that are on, instead of maintaining a full 3D array.

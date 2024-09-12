@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse the coordinates into a set of strings.
+2. For each cube, check its six adjacent positions.
+3. If an adjacent position is not in the set, it means that side is exposed.
+4. Count the total number of exposed sides.
+
+Using a Set for storing the cube positions allows for O(1) lookup time, which is more efficient than using an array. We'll iterate through each cube once, checking its six adjacent positions, resulting in a time complexity of O(n), where n is the number of cubes.

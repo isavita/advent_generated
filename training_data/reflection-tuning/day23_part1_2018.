@@ -1,0 +1,32 @@
+const fs = require('fs');
+
+// Helper function to parse a line of input
+const parseLine = (line) => {
+    const [pos, r] = line.split(', r=');
+    const [x, y, z] = pos.slice(5, -1).split(',').map(Number);
+    return { pos: [x, y, z], r: parseInt(r) };
+};
+
+// Helper function to calculate Manhattan distance
+const manhattanDistance = (pos1, pos2) => {
+    return pos1.reduce((sum, val, i) => sum + Math.abs(val - pos2[i]), 0);
+};
+
+// Main function to solve the problem
+const solveProblem = (input) => {
+    const nanobots = input.trim().split('\n').map(parseLine);
+
+    // Find the nanobot with the largest signal radius
+    const strongest = nanobots.reduce((max, bot) => bot.r > max.r ? bot : max);
+
+    // Count nanobots in range of the strongest
+    const inRange = nanobots.filter(bot => 
+        manhattanDistance(bot.pos, strongest.pos) <= strongest.r
+    ).length;
+
+    return inRange;
+};
+
+// Read input file and solve
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solveProblem(input));

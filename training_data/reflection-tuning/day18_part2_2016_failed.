@@ -1,0 +1,32 @@
+function countSafeTiles(firstRow, totalRows) {
+    let currentRow = firstRow;
+    let safeTileCount = currentRow.split('.').length - 1; // Count safe tiles in first row
+
+    for (let i = 1; i < totalRows; i++) {
+        let nextRow = '';
+        for (let j = 0; j < currentRow.length; j++) {
+            const left = j > 0 ? currentRow[j-1] : '.';
+            const center = currentRow[j];
+            const right = j < currentRow.length - 1 ? currentRow[j+1] : '.';
+
+            if ((left === '^' && center === '^' && right === '.') ||
+                (left === '.' && center === '^' && right === '^') ||
+                (left === '^' && center === '.' && right === '.') ||
+                (left === '.' && center === '.' && right === '^')) {
+                nextRow += '^';
+            } else {
+                nextRow += '.';
+                safeTileCount++;
+            }
+        }
+        currentRow = nextRow;
+    }
+
+    return safeTileCount;
+}
+
+// Assuming we have the input as a string
+const input = "..^^."; // Replace with actual input
+
+console.log("Part 1:", countSafeTiles(input, 40));
+console.log("Part 2:", countSafeTiles(input, 400000));

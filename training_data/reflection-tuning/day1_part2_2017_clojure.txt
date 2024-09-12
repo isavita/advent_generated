@@ -1,0 +1,10 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input from the file "input.txt" as a string.
+2. Convert the string into a sequence of digits.
+3. Implement two functions: one for Part 1 and another for Part 2.
+4. For Part 1, compare each digit with the next one (wrapping around at the end).
+5. For Part 2, compare each digit with the one halfway around the list.
+6. Sum up the matching digits in each case.
+7. Print both results.
+
+We'll use Clojure's sequence functions to make the code concise and efficient.

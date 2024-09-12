@@ -1,0 +1,66 @@
+const fs = require('fs');
+
+function parseInput(input) {
+    return input.trim().split('\n').map(line => line.split(''));
+}
+
+function simulateMinute(grid) {
+    const newGrid = grid.map(row => [...row]);
+    const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+    
+    for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[i].length; j++) {
+            let trees = 0, lumberyards = 0;
+            for (const [dx, dy] of directions) {
+                const x = i + dx, y = j + dy;
+                if (x >= 0 && x < grid.length && y >= 0 && y < grid[i].length) {
+                    if (grid[x][y] === '|') trees++;
+                    if (grid[x][y] === '#') lumberyards++;
+                }
+            }
+            
+            if (grid[i][j] === '.' && trees >= 3) newGrid[i][j] = '|';
+            else if (grid[i][j] === '|' && lumberyards >= 3) newGrid[i][j] = '#';
+            else if (grid[i][j] === '#' && !(lumberyards >= 1 && trees >= 1)) newGrid[i][j] = '.';
+        }
+    }
+    return newGrid;
+}
+
+function countResources(grid) {
+    let trees = 0, lumberyards = 0;
+    for (const row of grid) {
+        for (const acre of row) {
+            if (acre === '|') trees++;
+            if (acre === '#') lumberyards++;
+        }
+    }
+    return trees * lumberyards;
+}
+
+function solve(grid, minutes) {
+    const seen = new Map();
+    let minute = 0;
+    
+    while (minute < minutes) {
+        const key = grid.map(row => row.join('')).join('');
+        if (seen.has(key)) {
+            const cycleLength = minute - seen.get(key);
+            const remainingMinutes = (minutes - minute) % cycleLength;
+            minute = minutes - remainingMinutes;
+        } else {
+            seen.set(key, minute);
+        }
+        
+        grid = simulateMinute(grid);
+        minute++;
+    }
+    
+    return countResources(grid);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+const grid = parseInput(input);
+
+console.log("Part 1:", solve(grid, 10));
+console.log("Part 2:", solve(grid, 1000000000));

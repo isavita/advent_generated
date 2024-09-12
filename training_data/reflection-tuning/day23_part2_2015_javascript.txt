@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input file and parse the instructions.
+2. Implement a function for each instruction type.
+3. Create a program execution function that runs the instructions and manages the registers.
+4. For Part One, start with both registers at 0 and execute the program.
+5. For Part Two, start with register 'a' at 1 and register 'b' at 0, then execute the program.
+6. Return the final value of register 'b' for both parts.
+
+The key is to accurately implement the instruction logic and the jumping mechanism. We'll use an object to store the registers and an array to store the instructions. We'll also use a program counter to keep track of the current instruction.

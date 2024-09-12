@@ -1,0 +1,40 @@
+const fs = require('fs');
+
+function solve(input) {
+    const instructions = input.trim().split('\n').map(line => line.split(' '));
+    const registers = new Map();
+    let lastSound = null;
+    let pc = 0;
+
+    function getValue(x) {
+        return isNaN(x) ? (registers.get(x) || 0) : parseInt(x);
+    }
+
+    const ops = {
+        snd: x => lastSound = getValue(x),
+        set: (x, y) => registers.set(x, getValue(y)),
+        add: (x, y) => registers.set(x, getValue(x) + getValue(y)),
+        mul: (x, y) => registers.set(x, getValue(x) * getValue(y)),
+        mod: (x, y) => registers.set(x, getValue(x) % getValue(y)),
+        rcv: x => {
+            if (getValue(x) !== 0) {
+                console.log(lastSound);
+                process.exit(0);
+            }
+        },
+        jgz: (x, y) => {
+            if (getValue(x) > 0) {
+                pc += getValue(y) - 1;
+            }
+        }
+    };
+
+    while (pc < instructions.length) {
+        const [op, ...args] = instructions[pc];
+        ops[op](...args);
+        pc++;
+    }
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+solve(input);

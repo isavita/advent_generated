@@ -1,0 +1,49 @@
+const fs = require('fs');
+
+function playDiracDice(player1Start, player2Start) {
+    const memo = new Map();
+
+    function play(pos1, pos2, score1, score2, player1Turn) {
+        if (score1 >= 21) return [1, 0];
+        if (score2 >= 21) return [0, 1];
+
+        const key = `${pos1},${pos2},${score1},${score2},${player1Turn}`;
+        if (memo.has(key)) return memo.get(key);
+
+        const wins = [0, 0];
+
+        for (let d1 = 1; d1 <= 3; d1++) {
+            for (let d2 = 1; d2 <= 3; d2++) {
+                for (let d3 = 1; d3 <= 3; d3++) {
+                    const move = d1 + d2 + d3;
+                    if (player1Turn) {
+                        const newPos = (pos1 + move - 1) % 10 + 1;
+                        const newScore = score1 + newPos;
+                        const [w1, w2] = play(newPos, pos2, newScore, score2, false);
+                        wins[0] += w1;
+                        wins[1] += w2;
+                    } else {
+                        const newPos = (pos2 + move - 1) % 10 + 1;
+                        const newScore = score2 + newPos;
+                        const [w1, w2] = play(pos1, newPos, score1, newScore, true);
+                        wins[0] += w1;
+                        wins[1] += w2;
+                    }
+                }
+            }
+        }
+
+        memo.set(key, wins);
+        return wins;
+    }
+
+    const result = play(player1Start, player2Start, 0, 0, true);
+    return Math.max(...result);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+const player1Start = parseInt(input[0].split(': ')[1]);
+const player2Start = parseInt(input[1].split(': ')[1]);
+
+const maxWins = playDiracDice(player1Start, player2Start);
+console.log(maxWins);

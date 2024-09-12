@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the secret key from the input file.
+2. Implement a function to generate MD5 hashes.
+3. Create a loop that incrementally tries numbers, combining them with the secret key.
+4. Check if the resulting hash starts with six zeroes (for Part Two).
+5. Return the lowest number that satisfies the condition.
+
+For efficiency, we'll use Clojure's lazy sequences to generate and test numbers. We'll also use Java's built-in MessageDigest class for MD5 hashing, as it's likely to be faster than a pure Clojure implementation.

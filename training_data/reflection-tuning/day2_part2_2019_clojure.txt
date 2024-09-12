@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a vector of integers.
+2. Implement the Intcode computer that can execute the given instructions.
+3. For Part 1, run the program with noun=12 and verb=2, and return the value at position 0.
+4. For Part 2, implement a search function that tries different noun and verb combinations until we find the one that produces the desired output.
+5. Optimize by using Clojure's efficient data structures and functions.
+
+We'll use a vector to represent the memory, as it allows for efficient updates. We'll implement the Intcode computer as a function that takes the initial memory state and returns the final state. For Part 2, we'll use a nested loop to search for the correct noun and verb.

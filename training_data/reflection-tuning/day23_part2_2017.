@@ -1,0 +1,29 @@
+const fs = require('fs');
+
+function isPrime(n) {
+    if (n <= 1) return false;
+    if (n <= 3) return true;
+    if (n % 2 === 0 || n % 3 === 0) return false;
+    for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+    }
+    return true;
+}
+
+function solve(input) {
+    const lines = input.trim().split('\n');
+    const b = parseInt(lines[0].split(' ')[2]) * 100 + 100000;
+    const c = b + 17000;
+    let h = 0;
+
+    for (let i = b; i <= c; i += 17) {
+        if (!isPrime(i)) {
+            h++;
+        }
+    }
+
+    return h;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solve(input));

@@ -1,0 +1,57 @@
+function solve(input, initialA) {
+    const instructions = input.split('\n').map(line => line.split(' '));
+    const registers = { a: initialA, b: 0, c: 0, d: 0 };
+
+    function getValue(x) {
+        return isNaN(x) ? registers[x] : parseInt(x);
+    }
+
+    let ip = 0;
+    while (ip < instructions.length) {
+        const [op, x, y] = instructions[ip];
+
+        switch (op) {
+            case 'cpy':
+                if (isNaN(y)) registers[y] = getValue(x);
+                break;
+            case 'inc':
+                registers[x]++;
+                break;
+            case 'dec':
+                registers[x]--;
+                break;
+            case 'jnz':
+                if (getValue(x) !== 0) {
+                    ip += getValue(y) - 1;
+                }
+                break;
+            case 'tgl':
+                const targetIp = ip + getValue(x);
+                if (targetIp >= 0 && targetIp < instructions.length) {
+                    const targetInst = instructions[targetIp];
+                    if (targetInst.length === 2) {
+                        targetInst[0] = targetInst[0] === 'inc' ? 'dec' : 'inc';
+                    } else if (targetInst.length === 3) {
+                        targetInst[0] = targetInst[0] === 'jnz' ? 'cpy' : 'jnz';
+                    }
+                }
+                break;
+        }
+
+        ip++;
+
+        // Break out of potential infinite loops
+        if (ip >= 1000000) {
+            console.log("Possible infinite loop detected. Breaking execution.");
+            break;
+        }
+    }
+
+    return registers.a;
+}
+
+// Part One
+console.log(solve(input, 7));
+
+// Part Two
+console.log(solve(input, 12));

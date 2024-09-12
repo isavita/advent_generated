@@ -1,0 +1,80 @@
+const fs = require('fs');
+
+function parseRules(input) {
+    const rules = new Map();
+    input.split('\n').forEach(line => {
+        const [from, to] = line.split(' => ');
+        const key = from.replace(/\//g, '');
+        rules.set(key, to.split('/'));
+    });
+    return rules;
+}
+
+function* getAllTransformations(pattern) {
+    for (let i = 0; i < 4; i++) {
+        yield pattern;
+        yield pattern.split('').reverse().join('');
+        pattern = rotatePattern(pattern);
+    }
+}
+
+function rotatePattern(pattern) {
+    const size = Math.sqrt(pattern.length);
+    return Array(size).fill().map((_, i) =>
+        Array(size).fill().map((_, j) => pattern[size * (size - 1 - j) + i]).join('')
+    ).join('');
+}
+
+function enhance(grid, rules) {
+    const size = Math.sqrt(grid.size);
+    const splitSize = size % 2 === 0 ? 2 : 3;
+    const newSize = size / splitSize * (splitSize + 1);
+    const newGrid = new Set();
+
+    for (let y = 0; y < size; y += splitSize) {
+        for (let x = 0; x < size; x += splitSize) {
+            const square = Array(splitSize).fill().map((_, dy) =>
+                Array(splitSize).fill().map((_, dx) =>
+                    grid.has(`${x+dx},${y+dy}`) ? '#' : '.'
+                ).join('')
+            ).join('');
+
+            let enhanced;
+            for (const transform of getAllTransformations(square)) {
+                if (rules.has(transform)) {
+                    enhanced = rules.get(transform);
+                    break;
+                }
+            }
+
+            enhanced.forEach((row, dy) => {
+                row.split('').forEach((pixel, dx) => {
+                    if (pixel === '#') {
+                        const newX = x / splitSize * (splitSize + 1) + dx;
+                        const newY = y / splitSize * (splitSize + 1) + dy;
+                        newGrid.add(`${newX},${newY}`);
+                    }
+                });
+            });
+        }
+    }
+
+    return newGrid;
+}
+
+function solve(input, iterations) {
+    const rules = parseRules(input);
+    let grid = new Set(['.#.', '..#', '###'].flatMap((row, y) => 
+        row.split('').map((pixel, x) => pixel === '#' ? `${x},${y}` : null)
+    ).filter(Boolean));
+
+    for (let i = 0; i < iterations; i++) {
+        grid = enhance(grid, rules);
+    }
+
+    return grid.size;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log('Part 1:', solve(input, 5));
+console.log('Part 2:', solve(input, 18));

@@ -1,0 +1,8 @@
+The previous solution likely didn't correctly implement the logic for checking duplicate words in each passphrase. The output of 512 suggests that all passphrases were considered valid, which is unlikely to be correct. The issue might be in how the uniqueness of words is checked or how the count of valid passphrases is accumulated.
+
+To fix this, we need to:
+1. Properly split each passphrase into words.
+2. Check for uniqueness of words within each passphrase.
+3. Count only the passphrases that have no duplicate words.
+
+I'll revise the solution to correctly implement this logic, using Clojure's built-in functions for efficient set operations.

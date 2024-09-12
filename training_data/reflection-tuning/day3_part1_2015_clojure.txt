@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Track Santa's position as he moves
+3. Keep a record of unique houses visited
+4. Count the number of unique houses at the end
+
+We can use a set to keep track of unique houses visited, as it automatically eliminates duplicates. We'll represent each house as a coordinate pair [x y]. We'll use reduce to iterate through the directions, updating Santa's position and the set of visited houses with each move.

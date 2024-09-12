@@ -1,0 +1,50 @@
+function solvePuzzle(input) {
+    const [replacementsStr, molecule] = input.split('\n\n');
+    const replacements = replacementsStr.split('\n').map(line => line.split(' => '));
+
+    // Part One
+    function countDistinctMolecules(mol) {
+        const newMolecules = new Set();
+        for (const [from, to] of replacements) {
+            let index = -1;
+            while ((index = mol.indexOf(from, index + 1)) !== -1) {
+                const newMol = mol.slice(0, index) + to + mol.slice(index + from.length);
+                newMolecules.add(newMol);
+            }
+        }
+        return newMolecules.size;
+    }
+
+    const partOne = countDistinctMolecules(molecule);
+
+    // Part Two
+    function countStepsToMedicine(target) {
+        let steps = 0;
+        let current = target;
+
+        // Sort replacements by length of 'to' in descending order
+        const sortedReplacements = replacements.sort((a, b) => b[1].length - a[1].length);
+
+        while (current !== 'e') {
+            let replaced = false;
+            for (const [from, to] of sortedReplacements) {
+                if (current.includes(to)) {
+                    current = current.replace(to, from);
+                    steps++;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced) {
+                // If we can't make any replacements, we're stuck
+                return Infinity;
+            }
+        }
+
+        return steps;
+    }
+
+    const partTwo = countStepsToMedicine(molecule);
+
+    return `Part One: ${partOne}\nPart Two: ${partTwo}`;
+}

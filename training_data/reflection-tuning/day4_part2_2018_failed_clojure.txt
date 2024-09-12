@@ -1,0 +1,12 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+
+1. Read and parse the input file, sorting the entries chronologically.
+2. Process the sorted entries to create a map of guard IDs to their sleep patterns.
+3. For Part 1:
+   - Find the guard with the most total sleep time.
+   - For that guard, find the minute they're most often asleep.
+4. For Part 2:
+   - For each guard and minute combination, find the one with the highest frequency of being asleep.
+5. Calculate and return both answers.
+
+We'll use Clojure's built-in functions like reduce, sort-by, and max-key to efficiently process the data. We'll also use regular expressions to parse the input lines.

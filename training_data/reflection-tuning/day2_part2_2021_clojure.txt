@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. Parse each line into a command (keyword) and a value (integer).
+3. Use reduce to iterate through the commands, updating a map that keeps track of horizontal position, depth, and aim.
+4. For Part 1, we'll update the position and depth directly based on the commands.
+5. For Part 2, we'll update the aim and then use it to calculate depth changes for forward movements.
+6. Finally, we'll multiply the final horizontal position by the final depth for both parts.
+
+We can solve both parts in a single pass through the input data, making it efficient.

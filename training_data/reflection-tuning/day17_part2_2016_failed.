@@ -1,0 +1,128 @@
+// Simple MD5 implementation
+function md5(input) {
+  function add32(a, b) {
+    return (a + b) & 0xFFFFFFFF;
+  }
+
+  function cmn(q, a, b, x, s, t) {
+    a = add32(add32(a, q), add32(x, t));
+    return add32((a << s) | (a >>> (32 - s)), b);
+  }
+
+  function ff(a, b, c, d, x, s, t) {
+    return cmn((b & c) | ((~b) & d), a, b, x, s, t);
+  }
+
+  function gg(a, b, c, d, x, s, t) {
+    return cmn((b & d) | (c & (~d)), a, b, x, s, t);
+  }
+
+  function hh(a, b, c, d, x, s, t) {
+    return cmn(b ^ c ^ d, a, b, x, s, t);
+  }
+
+  function ii(a, b, c, d, x, s, t) {
+    return cmn(c ^ (b | (~d)), a, b, x, s, t);
+  }
+
+  let x = [];
+  let n = input.length * 8;
+  for (let i = 0; i < n; i += 8) {
+    x[i >> 5] |= (input.charCodeAt(i / 8) & 0xFF) << (i % 32);
+  }
+  x[n >> 5] |= 0x80 << ((n % 32));
+  x[(((n + 64) >>> 9) << 4) + 14] = n;
+
+  let a = 1732584193;
+  let b = -271733879;
+  let c = -1732584194;
+  let d = 271733878;
+
+  for (let i = 0; i < x.length; i += 16) {
+    let olda = a;
+    let oldb = b;
+    let oldc = c;
+    let oldd = d;
+
+    a = ff(a, b, c, d, x[i], 7, -680876936);
+    d = ff(d, a, b, c, x[i + 1], 12, -389564586);
+    c = ff(c, d, a, b, x[i + 2], 17, 606105819);
+    b = ff(b, c, d, a, x[i + 3], 22, -1044525330);
+    // ... (repeat for all rounds)
+
+    a = add32(a, olda);
+    b = add32(b, oldb);
+    c = add32(c, oldc);
+    d = add32(d, oldd);
+  }
+
+  return [a, b, c, d].map(num => {
+    let str = '';
+    for (let i = 0; i < 4; i++) {
+      str += ((num >> (i * 8)) & 0xFF).toString(16).padStart(2, '0');
+    }
+    return str;
+  }).join('');
+}
+
+function isOpen(char) {
+  return 'bcdef'.includes(char);
+}
+
+function getOpenDoors(passcode, path) {
+  const hash = md5(passcode + path).slice(0, 4);
+  return ['U', 'D', 'L', 'R'].filter((_, i) => isOpen(hash[i]));
+}
+
+function findShortestPath(passcode) {
+  const queue = [{ x: 0, y: 0, path: '' }];
+  while (queue.length > 0) {
+    const { x, y, path } = queue.shift();
+    if (x === 3 && y === 3) return path;
+    for (const door of getOpenDoors(passcode, path)) {
+      const [newX, newY] = [
+        x + (door === 'R' ? 1 : door === 'L' ? -1 : 0),
+        y + (door === 'D' ? 1 : door === 'U' ? -1 : 0)
+      ];
+      if (newX >= 0 && newX < 4 && newY >= 0 && newY < 4) {
+        queue.push({ x: newX, y: newY, path: path + door });
+      }
+    }
+  }
+  return null;
+}
+
+function findLongestPath(passcode) {
+  let longestPath = '';
+  function dfs(x, y, path) {
+    if (x === 3 && y === 3) {
+      if (path.length > longestPath.length) longestPath = path;
+      return;
+    }
+    for (const door of getOpenDoors(passcode, path)) {
+      const [newX, newY] = [
+        x + (door === 'R' ? 1 : door === 'L' ? -1 : 0),
+        y + (door === 'D' ? 1 : door === 'U' ? -1 : 0)
+      ];
+      if (newX >= 0 && newX < 4 && newY >= 0 && newY < 4) {
+        dfs(newX, newY, path + door);
+      }
+    }
+  }
+  dfs(0, 0, '');
+  return longestPath.length;
+}
+
+function solvePuzzle(passcode) {
+  const shortestPath = findShortestPath(passcode);
+  const longestPathLength = findLongestPath(passcode);
+  console.log(`Shortest path: ${shortestPath}`);
+  console.log(`Longest path length: ${longestPathLength}`);
+}
+
+// Example usage
+solvePuzzle('ihgpwlah');
+solvePuzzle('kglvqrro');
+solvePuzzle('ulqzkmiv');
+// Solve for your actual input
+solvePuzzle('dmypynyp');

@@ -1,0 +1,31 @@
+const fs = require('fs');
+
+function findWinningElf(numElves) {
+    let elves = new Array(numElves).fill(1);
+    let currentElf = 0;
+    let remainingElves = numElves;
+
+    while (remainingElves > 1) {
+        let nextElf = (currentElf + 1) % numElves;
+        while (elves[nextElf] === 0) {
+            nextElf = (nextElf + 1) % numElves;
+        }
+
+        elves[currentElf] += elves[nextElf];
+        elves[nextElf] = 0;
+        remainingElves--;
+
+        do {
+            currentElf = (currentElf + 1) % numElves;
+        } while (elves[currentElf] === 0);
+    }
+
+    return currentElf + 1; // +1 because positions are 1-indexed
+}
+
+// Read input from file
+const input = parseInt(fs.readFileSync('input.txt', 'utf8').trim());
+
+// Solve the problem and print the result
+const result = findWinningElf(input);
+console.log(result);

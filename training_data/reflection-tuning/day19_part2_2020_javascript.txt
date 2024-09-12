@@ -1,0 +1,8 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to separate rules and messages.
+2. Create a function to generate regular expressions for each rule.
+3. For Part 1, simply use the generated regex for rule 0 to match messages.
+4. For Part 2, we need to handle the loop in rules 8 and 11. We can't use regular regex for infinite loops, so we'll create a custom matching function.
+5. For rule 8, we'll check for one or more occurrences of rule 42.
+6. For rule 11, we'll check for n occurrences of rule 42 followed by n occurrences of rule 31, up to a reasonable limit.
+7. Count the matching messages for both parts and return the results.

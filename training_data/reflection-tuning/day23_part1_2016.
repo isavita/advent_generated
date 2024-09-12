@@ -1,0 +1,51 @@
+const fs = require('fs');
+
+function solve(input) {
+    const instructions = input.trim().split('\n').map(line => line.split(' '));
+    const registers = { a: 7, b: 0, c: 0, d: 0 };
+    let pc = 0;
+
+    function getValue(x) {
+        return isNaN(x) ? registers[x] : parseInt(x);
+    }
+
+    function toggle(index) {
+        if (index < 0 || index >= instructions.length) return;
+        const inst = instructions[index];
+        if (inst.length === 2) {
+            inst[0] = inst[0] === 'inc' ? 'dec' : 'inc';
+        } else if (inst.length === 3) {
+            inst[0] = inst[0] === 'jnz' ? 'cpy' : 'jnz';
+        }
+    }
+
+    while (pc < instructions.length) {
+        const [op, x, y] = instructions[pc];
+        switch (op) {
+            case 'cpy':
+                if (isNaN(y)) registers[y] = getValue(x);
+                pc++;
+                break;
+            case 'inc':
+                if (isNaN(x)) registers[x]++;
+                pc++;
+                break;
+            case 'dec':
+                if (isNaN(x)) registers[x]--;
+                pc++;
+                break;
+            case 'jnz':
+                pc += getValue(x) !== 0 ? getValue(y) : 1;
+                break;
+            case 'tgl':
+                toggle(pc + getValue(x));
+                pc++;
+                break;
+        }
+    }
+
+    return registers.a;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solve(input));

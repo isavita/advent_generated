@@ -1,0 +1,14 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+
+1. Read the input file and split it into groups based on blank lines.
+2. For each group:
+   a. Split the group into individual person's answers.
+   b. For Part 1: Find the unique characters across all answers in the group.
+   c. For Part 2: Find the characters that appear in all answers in the group.
+3. Sum up the counts for both parts.
+
+We can use Clojure's set operations to efficiently handle the character comparisons:
+- For Part 1, we'll use `into` with `set` to get unique characters.
+- For Part 2, we'll use `apply intersection` to find common characters across all answers.
+
+This approach should be both concise and efficient, leveraging Clojure's built-in functions for set operations.

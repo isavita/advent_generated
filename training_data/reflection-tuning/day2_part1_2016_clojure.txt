@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input file line by line
+2. Start from the '5' button
+3. For each line, process the instructions (U, D, L, R) to move on the keypad
+4. Keep track of the current position and ensure we don't move off the keypad
+5. After processing each line, record the final button for that line
+6. Combine all the final buttons to get the bathroom code
+
+We can represent the keypad as a 2D vector and use coordinates to track the current position. We'll use a helper function to process each move and ensure we stay within the keypad bounds.

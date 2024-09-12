@@ -1,0 +1,32 @@
+const fs = require('fs');
+
+function evaluatePart1(expr) {
+    expr = expr.replace(/\s/g, '');
+    while (expr.includes('(')) {
+        expr = expr.replace(/\([^()]+\)/g, match => evaluatePart1(match.slice(1, -1)));
+    }
+    return expr.split(/([+*])/).reduce((acc, cur, i, arr) => {
+        if (i % 2 === 0) return acc;
+        return cur === '+' ? acc + Number(arr[i + 1]) : acc * Number(arr[i + 1]);
+    }, Number(expr[0]));
+}
+
+function evaluatePart2(expr) {
+    expr = expr.replace(/\s/g, '');
+    while (expr.includes('(')) {
+        expr = expr.replace(/\([^()]+\)/g, match => evaluatePart2(match.slice(1, -1)));
+    }
+    const terms = expr.split('*');
+    return terms.reduce((acc, term) => {
+        const sum = term.split('+').reduce((a, b) => a + Number(b), 0);
+        return acc * sum;
+    }, 1);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+
+const part1Sum = input.reduce((sum, line) => sum + evaluatePart1(line), 0);
+const part2Sum = input.reduce((sum, line) => sum + evaluatePart2(line), 0);
+
+console.log('Part 1:', part1Sum);
+console.log('Part 2:', part2Sum);

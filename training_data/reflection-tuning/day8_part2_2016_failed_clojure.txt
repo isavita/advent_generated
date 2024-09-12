@@ -1,0 +1,5 @@
+Based on the error message, it seems the issue is related to parsing a string "y" as a number. This likely occurs when trying to extract the row or column number from the instruction string. The error suggests that the code is attempting to convert a non-numeric string to a number, which causes a NumberFormatException.
+
+To fix this, we need to ensure that we're correctly parsing the numeric values from the instruction strings. We should modify the parsing logic to extract only the numeric part of the instruction before converting it to a number. This might involve using regular expressions or string manipulation to isolate the numeric values.
+
+Additionally, we should implement proper error handling to catch and deal with potential parsing errors gracefully.

@@ -1,0 +1,9 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse it into a vector of integers.
+2. Implement a function that simulates the jumps according to the rules for both parts.
+3. Use loop/recur for efficient iteration without stack overflow.
+4. Keep track of the current position and step count.
+5. Use a mutable array (transient vector) for better performance when updating offsets.
+6. Implement both parts in a single pass through the input for efficiency.
+
+The main challenge is to handle the large number of steps efficiently. Using transient vectors and loop/recur will help with performance.

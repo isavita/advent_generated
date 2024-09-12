@@ -1,0 +1,10 @@
+To solve this problem, we need to:
+1. Read the input from the file.
+2. Parse each line into an instruction.
+3. Implement a function for each instruction type.
+4. Create a program execution loop that processes instructions one by one.
+5. Keep track of the last played sound.
+6. Stop when we encounter a 'rcv' instruction with a non-zero value.
+7. Return the last played sound as the answer.
+
+We'll use a Map to store register values, defaulting to 0 for uninitialized registers. We'll also use a separate variable to keep track of the last played sound.

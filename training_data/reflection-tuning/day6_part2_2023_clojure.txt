@@ -1,0 +1,13 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse the time and distance values.
+2. For Part 1, we'll calculate the number of ways to win for each race and multiply them together.
+3. For Part 2, we'll combine the numbers into a single race and calculate the number of ways to win.
+4. To find the number of ways to win, we can use a mathematical approach instead of brute force:
+   - The distance traveled is given by the formula: d = t * (T - t), where T is the total time and t is the button hold time.
+   - We need to find the range of t where d > record distance.
+   - This forms a quadratic inequality: t * (T - t) > R
+   - Solving this inequality gives us the range of valid t values.
+5. We'll implement a function to calculate this range efficiently.
+6. Finally, we'll print the results for both parts.
+
+This approach avoids iterating through all possible times and should be very efficient even for large numbers.

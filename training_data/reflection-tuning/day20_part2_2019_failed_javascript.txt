@@ -1,0 +1,5 @@
+The error message indicates that we're trying to access a property 'match' of an undefined value. This suggests that we're trying to read from a position in the grid that doesn't exist. The issue is likely occurring because we're not properly checking the boundaries of our grid before attempting to access its elements.
+
+To fix this, we need to add boundary checks in our maze-solving function. We should ensure that the coordinates we're trying to access are within the grid's dimensions before attempting to read or manipulate them. This will prevent the "Cannot read properties of undefined" error.
+
+Additionally, we might need to adjust how we're handling the portals and the recursive nature of the maze for Part Two of the problem. The solution needs to account for different levels of the maze and the special behavior of AA and ZZ at different levels.

@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input from the file and parse it into a vector of integers.
+2. Implement a function to redistribute blocks according to the given rules.
+3. Use a set to keep track of configurations we've seen.
+4. Iterate through redistributions until we find a repeated configuration.
+5. For part two, we'll need to find the cycle length, so we'll use a map instead of a set to store the cycle number for each configuration.
+
+The key to efficiency here is using Clojure's immutable data structures and built-in functions for vector manipulation. We'll use `update-in` for efficient updates to the vector during redistribution.

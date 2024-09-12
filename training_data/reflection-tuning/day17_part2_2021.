@@ -1,0 +1,45 @@
+const fs = require('fs');
+
+function parseInput(input) {
+    const [x1, x2, y1, y2] = input.match(/-?\d+/g).map(Number);
+    return { x1, x2, y1, y2 };
+}
+
+function simulateProbe(vx, vy, target) {
+    let x = 0, y = 0, maxY = 0;
+    while (x <= target.x2 && y >= target.y1) {
+        x += vx;
+        y += vy;
+        maxY = Math.max(maxY, y);
+        if (x >= target.x1 && x <= target.x2 && y >= target.y1 && y <= target.y2) {
+            return { hit: true, maxY };
+        }
+        vx = Math.max(0, vx - 1);
+        vy--;
+    }
+    return { hit: false, maxY };
+}
+
+function solve(target) {
+    let maxHeight = 0;
+    let validVelocities = 0;
+
+    for (let vx = 1; vx <= target.x2; vx++) {
+        for (let vy = target.y1; vy <= Math.abs(target.y1); vy++) {
+            const result = simulateProbe(vx, vy, target);
+            if (result.hit) {
+                maxHeight = Math.max(maxHeight, result.maxY);
+                validVelocities++;
+            }
+        }
+    }
+
+    return { part1: maxHeight, part2: validVelocities };
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const target = parseInput(input);
+const result = solve(target);
+
+console.log('Part 1:', result.part1);
+console.log('Part 2:', result.part2);

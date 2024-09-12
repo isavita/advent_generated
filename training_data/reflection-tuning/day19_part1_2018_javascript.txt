@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the instruction pointer binding and the list of instructions.
+2. Implement the different opcodes (seti, setr, addi, addr, etc.).
+3. Create a function to execute the program, keeping track of the registers and instruction pointer.
+4. Run the program until it halts (when the instruction pointer goes out of bounds).
+5. Return the value in register 0 at the end of execution.
+
+The key is to carefully manage the instruction pointer, updating it before and after each instruction execution as described in the problem statement.

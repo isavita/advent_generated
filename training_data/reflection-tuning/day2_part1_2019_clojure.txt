@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" as a list of integers.
+2. Implement the Intcode computer logic.
+3. Modify the input by replacing position 1 with 12 and position 2 with 2.
+4. Run the Intcode program until it halts.
+5. Return the value at position 0.
+
+We'll create helper functions to:
+- Parse the input
+- Execute a single opcode
+- Run the entire program
+
+The main function will tie everything together, applying the initial modifications and running the program.

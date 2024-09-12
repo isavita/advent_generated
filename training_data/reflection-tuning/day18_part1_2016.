@@ -1,0 +1,33 @@
+const fs = require('fs');
+
+function countSafeTiles(initialRow, totalRows) {
+    let currentRow = initialRow;
+    let safeTiles = currentRow.split('.').length - 1;
+
+    for (let i = 1; i < totalRows; i++) {
+        let nextRow = '';
+        for (let j = 0; j < currentRow.length; j++) {
+            const left = j > 0 ? currentRow[j-1] : '.';
+            const center = currentRow[j];
+            const right = j < currentRow.length - 1 ? currentRow[j+1] : '.';
+
+            const isTrap = (left === '^' && center === '^' && right === '.') ||
+                           (center === '^' && right === '^' && left === '.') ||
+                           (left === '^' && center === '.' && right === '.') ||
+                           (right === '^' && center === '.' && left === '.');
+
+            nextRow += isTrap ? '^' : '.';
+            if (!isTrap) safeTiles++;
+        }
+        currentRow = nextRow;
+    }
+
+    return safeTiles;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Calculate and print the result
+const result = countSafeTiles(input, 40);
+console.log(result);

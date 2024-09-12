@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the numbers from the input file.
+2. Convert the numbers to a set for faster lookup.
+3. Iterate through the numbers, and for each number, check if its complement (2020 - number) exists in the set.
+4. If we find a pair that sums to 2020, multiply them and return the result.
+
+This approach has a time complexity of O(n), where n is the number of entries in the expense report, as we only need to iterate through the list once. Using a set for lookup provides constant-time complexity for checking if a number exists.

@@ -1,0 +1,14 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input from the file and parse it into a list of integers.
+2. Calculate the range of possible positions (min to max of input).
+3. For each position in the range, calculate the total fuel cost for all crabs to move to that position.
+4. Find the minimum fuel cost among all calculated positions.
+
+For Part 2, we need to modify the fuel cost calculation. Instead of a linear cost, we use a triangular number series (1+2+3+...+n). We can optimize this calculation using the formula n*(n+1)/2.
+
+To make the solution more efficient, we can:
+1. Use Clojure's built-in functions like `map`, `reduce`, and `apply` for concise and performant operations.
+2. Memoize the triangular number calculation to avoid redundant computations.
+3. Use `range` to generate possible positions instead of explicitly creating a list.
+
+This approach should provide a balance between readability and performance.

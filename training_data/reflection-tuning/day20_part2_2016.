@@ -1,0 +1,31 @@
+const fs = require('fs');
+
+function solve() {
+    const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+    let ranges = input.map(line => line.split('-').map(Number)).sort((a, b) => a[0] - b[0]);
+
+    // Merge overlapping ranges
+    let merged = [ranges[0]];
+    for (let [start, end] of ranges.slice(1)) {
+        if (start <= merged[merged.length - 1][1] + 1) {
+            merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], end);
+        } else {
+            merged.push([start, end]);
+        }
+    }
+
+    // Part 1: Find lowest unblocked IP
+    let lowestUnblocked = 0;
+    for (let [start, end] of merged) {
+        if (lowestUnblocked < start) break;
+        lowestUnblocked = Math.max(lowestUnblocked, end + 1);
+    }
+    console.log("Part 1:", lowestUnblocked);
+
+    // Part 2: Count allowed IPs
+    let blockedCount = merged.reduce((sum, [start, end]) => sum + (end - start + 1), 0);
+    let allowedCount = 4294967296 - blockedCount;
+    console.log("Part 2:", allowedCount);
+}
+
+solve();

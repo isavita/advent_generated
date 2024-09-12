@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file and parse the wire paths.
+2. Convert each wire path into a set of coordinates it passes through.
+3. Find the intersections between the two wire paths.
+4. Calculate the Manhattan distance for each intersection.
+5. Find the minimum distance among all intersections.
+
+We'll use sets to efficiently find intersections and a helper function to generate coordinates for each wire. The Manhattan distance can be calculated by summing the absolute values of x and y coordinates.

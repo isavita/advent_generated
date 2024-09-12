@@ -1,0 +1,10 @@
+To solve this problem efficiently, we can use a recursive approach with backtracking. We'll generate all possible combinations of containers and count those that sum up to exactly 150 liters. For Part Two, we'll keep track of the minimum number of containers needed and count how many combinations use that minimum number.
+
+Here's the approach:
+1. Read the container sizes from the input file.
+2. Implement a recursive function that tries all combinations.
+3. For each container, we have two choices: include it or not.
+4. Keep track of the current sum and the number of containers used.
+5. When we reach 150 liters, increment the count and update the minimum containers if needed.
+6. Use bitwise operations for faster combination generation.
+7. Finally, print both parts of the answer.

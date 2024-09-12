@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file containing the masses of modules.
+2. Define a function to calculate fuel for a given mass.
+3. Apply this function to each mass in the input.
+4. Sum up all the calculated fuel requirements.
+
+The fuel calculation function will implement the formula: fuel = (mass / 3) rounded down - 2.
+We'll use Clojure's built-in functions like slurp, split-lines, and map to read and process the input file efficiently.

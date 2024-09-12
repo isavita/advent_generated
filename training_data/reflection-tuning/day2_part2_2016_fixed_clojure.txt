@@ -1,0 +1,8 @@
+The previous solution seems to have produced the same output for both parts of the problem, which is incorrect. The main issue is likely that the code didn't properly handle the different keypad layouts for Part 1 and Part 2. To fix this, we need to:
+
+1. Define two separate keypad layouts, one for each part.
+2. Implement a function that moves on the keypad based on the instructions, respecting the boundaries of each keypad.
+3. Create separate functions for solving Part 1 and Part 2, each using its respective keypad.
+4. Ensure that the movement logic accounts for the different shapes of the keypads, especially for Part 2 where some moves might be invalid.
+
+The revised solution should produce different outputs for Part 1 and Part 2, reflecting the different keypad layouts and movement rules.

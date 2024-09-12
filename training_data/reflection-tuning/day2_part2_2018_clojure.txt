@@ -1,0 +1,12 @@
+To solve this problem efficiently in Clojure, we can approach it in the following way:
+
+1. Read the input file and split it into lines.
+2. For each pair of IDs, compare them character by character.
+3. If we find a pair that differs by exactly one character, we've found our match.
+4. Extract the common letters from the matching pair.
+
+We can use Clojure's sequence functions to efficiently process the data. We'll use `for` to generate all pairs of IDs, `keep` to filter and process the pairs, and `reduce` to find the first valid result.
+
+To compare the IDs, we'll use `map` with `=` to create a sequence of boolean values, then count the number of false values (differences). If there's exactly one difference, we've found our match.
+
+For extracting common letters, we can use `map` with `filter` to keep only the matching characters.

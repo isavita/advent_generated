@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a vector of integers.
+2. Implement a function to redistribute blocks according to the given rules.
+3. Keep track of configurations we've seen using a set.
+4. Iterate the redistribution process until we encounter a configuration we've seen before.
+5. Count the number of cycles it takes to reach a repeated configuration.
+
+The key to efficiency here is using Clojure's immutable data structures and built-in functions. We'll use a vector to represent the memory banks, a set to keep track of seen configurations, and loop/recur for efficient iteration.

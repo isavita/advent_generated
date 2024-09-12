@@ -1,0 +1,52 @@
+const fs = require('fs');
+
+function executeProgram(instructions, initialA) {
+    const registers = new Map([['a', initialA], ['b', 0], ['c', 0], ['d', 0]]);
+    let ip = 0;
+
+    function getValue(x) {
+        return isNaN(x) ? registers.get(x) || 0 : parseInt(x);
+    }
+
+    function toggle(instruction) {
+        const parts = instruction.split(' ');
+        if (parts.length === 2) {
+            return parts[0] === 'inc' ? `dec ${parts[1]}` : `inc ${parts[1]}`;
+        } else if (parts.length === 3) {
+            return parts[0] === 'jnz' ? `cpy ${parts[1]} ${parts[2]}` : `jnz ${parts[1]} ${parts[2]}`;
+        }
+        return instruction;
+    }
+
+    while (ip < instructions.length) {
+        const [op, x, y] = instructions[ip].split(' ');
+        switch (op) {
+            case 'cpy':
+                if (isNaN(y)) registers.set(y, getValue(x));
+                break;
+            case 'inc':
+                registers.set(x, (registers.get(x) || 0) + 1);
+                break;
+            case 'dec':
+                registers.set(x, (registers.get(x) || 0) - 1);
+                break;
+            case 'jnz':
+                if (getValue(x) !== 0) ip += getValue(y) - 1;
+                break;
+            case 'tgl':
+                const target = ip + getValue(x);
+                if (target >= 0 && target < instructions.length) {
+                    instructions[target] = toggle(instructions[target]);
+                }
+                break;
+        }
+        ip++;
+    }
+
+    return registers.get('a');
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');
+
+console.log("Part One:", executeProgram([...input], 7));
+console.log("Part Two:", executeProgram([...input], 12));

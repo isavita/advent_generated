@@ -1,0 +1,7 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into two parts: the instructions and the node map.
+2. Create a function that follows the instructions and navigates through the node map.
+3. Start from 'AAA' and keep following the instructions until we reach 'ZZZ'.
+4. Count the number of steps taken.
+
+We can use a loop-recur construct to efficiently iterate through the instructions, wrapping around when we reach the end. We'll use a map to store the node connections for quick lookup.

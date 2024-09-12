@@ -1,0 +1,7 @@
+To solve this problem efficiently, we can follow these steps:
+1. Parse the input file to extract claim information.
+2. Create a 2D grid to represent the fabric.
+3. Iterate through each claim, marking the claimed areas on the grid.
+4. Count the number of grid cells that have been claimed more than once.
+
+For efficiency, we'll use a vector of vectors to represent the grid, and we'll only create the grid as large as necessary based on the maximum coordinates found in the claims. We'll use Clojure's destructuring to parse the input lines easily.

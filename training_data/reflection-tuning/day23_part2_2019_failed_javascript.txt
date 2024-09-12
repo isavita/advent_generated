@@ -1,0 +1,9 @@
+The main issue with the previous solution seems to be that it's not correctly implementing the NAT (Not Always Transmitting) functionality for Part 2. The output shows the same answer for both parts, which is incorrect. 
+
+To fix this, we need to:
+1. Implement the NAT logic for packets sent to address 255.
+2. Monitor the network for idle state.
+3. Track the Y values sent by NAT to address 0.
+4. Check for the first Y value that's sent twice in a row.
+
+The solution likely needs to run the network simulation for longer, and keep track of more state between cycles.

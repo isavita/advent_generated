@@ -1,0 +1,10 @@
+To solve this problem, we need to follow these steps:
+1. Read and parse the input file to extract the image enhancement algorithm and the initial image.
+2. Implement a function to enhance the image based on the algorithm.
+3. Apply the enhancement twice to the initial image.
+4. Count the number of lit pixels in the final image.
+
+Key considerations:
+- We need to handle the infinite nature of the image by adding a border of dark pixels around the image before each enhancement.
+- We should use a Set to store the coordinates of lit pixels for efficient lookup and counting.
+- The tricky part is handling the pixels outside the visible area, which will all flip between on and off if the first character of the algorithm is '#' and the last is '.'.

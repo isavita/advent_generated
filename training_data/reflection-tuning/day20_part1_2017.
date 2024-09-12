@@ -1,0 +1,47 @@
+const fs = require('fs');
+
+function solveParticleSwarm(input) {
+    const particles = input.trim().split('\n').map((line, index) => {
+        const [p, v, a] = line.match(/<(.+?)>/g).map(coord => 
+            coord.slice(1, -1).split(',').map(Number)
+        );
+        return { index, p, v, a };
+    });
+
+    let minAccel = Infinity;
+    let closestParticles = [];
+
+    particles.forEach(particle => {
+        const accelMagnitude = particle.a.reduce((sum, val) => sum + Math.abs(val), 0);
+        if (accelMagnitude < minAccel) {
+            minAccel = accelMagnitude;
+            closestParticles = [particle];
+        } else if (accelMagnitude === minAccel) {
+            closestParticles.push(particle);
+        }
+    });
+
+    if (closestParticles.length === 1) {
+        return closestParticles[0].index;
+    }
+
+    // Tiebreaker: compare velocity, then position
+    return closestParticles.reduce((closest, particle) => {
+        const compareVelocity = (a, b) => 
+            a.v.reduce((sum, val) => sum + Math.abs(val), 0) - 
+            b.v.reduce((sum, val) => sum + Math.abs(val), 0);
+        
+        const comparePosition = (a, b) => 
+            a.p.reduce((sum, val) => sum + Math.abs(val), 0) - 
+            b.p.reduce((sum, val) => sum + Math.abs(val), 0);
+
+        if (compareVelocity(particle, closest) < 0 || 
+            (compareVelocity(particle, closest) === 0 && comparePosition(particle, closest) < 0)) {
+            return particle;
+        }
+        return closest;
+    }).index;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solveParticleSwarm(input));

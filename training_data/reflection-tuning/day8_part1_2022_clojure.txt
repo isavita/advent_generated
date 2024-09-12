@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the input file and parse it into a 2D vector of integers.
+2. Count all the trees on the edge of the grid, as they are always visible.
+3. For each interior tree, check its visibility in all four directions (up, down, left, right).
+4. To check visibility, we can use the `reduce` function to compare the tree's height with the maximum height encountered so far in each direction.
+5. If the tree is visible from any direction, increment our count.
+6. Finally, return the total count of visible trees.
+
+This approach ensures we only traverse the grid once for interior trees, making it efficient for large inputs.

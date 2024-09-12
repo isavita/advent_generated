@@ -1,0 +1,34 @@
+function findLowestHouseNumber(targetPresents) {
+    let houseNumber = 1;
+    const elfVisits = new Map();
+
+    while (true) {
+        let presents = 0;
+        const sqrtHouse = Math.sqrt(houseNumber);
+
+        for (let elf = 1; elf <= sqrtHouse; elf++) {
+            if (houseNumber % elf === 0) {
+                if (!elfVisits.has(elf) || elfVisits.get(elf) < 50) {
+                    presents += elf * 11;
+                    elfVisits.set(elf, (elfVisits.get(elf) || 0) + 1);
+                }
+
+                const pair = houseNumber / elf;
+                if (pair !== elf && (!elfVisits.has(pair) || elfVisits.get(pair) < 50)) {
+                    presents += pair * 11;
+                    elfVisits.set(pair, (elfVisits.get(pair) || 0) + 1);
+                }
+            }
+        }
+
+        if (presents >= targetPresents) {
+            return houseNumber;
+        }
+
+        houseNumber++;
+    }
+}
+
+// Example usage:
+const puzzleInput = 29000000;
+console.log(findLowestHouseNumber(puzzleInput));

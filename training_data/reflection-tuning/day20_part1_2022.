@@ -1,0 +1,37 @@
+const fs = require('fs');
+
+function mixNumbers(numbers) {
+    const n = numbers.length;
+    const mixed = numbers.map((num, i) => ({ value: num, originalIndex: i }));
+
+    for (let i = 0; i < n; i++) {
+        const index = mixed.findIndex(item => item.originalIndex === i);
+        const item = mixed[index];
+        mixed.splice(index, 1);
+        let newIndex = (index + item.value) % (n - 1);
+        if (newIndex <= 0) newIndex += n - 1;
+        mixed.splice(newIndex, 0, item);
+    }
+
+    return mixed.map(item => item.value);
+}
+
+function findGroveCoordinates(mixed) {
+    const zeroIndex = mixed.indexOf(0);
+    const n = mixed.length;
+    return [1000, 2000, 3000].reduce((sum, offset) => {
+        return sum + mixed[(zeroIndex + offset) % n];
+    }, 0);
+}
+
+function solveGrovePositioning() {
+    const input = fs.readFileSync('input.txt', 'utf8');
+    const numbers = input.trim().split('\n').map(Number);
+
+    const mixed = mixNumbers(numbers);
+    const result = findGroveCoordinates(mixed);
+
+    console.log(result);
+}
+
+solveGrovePositioning();

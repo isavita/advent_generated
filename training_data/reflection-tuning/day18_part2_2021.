@@ -1,0 +1,101 @@
+const fs = require('fs');
+
+// Parse input
+const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n').map(JSON.parse);
+
+// Add two snailfish numbers
+function add(a, b) {
+    return reduce([a, b]);
+}
+
+// Reduce a snailfish number
+function reduce(num) {
+    while (true) {
+        let exploded = explode(num);
+        if (exploded[1]) {
+            num = exploded[0];
+            continue;
+        }
+        let split = splitNum(num);
+        if (split[1]) {
+            num = split[0];
+            continue;
+        }
+        break;
+    }
+    return num;
+}
+
+// Explode a pair if needed
+function explode(num, depth = 0) {
+    if (typeof num === 'number') return [num, false, 0, 0];
+    if (depth === 4) return [0, true, num[0], num[1]];
+
+    let left = explode(num[0], depth + 1);
+    if (left[1]) {
+        return [[left[0], addLeft(num[1], left[3])], true, left[2], 0];
+    }
+
+    let right = explode(num[1], depth + 1);
+    if (right[1]) {
+        return [[addRight(num[0], right[2]), right[0]], true, 0, right[3]];
+    }
+
+    return [num, false, 0, 0];
+}
+
+// Split a number if needed
+function splitNum(num) {
+    if (typeof num === 'number') {
+        if (num >= 10) {
+            return [[Math.floor(num / 2), Math.ceil(num / 2)], true];
+        }
+        return [num, false];
+    }
+
+    let left = splitNum(num[0]);
+    if (left[1]) return [[left[0], num[1]], true];
+
+    let right = splitNum(num[1]);
+    if (right[1]) return [[num[0], right[0]], true];
+
+    return [num, false];
+}
+
+// Helper functions for explode
+function addLeft(num, value) {
+    if (typeof num === 'number') return num + value;
+    return [addLeft(num[0], value), num[1]];
+}
+
+function addRight(num, value) {
+    if (typeof num === 'number') return num + value;
+    return [num[0], addRight(num[1], value)];
+}
+
+// Calculate magnitude
+function magnitude(num) {
+    if (typeof num === 'number') return num;
+    return 3 * magnitude(num[0]) + 2 * magnitude(num[1]);
+}
+
+// Part 1
+function solvePart1(numbers) {
+    return magnitude(numbers.reduce(add));
+}
+
+// Part 2
+function solvePart2(numbers) {
+    let maxMagnitude = 0;
+    for (let i = 0; i < numbers.length; i++) {
+        for (let j = 0; j < numbers.length; j++) {
+            if (i !== j) {
+                maxMagnitude = Math.max(maxMagnitude, magnitude(add(numbers[i], numbers[j])));
+            }
+        }
+    }
+    return maxMagnitude;
+}
+
+console.log("Part 1:", solvePart1(input));
+console.log("Part 2:", solvePart2(input));

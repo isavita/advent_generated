@@ -1,0 +1,12 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file and parse it into a sequence of numbers.
+2. Group the numbers into sets of three (representing triangles).
+3. Create a function to check if a triangle is valid.
+4. For Part 1, simply apply the validity check to each group of three numbers.
+5. For Part 2, we need to reorganize the input:
+   - Group the numbers into sets of 9 (3 rows of 3 numbers each).
+   - Transpose these groups to get the vertical triangles.
+   - Then apply the validity check to these new groups.
+6. Count the valid triangles for both parts.
+
+We'll use Clojure's efficient sequence operations and transducers for performance.

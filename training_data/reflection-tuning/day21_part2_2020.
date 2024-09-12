@@ -1,0 +1,57 @@
+const fs = require('fs');
+
+function solveAllergenAssessment(input) {
+    const foods = input.trim().split('\n').map(line => {
+        const [ingredients, allergens] = line.split(' (contains ');
+        return {
+            ingredients: new Set(ingredients.split(' ')),
+            allergens: allergens ? allergens.slice(0, -1).split(', ') : []
+        };
+    });
+
+    const allergenMap = new Map();
+    foods.forEach(food => {
+        food.allergens.forEach(allergen => {
+            if (!allergenMap.has(allergen)) {
+                allergenMap.set(allergen, new Set(food.ingredients));
+            } else {
+                allergenMap.set(allergen, new Set([...allergenMap.get(allergen)].filter(x => food.ingredients.has(x))));
+            }
+        });
+    });
+
+    const allIngredients = new Set(foods.flatMap(food => [...food.ingredients]));
+    const possibleAllergenIngredients = new Set([...allergenMap.values()].flatMap(set => [...set]));
+    const safeIngredients = [...allIngredients].filter(ing => !possibleAllergenIngredients.has(ing));
+
+    // Part 1: Count occurrences of safe ingredients
+    const safeIngredientCount = foods.reduce((count, food) => 
+        count + safeIngredients.filter(ing => food.ingredients.has(ing)).length, 0);
+
+    console.log("Part 1:", safeIngredientCount);
+
+    // Part 2: Determine dangerous ingredients
+    const dangerousIngredients = new Map();
+    while (allergenMap.size > 0) {
+        for (const [allergen, ingredients] of allergenMap) {
+            if (ingredients.size === 1) {
+                const [ingredient] = ingredients;
+                dangerousIngredients.set(allergen, ingredient);
+                allergenMap.delete(allergen);
+                for (const otherIngredients of allergenMap.values()) {
+                    otherIngredients.delete(ingredient);
+                }
+            }
+        }
+    }
+
+    const canonicalDangerousList = [...dangerousIngredients]
+        .sort(([a1], [a2]) => a1.localeCompare(a2))
+        .map(([, ingredient]) => ingredient)
+        .join(',');
+
+    console.log("Part 2:", canonicalDangerousList);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+solveAllergenAssessment(input);

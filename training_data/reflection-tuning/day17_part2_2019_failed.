@@ -1,0 +1,129 @@
+const fs = require('fs');
+
+class IntcodeComputer {
+    constructor(program) {
+        this.memory = program.split(',').map(Number);
+        this.ip = 0;
+        this.relativeBase = 0;
+        this.inputs = [];
+        this.outputs = [];
+    }
+
+    run() {
+        while (true) {
+            const opcode = this.memory[this.ip] % 100;
+            const modes = Math.floor(this.memory[this.ip] / 100).toString().padStart(3, '0').split('').reverse().map(Number);
+
+            if (opcode === 99) break;
+
+            const getParam = (index) => {
+                const mode = modes[index - 1];
+                const value = this.memory[this.ip + index];
+                if (mode === 0) return this.memory[value] || 0;
+                if (mode === 1) return value;
+                if (mode === 2) return this.memory[this.relativeBase + value] || 0;
+            };
+
+            const setParam = (index, value) => {
+                const mode = modes[index - 1];
+                const addr = this.memory[this.ip + index];
+                if (mode === 0) this.memory[addr] = value;
+                if (mode === 2) this.memory[this.relativeBase + addr] = value;
+            };
+
+            switch (opcode) {
+                case 1: setParam(3, getParam(1) + getParam(2)); this.ip += 4; break;
+                case 2: setParam(3, getParam(1) * getParam(2)); this.ip += 4; break;
+                case 3:
+                    if (this.inputs.length === 0) return 'INPUT';
+                    setParam(1, this.inputs.shift());
+                    this.ip += 2;
+                    break;
+                case 4: this.outputs.push(getParam(1)); this.ip += 2; return 'OUTPUT'; break;
+                case 5: this.ip = getParam(1) !== 0 ? getParam(2) : this.ip + 3; break;
+                case 6: this.ip = getParam(1) === 0 ? getParam(2) : this.ip + 3; break;
+                case 7: setParam(3, getParam(1) < getParam(2) ? 1 : 0); this.ip += 4; break;
+                case 8: setParam(3, getParam(1) === getParam(2) ? 1 : 0); this.ip += 4; break;
+                case 9: this.relativeBase += getParam(1); this.ip += 2; break;
+            }
+        }
+        return 'HALT';
+    }
+
+    addInput(input) {
+        this.inputs.push(...input.split('').map(c => c.charCodeAt(0)));
+    }
+
+    getOutput() {
+        return this.outputs.map(c => String.fromCharCode(c)).join('');
+    }
+
+    getLastOutput() {
+        return this.outputs[this.outputs.length - 1];
+    }
+}
+
+function parseScaffolding(output) {
+    return output.trim().split('\n').map(row => row.split(''));
+}
+
+function findIntersections(grid) {
+    const intersections = [];
+    for (let y = 1; y < grid.length - 1; y++) {
+        for (let x = 1; x < grid[y].length - 1; x++) {
+            if (grid[y][x] === '#' &&
+                grid[y-1][x] === '#' &&
+                grid[y+1][x] === '#' &&
+                grid[y][x-1] === '#' &&
+                grid[y][x+1] === '#') {
+                intersections.push([x, y]);
+            }
+        }
+    }
+    return intersections;
+}
+
+function sumAlignmentParameters(intersections) {
+    return intersections.reduce((sum, [x, y]) => sum + x * y, 0);
+}
+
+function solvePart1(program) {
+    const computer = new IntcodeComputer(program);
+    let status;
+    do {
+        status = computer.run();
+    } while (status !== 'HALT');
+
+    const scaffolding = parseScaffolding(computer.getOutput());
+    const intersections = findIntersections(scaffolding);
+    return sumAlignmentParameters(intersections);
+}
+
+function solvePart2(program) {
+    const computer = new IntcodeComputer(program);
+    computer.memory[0] = 2;
+
+    const mainRoutine = 'A,B,A,C,A,B,C,B,C,B\n';
+    const functionA = 'L,10,R,8,R,6,R,10\n';
+    const functionB = 'L,12,R,8,L,12\n';
+    const functionC = 'L,10,R,6,L,10\n';
+    const videoFeed = 'n\n';
+
+    computer.addInput(mainRoutine);
+    computer.addInput(functionA);
+    computer.addInput(functionB);
+    computer.addInput(functionC);
+    computer.addInput(videoFeed);
+
+    let status;
+    do {
+        status = computer.run();
+    } while (status !== 'HALT');
+
+    return computer.getLastOutput();
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+console.log('Part 1: Sum of alignment parameters:', solvePart1(input));
+console.log('Part 2: Dust collected:', solvePart2(input));

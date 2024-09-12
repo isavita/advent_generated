@@ -1,0 +1,57 @@
+const fs = require('fs');
+
+function parseInput(input) {
+    const [algo, _, ...imageLines] = input.split('\n');
+    const image = new Set();
+    imageLines.forEach((line, y) => {
+        line.split('').forEach((pixel, x) => {
+            if (pixel === '#') image.add(`${x},${y}`);
+        });
+    });
+    return { algo, image };
+}
+
+function enhance(image, algo, step) {
+    const newImage = new Set();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    image.forEach(coord => {
+        const [x, y] = coord.split(',').map(Number);
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    });
+
+    const infinitePixel = step % 2 === 1 ? algo[0] : algo[511];
+    for (let y = minY - 1; y <= maxY + 1; y++) {
+        for (let x = minX - 1; x <= maxX + 1; x++) {
+            let index = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    index = (index << 1) | (
+                        (nx < minX || nx > maxX || ny < minY || ny > maxY)
+                            ? (infinitePixel === '#' ? 1 : 0)
+                            : (image.has(`${nx},${ny}`) ? 1 : 0)
+                    );
+                }
+            }
+            if (algo[index] === '#') newImage.add(`${x},${y}`);
+        }
+    }
+    return newImage;
+}
+
+function countLitPixels(image) {
+    return image.size;
+}
+
+function solve(input, steps) {
+    let { algo, image } = parseInput(input);
+    for (let i = 0; i < steps; i++) {
+        image = enhance(image, algo, i);
+    }
+    return countLitPixels(image);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log("Part 1:", solve(input, 2));
+console.log("Part 2:", solve(input, 50));

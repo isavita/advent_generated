@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we'll follow these steps:
+1. Read the input file line by line.
+2. Parse each line to extract the policy and password.
+3. Implement two functions: one for Part 1 and another for Part 2 to validate passwords.
+4. Count the number of valid passwords for each part.
+5. Print the results.
+
+We'll use Clojure's built-in functions like `slurp`, `line-seq`, `re-matches`, and `reduce` to efficiently process the input and calculate the results.

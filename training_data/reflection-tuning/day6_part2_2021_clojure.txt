@@ -1,0 +1,8 @@
+To solve this problem efficiently, we need to avoid simulating each fish individually, as that would lead to exponential growth and memory issues. Instead, we can use a more compact representation:
+
+1. Use a vector of 9 elements (indices 0 to 8) to represent the count of fish at each timer value.
+2. For each day, shift the counts down by one index, moving the count at index 0 to index 6 (reset timer) and index 8 (new fish).
+3. Repeat this process for the required number of days.
+4. Sum up all the counts to get the total number of fish.
+
+This approach has a constant space complexity and linear time complexity with respect to the number of days, making it efficient even for large numbers of days.

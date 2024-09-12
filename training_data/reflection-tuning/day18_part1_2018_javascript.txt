@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt" and parse it into a 2D array.
+2. Implement a function to count adjacent acres of each type.
+3. Create a function to simulate one minute of changes.
+4. Run the simulation for 10 minutes.
+5. Count the final number of wooded acres and lumberyards.
+6. Calculate and return the total resource value.
+
+We'll use a 2D array to represent the lumber collection area. For efficiency, we'll create a new array for each minute rather than modifying the existing one, as all changes happen simultaneously. We'll also use constants for the acre types to improve readability.

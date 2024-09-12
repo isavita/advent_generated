@@ -1,0 +1,63 @@
+function findFurthestRoom(regex) {
+    const directions = {
+        'N': [0, -1],
+        'S': [0, 1],
+        'E': [1, 0],
+        'W': [-1, 0]
+    };
+
+    let maxDoors = 0;
+    const visited = new Map();
+
+    function dfs(x, y, index, doors) {
+        const key = `${x},${y}`;
+        if (visited.has(key) && visited.get(key) <= doors) {
+            return;
+        }
+        visited.set(key, doors);
+        maxDoors = Math.max(maxDoors, doors);
+
+        if (index >= regex.length) {
+            return;
+        }
+
+        if (regex[index] === '(') {
+            let branches = [];
+            let current = [];
+            let depth = 0;
+            for (let i = index + 1; i < regex.length; i++) {
+                if (regex[i] === '(') depth++;
+                if (regex[i] === ')') {
+                    if (depth === 0) {
+                        branches.push(current.join(''));
+                        index = i;
+                        break;
+                    }
+                    depth--;
+                }
+                if (regex[i] === '|' && depth === 0) {
+                    branches.push(current.join(''));
+                    current = [];
+                } else {
+                    current.push(regex[i]);
+                }
+            }
+            branches.push(current.join(''));
+            for (let branch of branches) {
+                dfs(x, y, 0, doors, branch);
+            }
+        } else if (regex[index] in directions) {
+            const [dx, dy] = directions[regex[index]];
+            dfs(x + dx, y + dy, index + 1, doors + 1);
+        }
+
+        dfs(x, y, index + 1, doors);
+    }
+
+    dfs(0, 0, 0, 0, regex.slice(1, -1));
+    return maxDoors;
+}
+
+// Example usage:
+console.log(findFurthestRoom('^ESSWWN(E|NNENN(EESS(WNSE|)SSS|WWWSSSSE(SW|NNNE)))$')); // Should output 23
+console.log(findFurthestRoom('^WSSEESWWWNW(S|NENNEEEENN(ESSSSW(NWSW|SSEN)|WSWWN(E|WWS(E|SS))))$')); // Should output 31

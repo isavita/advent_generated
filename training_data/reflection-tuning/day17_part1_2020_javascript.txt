@@ -1,0 +1,14 @@
+To solve this problem, we need to simulate a 3D cellular automaton for six cycles. Here's the approach:
+
+1. Parse the input to create an initial 3D grid.
+2. Implement a function to count active neighbors for each cube.
+3. Create a function to perform one cycle of the simulation.
+4. Run the simulation for six cycles.
+5. Count the total number of active cubes after six cycles.
+
+To optimize for efficiency:
+- Use a Set to store only active cube coordinates as strings (e.g., "x,y,z").
+- In each cycle, only check cubes that are active or adjacent to active cubes.
+- Use a helper function to generate all possible neighbor coordinates.
+
+This approach minimizes memory usage and computation time by focusing only on relevant cubes.

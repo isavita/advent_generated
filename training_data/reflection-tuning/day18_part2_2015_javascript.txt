@@ -1,0 +1,11 @@
+To solve this problem, we need to:
+1. Read the initial configuration from the input file.
+2. Implement a function to simulate one step of the animation.
+3. Create a function to count the number of lights that are on.
+4. Run the simulation for 100 steps and count the lights for Part 1.
+5. Modify the simulation to keep the corner lights always on for Part 2.
+6. Run the modified simulation for 100 steps and count the lights again.
+
+We'll use a 2D array to represent the grid, where true represents an "on" light and false represents an "off" light. We'll use the fs module to read the input file.
+
+For efficiency, we'll create a new grid for each step instead of modifying the existing one. This allows us to check the current state without worrying about changes affecting neighboring cells.

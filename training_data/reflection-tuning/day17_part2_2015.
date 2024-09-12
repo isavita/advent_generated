@@ -1,0 +1,38 @@
+const fs = require('fs');
+
+function findEggnogCombinations(containers) {
+    let totalCombinations = 0;
+    let minContainers = Infinity;
+    let minContainerCombinations = 0;
+
+    function backtrack(index, currentSum, containersUsed, mask) {
+        if (currentSum === 150) {
+            totalCombinations++;
+            if (containersUsed < minContainers) {
+                minContainers = containersUsed;
+                minContainerCombinations = 1;
+            } else if (containersUsed === minContainers) {
+                minContainerCombinations++;
+            }
+            return;
+        }
+        if (currentSum > 150 || index === containers.length) return;
+
+        // Include current container
+        backtrack(index + 1, currentSum + containers[index], containersUsed + 1, mask | (1 << index));
+        
+        // Exclude current container
+        backtrack(index + 1, currentSum, containersUsed, mask);
+    }
+
+    backtrack(0, 0, 0, 0);
+
+    console.log(`Part 1: ${totalCombinations}`);
+    console.log(`Part 2: ${minContainerCombinations}`);
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const containers = input.split('\n').map(Number);
+
+findEggnogCombinations(containers);

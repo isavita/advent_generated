@@ -1,0 +1,7 @@
+To solve this problem efficiently in Clojure, we need to approach it in two parts:
+
+1. For Part One, we simply need to sum all the frequency changes. This can be done by reading the input file, parsing each line as an integer, and using the `reduce` function to sum them up.
+
+2. For Part Two, we need to keep track of all frequencies we've seen before. We can use a set to store these frequencies efficiently. We'll cycle through the frequency changes repeatedly until we find a duplicate. To optimize this, we can use a lazy sequence with `cycle` to repeat the input indefinitely, and use `reductions` to generate a running sum. Then we can use `reduce` with a custom function to find the first duplicate.
+
+The solution will use Clojure's efficient sequence processing functions and leverage its built-in data structures like sets for fast lookups.

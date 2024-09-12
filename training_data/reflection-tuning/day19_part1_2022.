@@ -1,0 +1,67 @@
+const fs = require('fs');
+
+function parseBlueprint(line) {
+    const numbers = line.match(/\d+/g).map(Number);
+    return {
+        id: numbers[0],
+        oreCost: numbers[1],
+        clayCost: numbers[2],
+        obsidianCost: [numbers[3], numbers[4]],
+        geodeCost: [numbers[5], numbers[6]]
+    };
+}
+
+function dfs(blueprint, time, ore, clay, obsidian, geodes, oreRobots, clayRobots, obsidianRobots, geodeRobots, maxGeodes) {
+    if (time === 0) return Math.max(maxGeodes, geodes);
+
+    const potentialGeodes = geodes + geodeRobots * time + (time * (time - 1)) / 2;
+    if (potentialGeodes <= maxGeodes) return maxGeodes;
+
+    const maxOreCost = Math.max(blueprint.oreCost, blueprint.clayCost, blueprint.obsidianCost[0], blueprint.geodeCost[0]);
+
+    if (oreRobots < maxOreCost && ore >= blueprint.oreCost) {
+        const newOre = ore + oreRobots - blueprint.oreCost;
+        maxGeodes = dfs(blueprint, time - 1, newOre, clay + clayRobots, obsidian + obsidianRobots, geodes + geodeRobots,
+                        oreRobots + 1, clayRobots, obsidianRobots, geodeRobots, maxGeodes);
+    }
+
+    if (clayRobots < blueprint.obsidianCost[1] && ore >= blueprint.clayCost) {
+        const newOre = ore + oreRobots - blueprint.clayCost;
+        maxGeodes = dfs(blueprint, time - 1, newOre, clay + clayRobots, obsidian + obsidianRobots, geodes + geodeRobots,
+                        oreRobots, clayRobots + 1, obsidianRobots, geodeRobots, maxGeodes);
+    }
+
+    if (obsidianRobots < blueprint.geodeCost[1] && ore >= blueprint.obsidianCost[0] && clay >= blueprint.obsidianCost[1]) {
+        const newOre = ore + oreRobots - blueprint.obsidianCost[0];
+        const newClay = clay + clayRobots - blueprint.obsidianCost[1];
+        maxGeodes = dfs(blueprint, time - 1, newOre, newClay, obsidian + obsidianRobots, geodes + geodeRobots,
+                        oreRobots, clayRobots, obsidianRobots + 1, geodeRobots, maxGeodes);
+    }
+
+    if (ore >= blueprint.geodeCost[0] && obsidian >= blueprint.geodeCost[1]) {
+        const newOre = ore + oreRobots - blueprint.geodeCost[0];
+        const newObsidian = obsidian + obsidianRobots - blueprint.geodeCost[1];
+        maxGeodes = dfs(blueprint, time - 1, newOre, clay + clayRobots, newObsidian, geodes + geodeRobots,
+                        oreRobots, clayRobots, obsidianRobots, geodeRobots + 1, maxGeodes);
+    }
+
+    maxGeodes = dfs(blueprint, time - 1, ore + oreRobots, clay + clayRobots, obsidian + obsidianRobots, geodes + geodeRobots,
+                    oreRobots, clayRobots, obsidianRobots, geodeRobots, maxGeodes);
+
+    return maxGeodes;
+}
+
+function solve(input) {
+    const blueprints = input.split('\n').map(parseBlueprint);
+    let totalQuality = 0;
+
+    for (const blueprint of blueprints) {
+        const maxGeodes = dfs(blueprint, 24, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+        totalQuality += blueprint.id * maxGeodes;
+    }
+
+    return totalQuality;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solve(input));

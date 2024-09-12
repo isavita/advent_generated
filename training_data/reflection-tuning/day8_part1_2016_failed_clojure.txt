@@ -1,0 +1,5 @@
+Based on the error message, it appears that there's an issue with the `apply-instruction` function, specifically when handling the "y" case. This suggests that there might be a problem with parsing or handling the "rotate row" instruction. The error occurs when trying to match a clause for "y", which is likely part of the instruction parsing.
+
+To fix this, we need to ensure that the `apply-instruction` function correctly handles all types of instructions, including "rotate row y=A by B". We should review the parsing logic for instructions and make sure it correctly extracts the row number and rotation amount for "rotate row" instructions.
+
+Additionally, we should implement proper error handling to avoid runtime errors and provide more informative error messages.

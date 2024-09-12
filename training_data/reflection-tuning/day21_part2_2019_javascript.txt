@@ -1,0 +1,12 @@
+To solve this problem, we need to create a springscript program that will allow the springdroid to navigate the hull without falling into space. The key is to create a set of instructions that will make the droid jump over holes while ensuring it lands on solid ground.
+
+For Part 1, we can use the following logic:
+1. Jump if there's a hole in the next three tiles (A, B, or C is false)
+2. But only if there's ground to land on (D is true)
+
+For Part 2, we need to extend this logic to account for the additional sensors:
+1. Jump if there's a hole in the next four tiles (A, B, C, or D is false)
+2. But only if there's ground to land on (E is true)
+3. Or if there's a hole at E but ground at H (to handle longer jumps)
+
+We'll implement this logic using springscript instructions, then feed these instructions to the Intcode program. We'll use the IntcodeComputer class from previous days to run the Intcode program.

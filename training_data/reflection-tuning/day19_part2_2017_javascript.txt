@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Read the input from the file and parse it into a 2D array.
+2. Find the starting point (the first '|' in the top row).
+3. Traverse the path, keeping track of the letters encountered and the number of steps taken.
+4. Use a direction vector to move through the grid.
+5. Change direction when encountering '+' based on available paths.
+6. Stop when we reach the end of the path.
+
+We'll use a single pass through the grid to solve both parts of the problem efficiently.

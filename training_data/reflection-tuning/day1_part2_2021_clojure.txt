@@ -1,0 +1,8 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+
+1. Read the input file and parse each line as an integer.
+2. For Part 1, we can use the `partition` function to create pairs of adjacent measurements and count how many times the second number is greater than the first.
+3. For Part 2, we can use `partition` again, but this time with a size of 3 and step of 1 to create the sliding windows. We'll sum each window and then compare adjacent sums similar to Part 1.
+4. We'll create separate functions for each part and a main function to run both parts and print the results.
+
+This approach allows us to solve both parts in a single pass through the data, making it efficient.

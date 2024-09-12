@@ -1,0 +1,12 @@
+The error message indicates that the program is running out of memory, which is likely due to the large scale of the problem in Part Two. The previous solution might have been trying to represent the entire 3D space as a data structure, which is not feasible for the given ranges.
+
+To fix this, we need to change our approach. Instead of tracking individual cubes, we should work with the cuboids themselves. We can use a technique called "Constructive Solid Geometry" or a similar approach where we keep track of the "on" regions as a list of non-overlapping cuboids.
+
+The algorithm would work as follows:
+1. Start with an empty list of "on" cuboids.
+2. For each reboot step:
+   - If it's an "on" step, add the new cuboid to the list, splitting existing cuboids if necessary to avoid overlaps.
+   - If it's an "off" step, remove the overlapping portions from existing "on" cuboids.
+3. At the end, calculate the total volume of all remaining "on" cuboids.
+
+This approach will be much more memory-efficient and should be able to handle the large ranges in Part Two.

@@ -1,0 +1,14 @@
+To solve this problem, we need to:
+1. Parse the input file to extract the drawn numbers and bingo boards.
+2. Implement a function to check if a board has won.
+3. Simulate the bingo game by marking numbers on boards and checking for winners after each draw.
+4. Calculate the score of the winning board.
+
+The approach will be:
+- Read and parse the input file.
+- Create data structures for the boards and drawn numbers.
+- Iterate through the drawn numbers, marking them on each board.
+- After each number is drawn, check all boards for a win condition.
+- When a win is found, calculate and return the score.
+
+For efficiency, we'll use sets to represent marked numbers on each board, allowing for quick lookups and win condition checks.

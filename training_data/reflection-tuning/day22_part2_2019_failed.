@@ -1,0 +1,120 @@
+// Helper function to mod in a way that always returns a non-negative number
+function mod(n, m) {
+    return ((n % m) + m) % m;
+}
+
+// Implement the shuffle operations
+function dealIntoNewStack(pos, deckSize) {
+    return deckSize - 1n - pos;
+}
+
+function cut(pos, n, deckSize) {
+    return mod((pos - n), deckSize);
+}
+
+function dealWithIncrement(pos, n, deckSize) {
+    return mod((pos * n), deckSize);
+}
+
+// Function to apply a single shuffle
+function applyShuffle(pos, instruction, deckSize) {
+    const [action, ...params] = instruction.split(' ');
+    if (action === 'cut') {
+        return cut(pos, BigInt(params[0]), deckSize);
+    } else if (action === 'deal' && params[0] === 'with') {
+        return dealWithIncrement(pos, BigInt(params[2]), deckSize);
+    } else if (action === 'deal' && params[0] === 'into') {
+        return dealIntoNewStack(pos, deckSize);
+    }
+    throw new Error(`Unknown instruction: ${instruction}`);
+}
+
+// Function to solve Part One
+function solvePart1(instructions, deckSize, cardPosition) {
+    let pos = BigInt(cardPosition);
+    for (const instruction of instructions) {
+        pos = applyShuffle(pos, instruction, deckSize);
+    }
+    return Number(pos);
+}
+
+// Function to solve Part Two using modular arithmetic
+function solvePart2(instructions, deckSize, shuffleCount, finalPosition) {
+    let a = 1n;
+    let b = 0n;
+    
+    // Calculate the effect of all shuffles combined
+    for (const instruction of instructions.reverse()) {
+        const [action, ...params] = instruction.split(' ');
+        if (action === 'cut') {
+            b = (b + BigInt(params[0])) % deckSize;
+        } else if (action === 'deal' && params[0] === 'with') {
+            const n = BigInt(params[2]);
+            const inv = modPow(n, deckSize - 2n, deckSize);
+            a = (a * inv) % deckSize;
+            b = (b * inv) % deckSize;
+        } else if (action === 'deal' && params[0] === 'into') {
+            a = (-a) % deckSize;
+            b = (deckSize - 1n - b) % deckSize;
+        }
+    }
+
+    // Calculate (a^shuffleCount * finalPosition + (a^shuffleCount - 1) / (a - 1) * b) % deckSize
+    const factor = modPow(a, shuffleCount, deckSize);
+    const numerator = (factor - 1n) * modInverse(a - 1n, deckSize);
+    return Number((modPow(a, shuffleCount, deckSize) * BigInt(finalPosition) + numerator * b) % deckSize);
+}
+
+// Helper function for modular exponentiation
+function modPow(base, exponent, modulus) {
+    if (modulus === 1n) return 0n;
+    let result = 1n;
+    base = base % modulus;
+    while (exponent > 0n) {
+        if (exponent % 2n === 1n) {
+            result = (result * base) % modulus;
+        }
+        exponent = exponent / 2n;
+        base = (base * base) % modulus;
+    }
+    return result;
+}
+
+// Helper function for modular multiplicative inverse
+function modInverse(a, m) {
+    let [old_r, r] = [a, m];
+    let [old_s, s] = [1n, 0n];
+    let [old_t, t] = [0n, 1n];
+
+    while (r !== 0n) {
+        const quotient = old_r / r;
+        [old_r, r] = [r, old_r - quotient * r];
+        [old_s, s] = [s, old_s - quotient * s];
+        [old_t, t] = [t, old_t - quotient * t];
+    }
+
+    return mod(old_s, m);
+}
+
+// Main function
+function main(input) {
+    const instructions = input.trim().split('\n');
+    
+    // Part 1
+    const part1Result = solvePart1(instructions, 10007n, 2019);
+    console.log("Part 1 Result:", part1Result);
+
+    // Part 2
+    const deckSize = 119315717514047n;
+    const shuffleCount = 101741582076661n;
+    const part2Result = solvePart2(instructions, deckSize, shuffleCount, 2020);
+    console.log("Part 2 Result:", part2Result);
+}
+
+// Example usage:
+const input = `
+deal with increment 7
+deal into new stack
+deal into new stack
+`;
+main(input);

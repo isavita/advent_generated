@@ -1,0 +1,97 @@
+const fs = require('fs');
+
+class Queue {
+    constructor(items = []) {
+        this.items = items;
+    }
+    enqueue(element) {
+        this.items.push(element);
+    }
+    dequeue() {
+        return this.items.shift();
+    }
+    isEmpty() {
+        return this.items.length === 0;
+    }
+    peek() {
+        return !this.isEmpty() ? this.items[0] : undefined;
+    }
+    size() {
+        return this.items.length;
+    }
+    toArray() {
+        return [...this.items];
+    }
+}
+
+function parseInput(filename) {
+    const content = fs.readFileSync(filename, 'utf8').trim().split('\n\n');
+    return content.map(player => 
+        new Queue(player.split('\n').slice(1).map(Number))
+    );
+}
+
+function playCombat(player1, player2) {
+    while (!player1.isEmpty() && !player2.isEmpty()) {
+        const card1 = player1.dequeue();
+        const card2 = player2.dequeue();
+        if (card1 > card2) {
+            player1.enqueue(card1);
+            player1.enqueue(card2);
+        } else {
+            player2.enqueue(card2);
+            player2.enqueue(card1);
+        }
+    }
+    return player1.isEmpty() ? player2 : player1;
+}
+
+function playRecursiveCombat(player1, player2) {
+    const seen = new Set();
+    while (!player1.isEmpty() && !player2.isEmpty()) {
+        const key = player1.toArray().join(',') + '|' + player2.toArray().join(',');
+        if (seen.has(key)) return { winner: player1, player: 1 };
+        seen.add(key);
+
+        const card1 = player1.dequeue();
+        const card2 = player2.dequeue();
+
+        let roundWinner;
+        if (player1.size() >= card1 && player2.size() >= card2) {
+            const subGame = playRecursiveCombat(
+                new Queue(player1.toArray().slice(0, card1)),
+                new Queue(player2.toArray().slice(0, card2))
+            );
+            roundWinner = subGame.player;
+        } else {
+            roundWinner = card1 > card2 ? 1 : 2;
+        }
+
+        if (roundWinner === 1) {
+            player1.enqueue(card1);
+            player1.enqueue(card2);
+        } else {
+            player2.enqueue(card2);
+            player2.enqueue(card1);
+        }
+    }
+    return { winner: player1.isEmpty() ? player2 : player1, player: player1.isEmpty() ? 2 : 1 };
+}
+
+function calculateScore(deck) {
+    return deck.toArray().reverse().reduce((score, card, index) => score + card * (index + 1), 0);
+}
+
+function solvePart1(player1, player2) {
+    const winner = playCombat(player1, player2);
+    return calculateScore(winner);
+}
+
+function solvePart2(player1, player2) {
+    const { winner } = playRecursiveCombat(player1, player2);
+    return calculateScore(winner);
+}
+
+const [player1, player2] = parseInput('input.txt');
+console.log("Part 1:", solvePart1(new Queue(player1.toArray()), new Queue(player2.toArray())));
+console.log("Part 2:", solvePart2(player1, player2));

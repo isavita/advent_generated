@@ -1,0 +1,3 @@
+The error message indicates a syntax error on line 4, specifically a missing closing parenthesis. This is likely due to an incomplete function call or array method. In this case, it appears that the `split()` method is missing its closing parenthesis. To fix this, we need to add the missing parenthesis at the end of the line.
+
+Additionally, while not directly related to the error, it's good practice to ensure that the input is properly trimmed to avoid any issues with trailing newlines. We should also consider adding some error handling and input validation to make the solution more robust.

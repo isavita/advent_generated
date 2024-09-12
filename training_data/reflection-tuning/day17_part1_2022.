@@ -1,0 +1,61 @@
+const fs = require('fs');
+
+const jetPattern = fs.readFileSync('input.txt', 'utf8').trim();
+const CHAMBER_WIDTH = 7;
+const ROCK_SHAPES = [
+    [[0,0], [1,0], [2,0], [3,0]],
+    [[1,0], [0,1], [1,1], [2,1], [1,2]],
+    [[0,0], [1,0], [2,0], [2,1], [2,2]],
+    [[0,0], [0,1], [0,2], [0,3]],
+    [[0,0], [1,0], [0,1], [1,1]]
+];
+
+function simulateRock(chamber, rockShape, jetIndex) {
+    let rock = rockShape.map(([x, y]) => [x + 2, y + chamber.height + 3]);
+    
+    while (true) {
+        // Apply jet
+        const jet = jetPattern[jetIndex % jetPattern.length];
+        jetIndex++;
+        
+        let movedRock = rock.map(([x, y]) => [x + (jet === '>' ? 1 : -1), y]);
+        if (movedRock.every(([x, y]) => x >= 0 && x < CHAMBER_WIDTH && !chamber.occupied.has(`${x},${y}`))) {
+            rock = movedRock;
+        }
+        
+        // Move down
+        movedRock = rock.map(([x, y]) => [x, y - 1]);
+        if (movedRock.some(([x, y]) => y < 0 || chamber.occupied.has(`${x},${y}`))) {
+            rock.forEach(([x, y]) => chamber.occupied.add(`${x},${y}`));
+            chamber.height = Math.max(chamber.height, ...rock.map(([_, y]) => y + 1));
+            return jetIndex;
+        }
+        rock = movedRock;
+    }
+}
+
+function simulateTower(numRocks) {
+    const chamber = { occupied: new Set(), height: 0 };
+    let jetIndex = 0;
+    
+    for (let i = 0; i < numRocks; i++) {
+        const rockShape = ROCK_SHAPES[i % ROCK_SHAPES.length];
+        jetIndex = simulateRock(chamber, rockShape, jetIndex);
+        
+        // Optimize memory by removing unnecessary lower parts
+        if (chamber.height > 100) {
+            const newOccupied = new Set();
+            for (let pos of chamber.occupied) {
+                const [x, y] = pos.split(',').map(Number);
+                if (y > chamber.height - 100) {
+                    newOccupied.add(`${x},${y}`);
+                }
+            }
+            chamber.occupied = newOccupied;
+        }
+    }
+    
+    return chamber.height;
+}
+
+console.log(simulateTower(2022));

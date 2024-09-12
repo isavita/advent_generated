@@ -1,0 +1,17 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. Define helper functions to check each condition for a nice string.
+3. Use these helper functions to determine if each string is nice or naughty.
+4. Count the number of nice strings.
+
+For efficiency, we'll use:
+- Regular expressions for quick pattern matching.
+- Short-circuiting logic to avoid unnecessary checks.
+- Lazy sequences to process the file line by line without loading it all into memory.
+
+The main challenges are:
+1. Checking for at least three vowels.
+2. Checking for a double letter.
+3. Checking for forbidden substrings.
+
+We'll use regex for vowels and forbidden substrings, and a simple loop for the double letter check.

@@ -1,0 +1,14 @@
+To solve this problem, we need to:
+1. Read the input from "input.txt"
+2. Parse the instructions into a sequence of turns and steps
+3. Keep track of the current position and direction
+4. Update the position based on each instruction
+5. Calculate the Manhattan distance from the origin to the final position
+
+We can represent the direction as a vector [x y], where:
+- North = [0 1]
+- East = [1 0]
+- South = [0 -1]
+- West = [-1 0]
+
+We'll use a map to store the current state (position and direction) and update it with each instruction. Finally, we'll calculate the Manhattan distance using the absolute sum of the final coordinates.

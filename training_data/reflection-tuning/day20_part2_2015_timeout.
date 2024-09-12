@@ -1,0 +1,35 @@
+const fs = require('fs');
+
+function sumOfDivisors(n, limit = Infinity) {
+    let sum = 0;
+    for (let i = 1; i <= Math.min(Math.sqrt(n), limit); i++) {
+        if (n % i === 0) {
+            sum += i;
+            if (i !== n / i && n / i <= limit) {
+                sum += n / i;
+            }
+        }
+    }
+    return sum;
+}
+
+function solvePart1(input) {
+    let houseNumber = 1;
+    while (sumOfDivisors(houseNumber) * 10 < input) {
+        houseNumber++;
+    }
+    return houseNumber;
+}
+
+function solvePart2(input) {
+    let houseNumber = 1;
+    while (sumOfDivisors(houseNumber, 50) * 11 < input) {
+        houseNumber++;
+    }
+    return houseNumber;
+}
+
+const input = parseInt(fs.readFileSync('input.txt', 'utf8'));
+
+console.log("Part 1:", solvePart1(input));
+console.log("Part 2:", solvePart2(input));

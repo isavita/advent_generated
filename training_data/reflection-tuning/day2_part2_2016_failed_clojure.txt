@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into a list of instructions.
+2. Implement two different keypad layouts for Part 1 and Part 2.
+3. Create a function to move on each keypad based on the instructions.
+4. Iterate through the instructions, keeping track of the current position and building the code.
+5. Print the final codes for both parts.
+
+We'll use a map to represent each keypad, where the keys are the current positions and the values are maps of possible moves. This allows for efficient lookups and handles edge cases naturally.

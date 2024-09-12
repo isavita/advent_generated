@@ -1,0 +1,11 @@
+The timeout error suggests that the previous solution was likely using a brute-force approach, which is inefficient for this problem. The key to solving this efficiently is to analyze the program's behavior and find patterns or shortcuts.
+
+For Part Two, we need to find the upper bound, which means we're looking for the value that causes the program to halt after executing the most instructions. This implies that we need to understand the program's logic and find the point where it's about to enter an infinite loop or a very long sequence of operations.
+
+Instead of simulating the entire program for each possible input, we should:
+
+1. Analyze the program's structure to identify the main loop and exit conditions.
+2. Determine the mathematical relationship between the input (register 0) and the number of instructions executed.
+3. Find the threshold where the program behavior changes significantly.
+
+By doing this analysis, we can derive a formula or condition that gives us the answer without having to simulate the entire program for a large number of inputs.

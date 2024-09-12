@@ -1,0 +1,9 @@
+To solve this problem, we need to implement each of the scrambling operations and then apply them in sequence to the initial password. For Part Two, we need to reverse the process. Here's the approach:
+
+1. Implement each scrambling operation as a separate function.
+2. Create a main function that reads the input file and applies the operations in order.
+3. For Part Two, we'll need to reverse each operation and apply them in reverse order.
+
+The tricky part is reversing the "rotate based on position of letter X" operation, as it's not a straightforward reverse. We'll need to create a lookup table or a reverse function for this operation.
+
+For efficiency, we'll use string manipulation where possible and avoid unnecessary conversions between strings and arrays.

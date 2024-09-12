@@ -1,0 +1,36 @@
+const fs = require('fs');
+
+function parseInstructions(input) {
+    return input.trim().split('\n').map(line => {
+        const [instr, ...args] = line.split(/[,\s]+/);
+        return { instr, args };
+    });
+}
+
+function executeProgram(instructions, initialA = 0) {
+    const registers = { a: initialA, b: 0 };
+    let pc = 0;
+
+    const ops = {
+        hlf: r => registers[r] = Math.floor(registers[r] / 2),
+        tpl: r => registers[r] *= 3,
+        inc: r => registers[r]++,
+        jmp: offset => pc += parseInt(offset) - 1,
+        jie: (r, offset) => { if (registers[r] % 2 === 0) pc += parseInt(offset) - 1; },
+        jio: (r, offset) => { if (registers[r] === 1) pc += parseInt(offset) - 1; }
+    };
+
+    while (pc >= 0 && pc < instructions.length) {
+        const { instr, args } = instructions[pc];
+        ops[instr](...args);
+        pc++;
+    }
+
+    return registers.b;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+const instructions = parseInstructions(input);
+
+console.log("Part One:", executeProgram(instructions));
+console.log("Part Two:", executeProgram(instructions, 1));

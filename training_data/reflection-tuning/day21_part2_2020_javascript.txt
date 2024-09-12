@@ -1,0 +1,9 @@
+To solve this problem, we need to:
+1. Parse the input to create a list of foods with their ingredients and allergens.
+2. Create a mapping of allergens to possible ingredients.
+3. Identify ingredients that can't contain allergens.
+4. Count occurrences of these safe ingredients (Part 1).
+5. Determine which ingredient contains which allergen (Part 2).
+6. Sort the dangerous ingredients by allergen and create the final list.
+
+We'll use Sets and Maps for efficient lookups and to avoid duplicates. We'll iterate through the data multiple times to narrow down the allergen-ingredient pairs.

@@ -1,0 +1,12 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input file line by line.
+2. For each line, split it into the signal patterns and output values.
+3. Focus only on the output values (after the '|' delimiter).
+4. Count the occurrences of digits 1, 4, 7, and 8 by checking the length of each output value:
+   - 1 uses 2 segments
+   - 4 uses 4 segments
+   - 7 uses 3 segments
+   - 8 uses 7 segments
+5. Sum up all these occurrences across all lines.
+
+We can use Clojure's powerful sequence functions to process the data efficiently. We'll use `slurp` to read the file, `line-seq` to process it line by line, `map` to transform each line, and `reduce` to sum up the results.

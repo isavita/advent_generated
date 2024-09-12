@@ -1,0 +1,13 @@
+To solve this problem, we need to:
+1. Read the input file and parse it into individual passports.
+2. Define a set of required fields.
+3. For each passport, check if it contains all required fields.
+4. Count the number of valid passports.
+
+The approach will be:
+- Use `slurp` to read the file contents.
+- Split the content by double newlines to separate passports.
+- For each passport, split by whitespace and create a map of key-value pairs.
+- Define a set of required fields (excluding 'cid').
+- Use `every?` to check if all required fields are present in each passport.
+- Count the number of valid passports using `count` and `filter`.

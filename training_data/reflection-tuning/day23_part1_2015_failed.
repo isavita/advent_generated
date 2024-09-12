@@ -1,0 +1,64 @@
+function executeProgram(instructions) {
+    const registers = { a: 0, b: 0 };
+    let i = 0;
+
+    while (i >= 0 && i < instructions.length) {
+        const instruction = instructions[i];
+        const match = instruction.match(/(\w+)\s+(\w)(?:,\s*([+-]\d+))?/);
+
+        if (!match) {
+            console.error(`Invalid instruction format at line ${i + 1}: ${instruction}`);
+            i++;
+            continue;
+        }
+
+        const [, cmd, r, offset] = match;
+
+        switch (cmd) {
+            case 'hlf':
+                registers[r] = Math.floor(registers[r] / 2);
+                i++;
+                break;
+            case 'tpl':
+                registers[r] *= 3;
+                i++;
+                break;
+            case 'inc':
+                registers[r]++;
+                i++;
+                break;
+            case 'jmp':
+                i += parseInt(offset);
+                break;
+            case 'jie':
+                if (registers[r] % 2 === 0) {
+                    i += parseInt(offset);
+                } else {
+                    i++;
+                }
+                break;
+            case 'jio':
+                if (registers[r] === 1) {
+                    i += parseInt(offset);
+                } else {
+                    i++;
+                }
+                break;
+            default:
+                console.error(`Unknown command at line ${i + 1}: ${cmd}`);
+                i++;
+        }
+    }
+
+    return registers.b;
+}
+
+// Example usage:
+const instructions = [
+    'inc a',
+    'jio a, +2',
+    'tpl a',
+    'inc a'
+];
+
+console.log(executeProgram(instructions));

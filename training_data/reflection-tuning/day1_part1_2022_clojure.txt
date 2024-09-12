@@ -1,0 +1,12 @@
+To solve this problem, we need to:
+1. Read the input file
+2. Split the input into groups of numbers separated by blank lines
+3. Sum each group of numbers
+4. Find the maximum sum
+
+We can approach this efficiently by:
+- Using Clojure's built-in functions for file reading and string manipulation
+- Utilizing the `reduce` function to process the input in a single pass
+- Keeping track of the maximum sum as we process each group
+
+This approach will be both memory-efficient (as we don't need to store all groups) and time-efficient (as we process the input in one pass).

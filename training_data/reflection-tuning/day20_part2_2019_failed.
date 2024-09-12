@@ -1,0 +1,84 @@
+function solveMaze(grid, isPart2 = false) {
+    const height = grid.length;
+    const width = grid[0].length;
+    const portals = {};
+    const start = [];
+    const end = [];
+
+    // Find portals, start, and end
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (grid[y][x].match(/[A-Z]/)) {
+                const label = getPortalLabel(grid, x, y);
+                if (label) {
+                    if (label === 'AA') start.push([x, y]);
+                    else if (label === 'ZZ') end.push([x, y]);
+                    else {
+                        if (!portals[label]) portals[label] = [];
+                        portals[label].push([x, y]);
+                    }
+                }
+            }
+        }
+    }
+
+    const queue = [[...start[0], 0, 0]]; // x, y, steps, level
+    const visited = new Set();
+
+    while (queue.length > 0) {
+        const [x, y, steps, level] = queue.shift();
+        const key = `${x},${y},${level}`;
+
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        if (x === end[0][0] && y === end[0][1] && (!isPart2 || level === 0)) {
+            return steps;
+        }
+
+        // Check adjacent tiles
+        for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx] === '.') {
+                queue.push([nx, ny, steps + 1, level]);
+            }
+        }
+
+        // Check for portals
+        const label = getPortalLabel(grid, x, y);
+        if (label && label !== 'AA' && label !== 'ZZ') {
+            const isOuter = x === 2 || y === 2 || x === width - 3 || y === height - 3;
+            if (!isPart2 || (isOuter && level > 0) || (!isOuter && level < 100)) { // Arbitrary max level
+                const [px, py] = portals[label].find(([px, py]) => px !== x || py !== y);
+                const newLevel = level + (isOuter ? -1 : 1);
+                queue.push([px, py, steps + 1, isPart2 ? newLevel : level]);
+            }
+        }
+    }
+
+    return -1; // No path found
+}
+
+function getPortalLabel(grid, x, y) {
+    const height = grid.length;
+    const width = grid[0].length;
+    if (x < 0 || x >= width || y < 0 || y >= height) return null;
+    
+    for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx].match(/[A-Z]/)) {
+            return dx === 1 || dy === 1 ? grid[y][x] + grid[ny][nx] : grid[ny][nx] + grid[y][x];
+        }
+    }
+    return null;
+}
+
+// Example usage:
+const grid = [
+    // ... (insert your maze grid here)
+];
+
+console.log("Part 1:", solveMaze(grid));
+console.log("Part 2:", solveMaze(grid, true));

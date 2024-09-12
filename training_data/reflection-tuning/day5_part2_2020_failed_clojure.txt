@@ -1,0 +1,9 @@
+The error message suggests that the program is trying to parse a string "0B0BB0BRR0" as a binary number, which is causing a NumberFormatException. This indicates that the code is likely trying to convert the boarding pass string directly to a number, which is incorrect. Instead, we need to implement the binary space partitioning logic described in the problem.
+
+To fix this, we should:
+1. Implement a function to convert the F/B and L/R characters to binary (0/1).
+2. Split the boarding pass into row and column parts.
+3. Convert these binary strings to decimal numbers.
+4. Calculate the seat ID as described in the problem.
+5. Find the highest seat ID for part 1.
+6. For part 2, find the missing seat ID that's not at the very front or back.

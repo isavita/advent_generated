@@ -1,0 +1,8 @@
+Looking at the output, it seems that Part 1 was solved correctly (1224), but Part 2 has an issue. The output for Part 2 is not easily readable, which suggests that the rendering of the final image might be incorrect. The problem likely lies in how the layers are combined and how the final image is displayed.
+
+To fix this, we should:
+1. Ensure that we're correctly stacking the layers, with the first layer in front and the last layer in back.
+2. Properly interpret the pixel values: 0 as black, 1 as white, and 2 as transparent.
+3. Improve the rendering of the final image to make it more readable, possibly by using different characters for black and white pixels.
+
+The revised solution should focus on correctly implementing the layer stacking logic and improving the visual output of the final image.

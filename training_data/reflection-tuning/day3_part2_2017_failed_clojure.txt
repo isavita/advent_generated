@@ -1,0 +1,5 @@
+The timeout error suggests that the previous solution was likely using an inefficient approach, possibly generating the entire spiral or using a brute-force method. To fix this, we should focus on optimizing the algorithm. For Part One, we can use mathematical properties of the spiral to calculate the Manhattan distance directly. For Part Two, we can generate values incrementally and stop as soon as we find a value larger than the input, rather than generating the entire spiral.
+
+For Part One, we can observe that the spiral forms concentric "rings" around the center. We can determine which ring a number is in and its position within that ring to calculate the distance efficiently.
+
+For Part Two, we'll use a map to store the values of filled squares and generate new values based on the sum of adjacent squares. We'll implement a function to get the next position in the spiral and another to sum the adjacent values.

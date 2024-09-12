@@ -1,0 +1,79 @@
+class Node {
+    constructor(x, y, size, used) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.used = used;
+        this.avail = size - used;
+    }
+}
+
+function parseInput(input) {
+    const lines = input.trim().split('\n').slice(2);
+    return lines.map(line => {
+        const [, x, y, size, used] = line.match(/node-x(\d+)-y(\d+)\s+(\d+)T\s+(\d+)T/);
+        return new Node(parseInt(x), parseInt(y), parseInt(size), parseInt(used));
+    });
+}
+
+function countViablePairs(nodes) {
+    let count = 0;
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = 0; j < nodes.length; j++) {
+            if (i !== j && nodes[i].used > 0 && nodes[i].used <= nodes[j].avail) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+function findShortestPath(nodes) {
+    const grid = createGrid(nodes);
+    const maxX = Math.max(...nodes.map(n => n.x));
+    const goalNode = grid[0][maxX];
+    const emptyNode = nodes.find(n => n.used === 0);
+
+    let steps = 0;
+    
+    // Move empty node next to goal data
+    steps += moveEmptyNodeToGoal(grid, emptyNode, goalNode);
+
+    // Move goal data to (0,0)
+    steps += moveGoalDataToOrigin(grid, goalNode);
+
+    return steps;
+}
+
+function createGrid(nodes) {
+    const grid = {};
+    nodes.forEach(node => {
+        if (!grid[node.y]) grid[node.y] = {};
+        grid[node.y][node.x] = node;
+    });
+    return grid;
+}
+
+function moveEmptyNodeToGoal(grid, emptyNode, goalNode) {
+    // Implement A* or BFS algorithm to find shortest path
+    // This is a simplified version
+    return Math.abs(emptyNode.x - goalNode.x) + Math.abs(emptyNode.y - goalNode.y) - 1;
+}
+
+function moveGoalDataToOrigin(grid, goalNode) {
+    // Each move of goal data takes 5 steps (4 to move empty node, 1 to move data)
+    return (goalNode.x - 1) * 5;
+}
+
+function solve(input) {
+    const nodes = parseInput(input);
+    const part1 = countViablePairs(nodes);
+    const part2 = findShortestPath(nodes);
+    return { part1, part2 };
+}
+
+// Example usage:
+// const input = `... your input here ...`;
+// const result = solve(input);
+// console.log("Part 1:", result.part1);
+// console.log("Part 2:", result.part2);

@@ -1,0 +1,13 @@
+To solve this problem efficiently in Clojure, we'll follow these steps:
+1. Read the input file and split it into lines.
+2. For Part 1:
+   - Create a function to count occurrences of each character in a string.
+   - Use this to count how many IDs have exactly two of any letter and three of any letter.
+   - Multiply these counts for the checksum.
+3. For Part 2:
+   - Create a function to compare two strings and return common characters if they differ by exactly one character.
+   - Use combination to compare all pairs of IDs efficiently.
+   - Return the common characters of the first matching pair found.
+4. Combine both parts in the main function and print the results.
+
+This approach is efficient as it minimizes iterations over the input and uses Clojure's built-in functions for most operations.

@@ -1,0 +1,71 @@
+const fs = require('fs');
+
+function parseRules(input) {
+    return input.split('\n').reduce((rules, line) => {
+        const [from, to] = line.split(' => ');
+        rules[from] = to;
+        return rules;
+    }, {});
+}
+
+function rotate(pattern) {
+    return pattern.split('/').map((row, i) => 
+        row.split('').map((_, j) => 
+            pattern.split('/')[pattern.split('/').length - 1 - j][i]
+        ).join('')
+    ).join('/');
+}
+
+function flip(pattern) {
+    return pattern.split('/').map(row => row.split('').reverse().join('')).join('/');
+}
+
+function findMatchingRule(pattern, rules) {
+    let rotated = pattern;
+    for (let i = 0; i < 4; i++) {
+        if (rules[rotated]) return rules[rotated];
+        if (rules[flip(rotated)]) return rules[flip(rotated)];
+        rotated = rotate(rotated);
+    }
+    throw new Error(`No matching rule found for pattern: ${pattern}`);
+}
+
+function enhance(grid, rules) {
+    const size = grid.length;
+    const step = size % 2 === 0 ? 2 : 3;
+    const newSize = size / step * (step + 1);
+    const enhanced = Array(newSize).fill().map(() => Array(newSize).fill('.'));
+
+    for (let y = 0; y < size; y += step) {
+        for (let x = 0; x < size; x += step) {
+            const square = grid.slice(y, y + step).map(row => row.slice(x, x + step).join('')).join('/');
+            const newSquare = findMatchingRule(square, rules).split('/');
+            for (let dy = 0; dy < step + 1; dy++) {
+                for (let dx = 0; dx < step + 1; dx++) {
+                    enhanced[y / step * (step + 1) + dy][x / step * (step + 1) + dx] = newSquare[dy][dx];
+                }
+            }
+        }
+    }
+
+    return enhanced;
+}
+
+function countOn(grid) {
+    return grid.reduce((sum, row) => sum + row.filter(pixel => pixel === '#').length, 0);
+}
+
+function solve(input, iterations) {
+    const rules = parseRules(input);
+    let grid = ['.#.', '..#', '###'].map(row => row.split(''));
+
+    for (let i = 0; i < iterations; i++) {
+        grid = enhance(grid, rules);
+    }
+
+    return countOn(grid);
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+console.log('Part 1:', solve(input, 5));
+console.log('Part 2:', solve(input, 18));

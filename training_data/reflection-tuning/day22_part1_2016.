@@ -1,0 +1,24 @@
+const fs = require('fs');
+
+function countViablePairs(input) {
+    const nodes = input.trim().split('\n').slice(2).map(line => {
+        const [, x, y, size, used, avail] = line.match(/x(\d+)-y(\d+)\s+(\d+)T\s+(\d+)T\s+(\d+)T/).map(Number);
+        return { x, y, size, used, avail };
+    });
+
+    let viablePairs = 0;
+
+    for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].used === 0) continue;
+
+        for (let j = 0; j < nodes.length; j++) {
+            if (i === j) continue;
+            if (nodes[i].used <= nodes[j].avail) viablePairs++;
+        }
+    }
+
+    return viablePairs;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(countViablePairs(input));

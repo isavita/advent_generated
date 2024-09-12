@@ -1,0 +1,21 @@
+const fs = require('fs');
+
+function findHighestY(input) {
+    // Parse input
+    const [xMin, xMax, yMin, yMax] = input.match(/-?\d+/g).map(Number);
+
+    // The highest initial y velocity that still hits the target
+    // is the absolute value of the lower y bound minus 1
+    const maxInitialYVelocity = Math.abs(yMin) - 1;
+
+    // The highest y position is the sum of numbers from 1 to maxInitialYVelocity
+    const highestY = (maxInitialYVelocity * (maxInitialYVelocity + 1)) / 2;
+
+    return highestY;
+}
+
+// Read input from file
+const input = fs.readFileSync('input.txt', 'utf8');
+
+// Calculate and print the result
+console.log(findHighestY(input));

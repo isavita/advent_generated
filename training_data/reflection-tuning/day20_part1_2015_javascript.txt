@@ -1,0 +1,9 @@
+To solve this problem efficiently, we can use a mathematical approach rather than simulating the entire process. We can observe that the number of presents a house receives is related to its factors. Each Elf visits houses that are multiples of their number, so the total presents a house receives is the sum of 10 times each of its factors.
+
+We can iterate through house numbers, calculating the sum of presents for each house until we find one that meets or exceeds the input value. To optimize this process, we can use a function to calculate the sum of factors efficiently.
+
+The steps will be:
+1. Read the input from "input.txt"
+2. Define a function to calculate the sum of factors for a given number
+3. Iterate through house numbers, calculating presents for each until we find the first one that meets or exceeds the input
+4. Return the lowest house number that satisfies the condition

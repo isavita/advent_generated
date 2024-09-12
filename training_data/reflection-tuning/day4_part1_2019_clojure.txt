@@ -1,0 +1,12 @@
+To solve this problem efficiently, we can follow these steps:
+1. Read the range from the input file.
+2. Generate a sequence of numbers within that range.
+3. Filter the sequence based on the given criteria:
+   - Check if the number has at least one pair of adjacent identical digits.
+   - Ensure the digits are non-decreasing from left to right.
+4. Count the number of valid passwords.
+
+To optimize the solution:
+- We can use lazy sequences to avoid generating all numbers at once.
+- We can convert numbers to strings for easier digit comparison.
+- We can use short-circuiting logic to quickly discard invalid numbers.

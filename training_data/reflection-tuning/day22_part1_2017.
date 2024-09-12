@@ -1,0 +1,41 @@
+const fs = require('fs');
+
+function solve(input) {
+    const infected = new Map();
+    const lines = input.trim().split('\n');
+    const midY = Math.floor(lines.length / 2);
+    const midX = Math.floor(lines[0].length / 2);
+
+    // Parse input
+    lines.forEach((line, y) => {
+        line.split('').forEach((char, x) => {
+            if (char === '#') {
+                infected.set(`${x - midX},${y - midY}`, true);
+            }
+        });
+    });
+
+    const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // Up, Right, Down, Left
+    let x = 0, y = 0, dir = 0;
+    let infectionCount = 0;
+
+    for (let burst = 0; burst < 10000; burst++) {
+        const key = `${x},${y}`;
+        if (infected.has(key)) {
+            dir = (dir + 1) % 4; // Turn right
+            infected.delete(key);
+        } else {
+            dir = (dir - 1 + 4) % 4; // Turn left
+            infected.set(key, true);
+            infectionCount++;
+        }
+
+        x += directions[dir][0];
+        y += directions[dir][1];
+    }
+
+    return infectionCount;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8');
+console.log(solve(input));

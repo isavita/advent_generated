@@ -1,0 +1,14 @@
+To solve this problem efficiently, we need to use dynamic programming and memoization. The key observations are:
+
+1. The game state can be represented by the positions and scores of both players, and whose turn it is.
+2. We can use recursion to explore all possible outcomes, but we need to memoize the results to avoid redundant calculations.
+3. For each turn, we need to consider all possible combinations of the three dice rolls (27 combinations).
+4. We can use a Map to store the memoized results, with the game state as the key.
+
+The approach will be:
+1. Create a recursive function that takes the current game state and returns the number of universes where each player wins.
+2. Use memoization to store and reuse results for previously seen game states.
+3. For each turn, iterate through all possible dice roll combinations and recursively calculate the results.
+4. Sum up the total wins for each player across all universes.
+
+This solution should be efficient as it avoids recalculating the same game states multiple times.

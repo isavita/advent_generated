@@ -1,0 +1,8 @@
+To solve this problem, we need to:
+1. Read the input file "input.txt"
+2. Parse each line as an integer (with a sign)
+3. Sum up all the frequency changes
+
+The most efficient way to do this in Clojure would be to use the `slurp` function to read the file, `clojure.string/split-lines` to separate the lines, `map` to parse each line as an integer, and finally `reduce` to sum up all the changes.
+
+We can use `read-string` to parse each line as it automatically handles the '+' sign for positive numbers.

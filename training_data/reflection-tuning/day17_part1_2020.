@@ -1,0 +1,58 @@
+const fs = require('fs');
+
+function parseInput(input) {
+    return input.split('\n').reduce((set, line, y) => {
+        line.split('').forEach((char, x) => {
+            if (char === '#') set.add(`${x},${y},0`);
+        });
+        return set;
+    }, new Set());
+}
+
+function getNeighbors(x, y, z) {
+    const neighbors = [];
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (dx === 0 && dy === 0 && dz === 0) continue;
+                neighbors.push(`${x+dx},${y+dy},${z+dz}`);
+            }
+        }
+    }
+    return neighbors;
+}
+
+function cycle(activeCubes) {
+    const newActive = new Set();
+    const checkCubes = new Set(activeCubes);
+
+    activeCubes.forEach(cube => {
+        getNeighbors(...cube.split(',').map(Number)).forEach(neighbor => checkCubes.add(neighbor));
+    });
+
+    checkCubes.forEach(cube => {
+        const activeNeighbors = getNeighbors(...cube.split(',').map(Number))
+            .filter(neighbor => activeCubes.has(neighbor)).length;
+        
+        if (activeCubes.has(cube)) {
+            if (activeNeighbors === 2 || activeNeighbors === 3) newActive.add(cube);
+        } else {
+            if (activeNeighbors === 3) newActive.add(cube);
+        }
+    });
+
+    return newActive;
+}
+
+function simulateCycles(initialState, cycles) {
+    let state = initialState;
+    for (let i = 0; i < cycles; i++) {
+        state = cycle(state);
+    }
+    return state;
+}
+
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+const initialState = parseInput(input);
+const finalState = simulateCycles(initialState, 6);
+console.log(finalState.size);

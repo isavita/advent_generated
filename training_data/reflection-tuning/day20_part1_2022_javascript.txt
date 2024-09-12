@@ -1,0 +1,8 @@
+To solve this problem, we need to follow these steps:
+1. Read the input file and parse the numbers.
+2. Create a data structure that maintains both the original order and current positions of numbers.
+3. Implement the mixing process, moving each number according to its value.
+4. Find the position of 0 after mixing.
+5. Calculate the sum of the 1000th, 2000th, and 3000th numbers after 0.
+
+For efficiency, we'll use an array of objects to store both the value and original index of each number. This allows us to maintain the original order while easily updating positions during mixing. We'll use modular arithmetic to handle wrapping around the list.

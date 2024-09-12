@@ -1,0 +1,10 @@
+To solve this problem, we need to implement a simulation of the game with different spells and their effects. We'll use a depth-first search (DFS) approach to explore all possible combinations of spells and find the least amount of mana needed to win.
+
+Key points to consider:
+1. Implement each spell and its effects
+2. Track the state of the game (player HP, mana, boss HP, active effects)
+3. Use recursion to try all possible spell combinations
+4. Keep track of the minimum mana spent to win
+5. Implement the hard mode for Part Two
+
+We'll create a main function that reads the input, sets up the initial game state, and calls our recursive function to find the minimum mana spent. We'll also implement helper functions for each spell and to manage the game state.

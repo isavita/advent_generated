@@ -1,0 +1,7 @@
+To solve this problem efficiently in Clojure, we can follow these steps:
+1. Read the input from the file "input.txt".
+2. Define a function to check if a sequence of 4 characters are all different.
+3. Use a sliding window approach to check each consecutive group of 4 characters.
+4. Return the index of the first group where all characters are different, plus 4 (to account for the full marker).
+
+We can use Clojure's efficient sequence operations and the `partition` function to create the sliding window. The `distinct?` function will help us check if all characters in a group are unique.
