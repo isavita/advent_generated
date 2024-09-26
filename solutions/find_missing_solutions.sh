@@ -1,12 +1,5 @@
 day23_part2_2018.js
-day7_part2_2019.js
-day8_part2_2019.js
-day11_part2_2019.js
-day13_part2_2019.js
-day15_part1_2019.js
-day15_part2_2019.js
 day17_part2_2019.js
-day18_part2_2019.js
 day20_part2_2019.js
 day21_part2_2019.js
 day22_part2_2019.js
