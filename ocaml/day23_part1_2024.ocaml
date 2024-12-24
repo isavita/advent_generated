@@ -1,0 +1,60 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let graph = Hashtbl.create 10 in
+  try
+    while true do
+      let line = input_line ic in
+      let computers = String.split_on_char '-' line in
+      match computers with
+      | [c1; c2] ->
+          let add_connection c1 c2 =
+            let neighbors =
+              try Hashtbl.find graph c1
+              with Not_found ->
+                let neighbors = Hashtbl.create 5 in
+                Hashtbl.add graph c1 neighbors;
+                neighbors
+            in
+            Hashtbl.replace neighbors c2 true
+          in
+          add_connection c1 c2;
+          add_connection c2 c1
+      | _ -> ()
+    done
+  with End_of_file ->
+    close_in ic;
+    let computers = Hashtbl.fold (fun k _ acc -> k :: acc) graph [] in
+    let count = ref 0 in
+    let seen = Hashtbl.create 10 in
+    let n = List.length computers in
+    for i = 0 to n - 1 do
+      for j = i + 1 to n - 1 do
+        for k = j + 1 to n - 1 do
+          let c1 = List.nth computers i in
+          let c2 = List.nth computers j in
+          let c3 = List.nth computers k in
+          let neighbors1 =
+            try Hashtbl.find graph c1 with Not_found -> Hashtbl.create 0
+          in
+          let neighbors2 =
+            try Hashtbl.find graph c2 with Not_found -> Hashtbl.create 0
+          in
+          if
+            Hashtbl.mem neighbors1 c2
+            && Hashtbl.mem neighbors2 c3
+            && Hashtbl.mem neighbors1 c3
+            && (String.starts_with ~prefix:"t" c1
+               || String.starts_with ~prefix:"t" c2
+               || String.starts_with ~prefix:"t" c3)
+          then
+            let triplet = List.sort String.compare [c1; c2; c3] in
+            let key = String.concat "," triplet in
+            if not (Hashtbl.mem seen key) then (
+              Hashtbl.add seen key true;
+              incr count)
+        done
+      done
+    done;
+    print_int !count;
+    print_newline ()

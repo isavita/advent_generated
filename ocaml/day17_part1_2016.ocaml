@@ -1,0 +1,51 @@
+
+let read_passcode filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let md5_hash input =
+  Digest.to_hex (Digest.string input)
+
+let get_open_doors passcode path =
+  let hash = md5_hash (passcode ^ path) in
+  let doors = ref [] in
+  if hash.[0] >= 'b' && hash.[0] <= 'f' then doors := "U" :: !doors;
+  if hash.[1] >= 'b' && hash.[1] <= 'f' then doors := "D" :: !doors;
+  if hash.[2] >= 'b' && hash.[2] <= 'f' then doors := "L" :: !doors;
+  if hash.[3] >= 'b' && hash.[3] <= 'f' then doors := "R" :: !doors;
+  List.rev !doors
+
+let find_shortest_path passcode =
+  let queue = Queue.create () in
+  Queue.add (0, 0, "") queue;
+  let rec loop () =
+    if Queue.is_empty queue then "No path found"
+    else
+      let x, y, path = Queue.take queue in
+      if x = 3 && y = 3 then path
+      else
+        let next_points =
+          List.map
+            (fun dir ->
+              match dir with
+              | "U" -> (x, y - 1, path ^ dir)
+              | "D" -> (x, y + 1, path ^ dir)
+              | "L" -> (x - 1, y, path ^ dir)
+              | "R" -> (x + 1, y, path ^ dir)
+              | _   -> failwith "Invalid direction")
+            (get_open_doors passcode path)
+        in
+        List.iter
+          (fun (nx, ny, np) ->
+            if nx >= 0 && nx < 4 && ny >= 0 && ny < 4 then Queue.add (nx, ny, np) queue)
+          next_points;
+        loop ()
+  in
+  loop ()
+
+let () =
+  let passcode = read_passcode "input.txt" in
+  let path = find_shortest_path passcode in
+  print_endline path

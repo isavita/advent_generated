@@ -1,0 +1,84 @@
+
+let read_lines filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let parse_distances lines =
+  let distances = Hashtbl.create 10 in
+  List.iter (fun line ->
+    let parts = String.split_on_char ' ' line in
+    match parts with
+    | [from; _; to_; _; dist] ->
+        let distance = int_of_string dist in
+        let from_tbl =
+          match Hashtbl.find_opt distances from with
+          | Some tbl -> tbl
+          | None ->
+              let tbl = Hashtbl.create 5 in
+              Hashtbl.add distances from tbl;
+              tbl
+        in
+        Hashtbl.add from_tbl to_ distance;
+        let to_tbl =
+          match Hashtbl.find_opt distances to_ with
+          | Some tbl -> tbl
+          | None ->
+              let tbl = Hashtbl.create 5 in
+              Hashtbl.add distances to_ tbl;
+              tbl
+        in
+        Hashtbl.add to_tbl from distance
+    | _ -> ()
+  ) lines;
+  distances
+
+let get_unique_locations distances =
+  let locations = Hashtbl.create 10 in
+  Hashtbl.iter (fun from _ -> Hashtbl.replace locations from ()) distances;
+  Hashtbl.iter (fun _ tbl -> Hashtbl.iter (fun to_ _ -> Hashtbl.replace locations to_ ()) tbl) distances;
+  Hashtbl.fold (fun k _ acc -> k :: acc) locations []
+
+let calculate_route_distance route distances =
+  let rec loop acc = function
+    | [] | [_] -> acc
+    | a :: b :: tl ->
+        let dist = Hashtbl.find (Hashtbl.find distances a) b in
+        loop (acc + dist) (b :: tl)
+  in
+  loop 0 route
+
+let rec permutations acc f = function
+  | [] -> f acc
+  | hd :: tl ->
+      permutations (hd :: acc) f tl;
+      let rec aux acc' = function
+        | [] -> ()
+        | hd' :: tl' ->
+            permutations (hd' :: acc) f (List.rev acc' @ [hd] @ tl');
+            aux (hd' :: acc') tl'
+      in
+      aux [] tl
+
+let find_shortest_route locations distances =
+  let min_distance = ref (-1) in
+  permutations [] (fun perm ->
+    let dist = calculate_route_distance perm distances in
+    if !min_distance = -1 || dist < !min_distance then
+      min_distance := dist
+  ) locations;
+  !min_distance
+
+let () =
+  let distances = read_lines "input.txt" |> parse_distances in
+  let locations = get_unique_locations distances in
+  let min_distance = find_shortest_route locations distances in
+  print_int min_distance;
+  print_newline ()

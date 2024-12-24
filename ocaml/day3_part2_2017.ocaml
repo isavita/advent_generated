@@ -1,0 +1,31 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let target = int_of_string (input_line ic) in
+  close_in ic;
+  let grid = Hashtbl.create 1000 in
+  Hashtbl.add grid (0, 0) 1;
+  let rec loop x y dx dy =
+    let dx, dy =
+      if x = y || (x < 0 && x = -y) || (x > 0 && x = 1 - y) then
+        -dy, dx
+      else
+        dx, dy
+    in
+    let x = x + dx in
+    let y = y + dy in
+    let value = ref 0 in
+    for i = -1 to 1 do
+      for j = -1 to 1 do
+        match Hashtbl.find_opt grid (x + i, y + j) with
+        | Some v -> value := !value + v
+        | None -> ()
+      done
+    done;
+    Hashtbl.add grid (x, y) !value;
+    if !value > target then
+      print_int !value
+    else
+      loop x y dx dy
+  in
+  loop 0 0 0 (-1)

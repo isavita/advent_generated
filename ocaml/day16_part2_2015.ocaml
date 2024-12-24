@@ -1,0 +1,66 @@
+
+let target_sue = [
+  ("children", 3);
+  ("cats", 7);
+  ("samoyeds", 2);
+  ("pomeranians", 3);
+  ("akitas", 0);
+  ("vizslas", 0);
+  ("goldfish", 5);
+  ("trees", 3);
+  ("cars", 2);
+  ("perfumes", 1);
+]
+
+let scan_line line =
+  let open Scanf in
+  sscanf line "Sue %d: %s@: %d, %s@: %d, %s@: %d" (fun sue_num thing1 amount1 thing2 amount2 thing3 amount3 ->
+    (sue_num, [(thing1, amount1); (thing2, amount2); (thing3, amount3)]))
+
+let check_rules readings =
+  let rec check_greater_than = function
+    | [] -> true
+    | (thing, target_amount) :: tl ->
+        let scan_amount_opt = List.assoc_opt thing readings in
+        match scan_amount_opt with
+        | Some scan_amount when scan_amount <= target_amount -> false
+        | _ -> check_greater_than tl
+  in
+  let rec check_less_than = function
+    | [] -> true
+    | (thing, target_amount) :: tl ->
+        let scan_amount_opt = List.assoc_opt thing readings in
+        match scan_amount_opt with
+        | Some scan_amount when scan_amount >= target_amount -> false
+        | _ -> check_less_than tl
+  in
+  let rec check_equal = function
+    | [] -> true
+    | (thing, target_amount) :: tl ->
+        let scan_amount_opt = List.assoc_opt thing readings in
+        match scan_amount_opt with
+        | Some scan_amount when scan_amount <> target_amount -> false
+        | None -> check_equal tl
+        | _ -> check_equal tl
+  in
+  check_greater_than ["cats", 7; "trees", 3] &&
+  check_less_than ["pomeranians", 3; "goldfish", 5] &&
+  check_equal (List.filter (fun (thing, _) -> not (List.mem thing ["cats"; "trees"; "pomeranians"; "goldfish"])) target_sue)
+
+let solve_aunt_sue input =
+  let rec aux lines =
+    match lines with
+    | [] -> failwith "No matching Sue found"
+    | line :: tl ->
+        let sue_num, readings = scan_line line in
+        if check_rules readings then sue_num else aux tl
+  in
+  aux (String.split_on_char '\n' input)
+
+let () =
+  let ic = open_in "input.txt" in
+  let input = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  let result = solve_aunt_sue input in
+  print_int result;
+  print_newline ()

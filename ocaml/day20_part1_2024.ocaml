@@ -1,0 +1,86 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+type point = { x : int; y : int }
+
+let solve grid =
+  let h = List.length grid in
+  let w = String.length (List.hd grid) in
+  let s = ref { x = -1; y = -1 } in
+  let e = ref { x = -1; y = -1 } in
+  let track_cells = ref [] in
+  let walls = Array.make_matrix h w false in
+
+  for i = 0 to h - 1 do
+    let row = List.nth grid i in
+    for j = 0 to w - 1 do
+      let ch = String.get row j in
+      if ch = 'S' then s := { x = i; y = j }
+      else if ch = 'E' then e := { x = i; y = j };
+      if ch = '#' then walls.(i).(j) <- true
+      else track_cells := { x = i; y = j } :: !track_cells
+    done
+  done;
+
+  let dirs = [ { x = 1; y = 0 }; { x = -1; y = 0 }; { x = 0; y = 1 }; { x = 0; y = -1 } ] in
+
+  let normal_dist_from start =
+    let dist = Array.make_matrix h w (-1) in
+    dist.(start.x).(start.y) <- 0;
+    let q = Queue.create () in
+    Queue.push start q;
+    while not (Queue.is_empty q) do
+      let cur = Queue.pop q in
+      List.iter (fun d ->
+        let nx = cur.x + d.x in
+        let ny = cur.y + d.y in
+        if nx >= 0 && nx < h && ny >= 0 && ny < w && not walls.(nx).(ny) && dist.(nx).(ny) = -1 then (
+          dist.(nx).(ny) <- dist.(cur.x).(cur.y) + 1;
+          Queue.push { x = nx; y = ny } q
+        )
+      ) dirs
+    done;
+    dist
+  in
+
+  let dist_from_s = normal_dist_from !s in
+  let dist_from_e = normal_dist_from !e in
+
+  if dist_from_s.(!e.x).(!e.y) = -1 then
+    print_int 0
+  else
+    let normal_cost = dist_from_s.(!e.x).(!e.y) in
+    let is_track x y = x >= 0 && x < h && y >= 0 && y < w && not walls.(x).(y) in
+    let possible_cheats = ref 0 in
+    List.iter (fun start_pos ->
+      let sd = dist_from_s.(start_pos.x).(start_pos.y) in
+      if sd <> -1 then
+        List.iter (fun d1 ->
+          let m1 = { x = start_pos.x + d1.x; y = start_pos.y + d1.y } in
+          if m1.x >= 0 && m1.x < h && m1.y >= 0 && m1.y < w then
+            List.iter (fun d2 ->
+              let m2 = { x = m1.x + d2.x; y = m1.y + d2.y } in
+              if m2.x >= 0 && m2.x < h && m2.y >= 0 && m2.y < w && is_track m2.x m2.y then
+                let ed = dist_from_e.(m2.x).(m2.y) in
+                if ed <> -1 then
+                  let new_cost = sd + 2 + ed in
+                  let saving = normal_cost - new_cost in
+                  if saving >= 100 then incr possible_cheats
+            ) dirs
+        ) dirs
+    ) !track_cells;
+    print_int !possible_cheats
+
+let () =
+  let grid = read_file "input.txt" in
+  solve grid

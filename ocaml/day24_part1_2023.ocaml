@@ -1,0 +1,56 @@
+
+let parse_input input =
+  let parse_line line =
+    Scanf.sscanf line "%f, %f, %f @ %f, %f, %f"
+      (fun px py pz vx vy vz ->
+        ((px, py, pz), (vx, vy, vz)))
+  in
+  List.map parse_line input
+
+let is_intersecting_2d (p1_pos, p1_vel) (p2_pos, p2_vel) =
+  let px1, py1, _ = p1_pos in
+  let vx1, vy1, _ = p1_vel in
+  let px2, py2, _ = p2_pos in
+  let vx2, vy2, _ = p2_vel in
+  let det = vx1 *. vy2 -. vx2 *. vy1 in
+  if Float.abs det < 1e-9 then
+    None
+  else
+    let t1 = (vy2 *. (px2 -. px1) -. vx2 *. (py2 -. py1)) /. det in
+    let t2 = (vy1 *. (px2 -. px1) -. vx1 *. (py2 -. py1)) /. det in
+    let x = px1 +. vx1 *. t1 in
+    let y = py1 +. vy1 *. t1 in
+    Some ((x, y), t1, t2)
+
+let solve input min max =
+  let points = parse_input input in
+  let count = ref 0 in
+  let n = List.length points in
+  for i = 0 to n - 1 do
+    for j = 0 to i - 1 do
+      match is_intersecting_2d (List.nth points i) (List.nth points j) with
+      | Some ((x, y), t1, t2) ->
+        if x >= min && x <= max && y >= min && y <= max && t1 >= 0.0 && t2 >= 0.0 then
+          incr count
+      | None -> ()
+    done
+  done;
+  !count
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input 200000000000000.0 400000000000000.0 in
+  Printf.printf "%d\n" result

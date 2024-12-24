@@ -1,0 +1,22 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let data = input_line ic in
+  close_in ic;
+  let visited_houses = Hashtbl.create 1000 in
+  let x_santa = ref 0 and y_santa = ref 0 in
+  let x_robo = ref 0 and y_robo = ref 0 in
+  let is_santa_turn = ref true in
+  Hashtbl.add visited_houses (0, 0) true;
+  String.iter (fun dir ->
+    let x, y = if !is_santa_turn then x_santa, y_santa else x_robo, y_robo in
+    (match dir with
+    | '^' -> incr y
+    | 'v' -> decr y
+    | '>' -> incr x
+    | '<' -> decr x
+    | _ -> ());
+    Hashtbl.replace visited_houses (!x, !y) true;
+    is_santa_turn := not !is_santa_turn
+  ) data;
+  print_int (Hashtbl.length visited_houses)

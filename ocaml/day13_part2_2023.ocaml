@@ -1,0 +1,87 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input input =
+  let rec aux acc current = function
+    | [] -> if current = [] then acc else (List.rev current) :: acc
+    | "" :: rest -> aux ((List.rev current) :: acc) [] rest
+    | line :: rest -> aux acc (line :: current) rest
+  in
+  List.rev (aux [] [] input)
+
+let parse_mirror mirror_str =
+  let rows = Array.make (List.length mirror_str) 0 in
+  let cols =
+    match mirror_str with
+    | [] -> [||]
+    | first_row :: _ -> Array.make (String.length first_row) 0
+  in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      rows.(y) <- rows.(y) lsl 1;
+      cols.(x) <- cols.(x) lsl 1;
+      if char = '#' then (
+        rows.(y) <- rows.(y) + 1;
+        cols.(x) <- cols.(x) + 1
+      )
+    ) line
+  ) mirror_str;
+  (rows, cols)
+
+let get_mirror_axis lines =
+  let len = Array.length lines in
+  let rec aux i =
+    if i >= len then 0
+    else
+      let is_mirror = ref true in
+      let j = ref 0 in
+      while !is_mirror && !j < min i (len - i) do
+        if lines.(i - 1 - !j) <> lines.(i + !j) then is_mirror := false;
+        j := !j + 1
+      done;
+      if !is_mirror then i else aux (i + 1)
+  in
+  aux 1
+
+let get_mirror_axis_with_one_smudge lines =
+  let len = Array.length lines in
+  let rec aux i =
+    if i >= len then 0
+    else
+      let is_mirror = ref true in
+      let num_smudges = ref 0 in
+      let j = ref 0 in
+      while !is_mirror && !j < min i (len - i) do
+        let diff = lines.(i - 1 - !j) lxor lines.(i + !j) in
+        if diff <> 0 then
+          if !num_smudges > 0 then is_mirror := false
+          else if diff land (diff - 1) = 0 then num_smudges := 1
+          else is_mirror := false;
+        j := !j + 1
+      done;
+      if !is_mirror && !num_smudges = 1 then i else aux (i + 1)
+  in
+  aux 1
+
+let solve input =
+  let mirrors = parse_input input in
+  List.fold_left (fun acc mirror_str ->
+    let rows, cols = parse_mirror mirror_str in
+    acc + get_mirror_axis_with_one_smudge cols + (get_mirror_axis_with_one_smudge rows * 100)
+  ) 0 mirrors
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  print_int result;
+  print_newline ()

@@ -1,0 +1,42 @@
+
+let is_real_room room =
+  let parts = String.split_on_char '[' room in
+  let checksum = String.sub (List.nth parts 1) 0 (String.length (List.nth parts 1) - 1) in
+  let encrypted_name = String.split_on_char '-' (List.hd parts) in
+  let encrypted_name = List.filteri (fun i _ -> i < List.length encrypted_name - 1) encrypted_name in
+  let letter_counts = Hashtbl.create 52 in
+  List.iter (fun part ->
+    String.iter (fun letter ->
+      Hashtbl.replace letter_counts letter (try Hashtbl.find letter_counts letter + 1 with Not_found -> 1)
+    ) part
+  ) encrypted_name;
+  let counts = List.sort (fun (_, count1) (_, count2) ->
+    if count1 = count2 then 0 else if count1 > count2 then -1 else 1
+  ) (List.of_seq (Hashtbl.to_seq letter_counts)) in
+  let counts = List.sort (fun (letter1, count1) (letter2, count2) ->
+    if count1 = count2 then compare letter1 letter2 else 0
+  ) counts in
+  try
+    String.iteri (fun i letter ->
+      if letter <> (fst (List.nth counts i)) then raise Exit
+    ) checksum;
+    true
+  with Exit -> false
+
+let get_sector_id room =
+  let parts = String.split_on_char '-' room in
+  int_of_string (String.split_on_char '[' (List.nth parts (List.length parts - 1)) |> List.hd)
+
+let () =
+  let ic = open_in "input.txt" in
+  let sum_of_sector_ids = ref 0 in
+  try
+    while true do
+      let line = input_line ic in
+      if is_real_room line then
+        sum_of_sector_ids := !sum_of_sector_ids + get_sector_id line
+    done
+  with End_of_file ->
+    close_in ic;
+    print_int !sum_of_sector_ids;
+    print_newline ()

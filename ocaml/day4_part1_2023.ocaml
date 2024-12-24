@@ -1,0 +1,56 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let split_on_char sep str =
+  let rec split acc pos =
+    try
+      let next_pos = String.index_from str pos sep in
+      let part = String.sub str pos (next_pos - pos) in
+      split (part :: acc) (next_pos + 1)
+    with
+      Not_found ->
+        let part = String.sub str pos (String.length str - pos) in
+        List.rev (part :: acc)
+  in
+  split [] 0
+
+let convert_to_int_list str =
+  let parts = String.split_on_char ' ' str in
+  List.filter_map (fun s -> try Some (int_of_string s) with Failure _ -> None) parts
+
+let calculate_points winning_numbers your_numbers =
+  let points = ref 0 in
+  let winning_set = Hashtbl.create (List.length winning_numbers) in
+  List.iter (fun x -> Hashtbl.add winning_set x ()) winning_numbers;
+  List.iter (fun num ->
+    if Hashtbl.mem winning_set num then
+      if !points = 0 then points := 1 else points := !points * 2
+  ) your_numbers;
+  !points
+
+let () =
+  let lines = read_file "input.txt" in
+  let total_points =
+    List.fold_left (fun acc line ->
+      let parts = split_on_char '|' line in
+      match parts with
+      | [winning_part; your_part] ->
+        let winning_numbers = convert_to_int_list winning_part in
+        let your_numbers = convert_to_int_list your_part in
+        acc + calculate_points winning_numbers your_numbers
+      | _ -> acc
+    ) 0 lines
+  in
+  print_int total_points;
+  print_newline ()

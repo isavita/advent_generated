@@ -1,0 +1,36 @@
+
+let next_secret s =
+  let open Int64 in
+  let x = mul s 64L in
+  let s = logxor s x in
+  let s = logand s 0xFFFFFFL in
+  let x = div s 32L in
+  let s = logxor s x in
+  let s = logand s 0xFFFFFFL in
+  let x = mul s 2048L in
+  let s = logxor s x in
+  logand s 0xFFFFFFL
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      if line = "" then read_lines acc
+      else read_lines (Int64.of_string line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let buyers = read_lines [] in
+  let total =
+    List.fold_left
+      (fun acc b ->
+        let s = ref b in
+        for _ = 0 to 1999 do
+          s := next_secret !s
+        done;
+        Int64.add acc !s)
+      0L buyers
+  in
+  Printf.printf "%Ld\n" total

@@ -1,0 +1,88 @@
+
+let read_lines filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let parse_distances lines =
+  let distances = Hashtbl.create 10 in
+  List.iter (fun line ->
+    match String.split_on_char ' ' line with
+    | [from; _; to_; _; dist] ->
+        let distance = int_of_string dist in
+        let from_tbl =
+          match Hashtbl.find_opt distances from with
+          | Some tbl -> tbl
+          | None ->
+              let tbl = Hashtbl.create 5 in
+              Hashtbl.add distances from tbl;
+              tbl
+        in
+        Hashtbl.add from_tbl to_ distance;
+        let to_tbl =
+          match Hashtbl.find_opt distances to_ with
+          | Some tbl -> tbl
+          | None ->
+              let tbl = Hashtbl.create 5 in
+              Hashtbl.add distances to_ tbl;
+              tbl
+        in
+        Hashtbl.add to_tbl from distance
+    | _ -> ()
+  ) lines;
+  distances
+
+let get_unique_locations distances =
+  let locations = Hashtbl.create 10 in
+  Hashtbl.iter (fun from _ -> Hashtbl.replace locations from ()) distances;
+  Hashtbl.fold (fun k _ acc -> k :: acc) locations []
+
+let calculate_route_distance route distances =
+  let rec loop acc = function
+    | [] | [_] -> acc
+    | a :: b :: tl ->
+        let dist = Hashtbl.find (Hashtbl.find distances a) b in
+        loop (acc + dist) (b :: tl)
+  in
+  loop 0 route
+
+let rec permutations f l =
+  match l with
+  | [] -> [[]]
+  | x :: xs ->
+      let perms = permutations f xs in
+      List.fold_left (fun acc perm ->
+        let rec insert x acc i = function
+          | [] -> List.rev (x :: acc)
+          | h :: t as l ->
+              if i = 0 then List.rev_append acc (x :: l)
+              else insert x (h :: acc) (i - 1) t
+        in
+        let rec loop i acc =
+          if i > List.length perm then acc
+          else loop (i + 1) ((insert x [] i perm) :: acc)
+        in
+        loop 0 acc
+      ) [] perms
+
+let find_longest_route locations distances =
+  let perms = permutations (fun x -> x) locations in
+  List.fold_left (fun max_dist perm ->
+    let dist = calculate_route_distance perm distances in
+    max max_dist dist
+  ) 0 perms
+
+let () =
+  let lines = read_lines "input.txt" in
+  let distances = parse_distances lines in
+  let locations = get_unique_locations distances in
+  let max_distance = find_longest_route locations distances in
+  print_int max_distance;
+  print_newline ()

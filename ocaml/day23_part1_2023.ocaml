@@ -1,0 +1,167 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+type coord = { x : int; y : int }
+
+let add_coord c1 c2 = { x = c1.x + c2.x; y = c1.y + c2.y }
+
+type grid = { width : int; height : int; data : (coord, char) Hashtbl.t }
+
+let north = { x = 0; y = -1 }
+let south = { x = 0; y = 1 }
+let west = { x = -1; y = 0 }
+let east = { x = 1; y = 0 }
+
+let empty = '.'
+let wall = '#'
+let north_slopes = '^'
+let south_slopes = 'v'
+let west_slopes = '<'
+let east_slopes = '>'
+
+let slope_to_dir =
+  Hashtbl.of_seq
+    (List.to_seq
+       [
+         (north_slopes, north);
+         (south_slopes, south);
+         (west_slopes, west);
+         (east_slopes, east);
+       ])
+
+type edge = { start_coord : coord; end_coord : coord; weight : int }
+
+type graph = {
+  vertices : (coord, unit) Hashtbl.t;
+  edges : (coord, (edge, unit) Hashtbl.t) Hashtbl.t;
+}
+
+let is_in_bounds grid coord =
+  coord.x >= 0 && coord.x < grid.width && coord.y >= 0 && coord.y < grid.height
+
+let parse_input input =
+  let width = String.length (List.hd input) in
+  let height = List.length input in
+  let data = Hashtbl.create (width * height) in
+  List.iteri
+    (fun y line ->
+      String.iteri
+        (fun x char -> if char <> empty then Hashtbl.add data { x; y } char)
+        line)
+    input;
+  { width; height; data }
+
+let is_valid_neighbor grid coord dir =
+  if not (is_in_bounds grid coord) then false
+  else
+    match Hashtbl.find_opt grid.data coord with
+    | Some c -> c <> wall
+    | None -> true
+
+let is_valid_neighbor_with_slopes grid coord dir =
+  if not (is_in_bounds grid coord) then false
+  else
+    match Hashtbl.find_opt grid.data coord with
+    | None -> true
+    | Some c -> if c = wall then false else Hashtbl.find_opt slope_to_dir c = Some dir
+
+let neighbors4 grid coord is_valid_neighbor_func =
+  let directions = [ north; south; west; east ] in
+  List.filter
+    (fun dir ->
+      let neighbor = add_coord coord dir in
+      is_valid_neighbor_func grid neighbor dir)
+    directions
+  |> List.map (fun dir -> add_coord coord dir)
+
+let get_graph grid start_coord end_coord is_valid_neighbor_func =
+  let vertices = Hashtbl.create 100 in
+  Hashtbl.add vertices start_coord ();
+  Hashtbl.add vertices end_coord ();
+  for y = 0 to grid.height - 1 do
+    for x = 0 to grid.width - 1 do
+      let coord = { x; y } in
+      if not (Hashtbl.mem grid.data coord) then
+        if List.length (neighbors4 grid coord is_valid_neighbor) > 2 then
+          Hashtbl.add vertices coord ()
+    done
+  done;
+  let edges = Hashtbl.create (Hashtbl.length vertices) in
+  Hashtbl.iter
+    (fun start_coord _ ->
+      let edges_map = Hashtbl.create 10 in
+      let frontier = Queue.create () in
+      Queue.add start_coord frontier;
+      let reached = Hashtbl.create 100 in
+      Hashtbl.add reached start_coord ();
+      let distances = Hashtbl.create 100 in
+      Hashtbl.add distances start_coord 0;
+      while not (Queue.is_empty frontier) do
+        let current = Queue.pop frontier in
+        if Hashtbl.mem vertices current && current <> start_coord then
+          let edge =
+            {
+              start_coord;
+              end_coord = current;
+              weight = Hashtbl.find distances current;
+            }
+          in
+          Hashtbl.add edges_map edge ();
+        else
+          List.iter
+            (fun next ->
+              if not (Hashtbl.mem reached next) then (
+                Queue.add next frontier;
+                Hashtbl.add reached next ();
+                Hashtbl.add distances next (Hashtbl.find distances current + 1)
+              ))
+            (neighbors4 grid current is_valid_neighbor_func)
+      done;
+      Hashtbl.add edges start_coord edges_map)
+    vertices;
+  { vertices; edges }
+
+let rec get_max_distance_dfs grid graph current end_coord seen =
+  if current = end_coord then (true, 0)
+  else (
+    Hashtbl.add seen current ();
+    let maxi = ref 0 in
+    (match Hashtbl.find_opt graph.edges current with
+    | Some edges_map ->
+        Hashtbl.iter
+          (fun edge _ ->
+            if not (Hashtbl.mem seen edge.end_coord) then
+              let is_valid, dist =
+                get_max_distance_dfs grid graph edge.end_coord end_coord seen
+              in
+              if is_valid then maxi := max !maxi (dist + edge.weight))
+          edges_map
+    | None -> ());
+    Hashtbl.remove seen current;
+    if !maxi = 0 then (false, 0) else (true, !maxi)
+  )
+
+let solve input =
+  let grid = parse_input input in
+  let start_coord = { x = 1; y = 0 } in
+  let end_coord = { x = grid.width - 2; y = grid.height - 1 } in
+  let graph = get_graph grid start_coord end_coord is_valid_neighbor_with_slopes in
+  let _, max_dist =
+    get_max_distance_dfs grid graph start_coord end_coord (Hashtbl.create 100)
+  in
+  max_dist
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  Printf.printf "%d\n" result

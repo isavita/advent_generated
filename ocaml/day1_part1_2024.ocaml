@@ -1,0 +1,37 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let left = ref [] in
+  let right = ref [] in
+  let line_num = ref 0 in
+  try
+    while true do
+      let line = input_line ic in
+      incr line_num;
+      let fields = String.split_on_char ' ' line |> List.filter (fun s -> s <> "") in
+      match fields with
+      | [l; r] ->
+          let l_num = int_of_string l in
+          let r_num = int_of_string r in
+          left := l_num :: !left;
+          right := r_num :: !right
+      | _ ->
+          Printf.eprintf "Invalid input format at line %d\n" !line_num;
+          exit 1
+    done
+  with
+  | End_of_file ->
+      close_in ic;
+      let left_arr = Array.of_list !left in
+      let right_arr = Array.of_list !right in
+      if Array.length left_arr <> Array.length right_arr then (
+        Printf.eprintf "Lists have different lengths\n";
+        exit 1
+      );
+      Array.sort compare left_arr;
+      Array.sort compare right_arr;
+      let total_distance = ref 0 in
+      for i = 0 to Array.length left_arr - 1 do
+        total_distance := !total_distance + abs (left_arr.(i) - right_arr.(i))
+      done;
+      Printf.printf "%d\n" !total_distance

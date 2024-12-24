@@ -1,0 +1,109 @@
+
+let hash_string str =
+  let res = ref 0 in
+  String.iter (fun c ->
+    res := (!res + Char.code c) * 17 mod 256
+  ) str;
+  !res
+
+type step = {
+  label : string;
+  num_box : int;
+  operation : char;
+  number : int option;
+}
+
+let parse_step step_str =
+  let len = String.length step_str in
+  let label_end = ref 0 in
+  while !label_end < len &&
+        not (String.contains "=-0123456789" step_str.[!label_end])
+  do
+    incr label_end
+  done;
+  let label = String.sub step_str 0 !label_end in
+  let num_box = hash_string label in
+  let operation = step_str.[!label_end] in
+  let number =
+    if operation = '=' then
+      let num_str = String.sub step_str (!label_end + 1) (len - !label_end - 1) in
+      Some (int_of_string num_str)
+    else
+      None
+  in
+  { label; num_box; operation; number }
+
+let get_boxes steps_str =
+  let boxes = Hashtbl.create 256 in
+  List.iter (fun step_str ->
+    let step = parse_step step_str in
+    let box_contents =
+      match Hashtbl.find_opt boxes step.num_box with
+      | Some contents -> contents
+      | None -> []
+    in
+    let new_box_contents =
+      match step.operation with
+      | '-' ->
+        List.filter (fun content ->
+          not (List.exists (fun (k, _) -> k = step.label) content)
+        ) box_contents
+      | '=' ->
+        let found = ref false in
+        let updated_contents =
+          List.map (fun content ->
+            let updated_content =
+              List.map (fun (k, v) ->
+                if k = step.label then
+                  (found := true; (k, Option.get step.number))
+                else
+                  (k, v)
+              ) content
+            in
+            if !found then updated_content else content
+          ) box_contents
+        in
+        if !found then updated_contents
+        else updated_contents @ [[(step.label, Option.get step.number)]]
+      | _ -> failwith "Invalid operation"
+    in
+    if new_box_contents = [] then
+      Hashtbl.remove boxes step.num_box
+    else
+      Hashtbl.replace boxes step.num_box new_box_contents
+  ) steps_str;
+  boxes
+
+let calculate_power boxes =
+  let res = ref 0 in
+  Hashtbl.iter (fun i_box contents ->
+    List.iteri (fun i_slot content ->
+      List.iter (fun (_, value) ->
+        res := !res + (i_box + 1) * (i_slot + 1) * value
+      ) content
+    ) contents
+  ) boxes;
+  !res
+
+let solve input =
+  let line = List.hd input in
+  let steps_str = String.split_on_char ',' line in
+  let boxes = get_boxes steps_str in
+  calculate_power boxes
+
+let read_file filename =
+  let chan = open_in filename in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line chan :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  Printf.printf "%d\n" result

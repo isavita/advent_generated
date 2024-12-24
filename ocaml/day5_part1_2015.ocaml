@@ -1,0 +1,50 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let lines =
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let is_vowel c =
+    match c with
+    | 'a' | 'e' | 'i' | 'o' | 'u' -> true
+    | _ -> false
+  in
+  let has_double s =
+    let rec loop i =
+      if i < String.length s - 1 then
+        if s.[i] = s.[i+1] then true
+        else loop (i + 1)
+      else false
+    in
+    loop 0
+  in
+  let is_disallowed s =
+    let rec loop i =
+      if i < String.length s - 1 then
+        match (s.[i], s.[i+1]) with
+        | ('a', 'b') | ('c', 'd') | ('p', 'q') | ('x', 'y') -> true
+        | _ -> loop (i + 1)
+      else false
+    in
+    loop 0
+  in
+  let nice_count =
+    List.fold_left
+      (fun acc line ->
+        let vowels = String.fold_left (fun acc c -> if is_vowel c then acc + 1 else acc) 0 line in
+        if vowels >= 3 && has_double line && not (is_disallowed line) then
+          acc + 1
+        else
+          acc)
+      0 lines
+  in
+  print_int nice_count;
+  print_newline ()

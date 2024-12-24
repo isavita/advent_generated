@@ -1,0 +1,31 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let replacements = ref [] in
+  let molecule = ref "" in
+  try
+    while true do
+      let line = input_line ic in
+      if line = "" then ()
+      else if String.contains line '=' then
+        replacements := line :: !replacements
+      else molecule := line
+    done
+  with End_of_file -> close_in ic;
+  let molecules = Hashtbl.create 1000 in
+  List.iter
+    (fun replacement ->
+      let parts = String.split_on_char ' ' replacement in
+      let a = List.nth parts 0 in
+      let b = List.nth parts 2 in
+      let len_a = String.length a in
+      for i = 0 to String.length !molecule - len_a do
+        if String.sub !molecule i len_a = a then
+          let new_molecule =
+            String.sub !molecule 0 i ^ b
+            ^ String.sub !molecule (i + len_a) (String.length !molecule - (i + len_a))
+          in
+          Hashtbl.replace molecules new_molecule ()
+      done)
+    (List.rev !replacements);
+  print_int (Hashtbl.length molecules)

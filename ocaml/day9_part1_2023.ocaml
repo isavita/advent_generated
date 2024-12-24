@@ -1,0 +1,55 @@
+
+let parse_line line =
+  String.split_on_char ' ' line |> List.map int_of_string
+
+let all_zeros nums =
+  List.for_all (fun x -> x = 0) nums
+
+let calculate_extrapolation history =
+  let rec aux acc = function
+    | [] | [_] -> List.rev acc
+    | x :: y :: rest -> aux ((y - x) :: acc) (y :: rest)
+  in
+  aux [] history
+
+let calculate_extrapolations history =
+  let rec aux acc current =
+    if all_zeros current then
+      List.rev acc
+    else
+      let next = calculate_extrapolation current in
+      aux (current :: acc) next
+  in
+  aux [] history
+
+let solve input =
+  List.fold_left (fun acc line ->
+    let history = parse_line line in
+    let extrapolations_series = calculate_extrapolations history in
+    let future_prediction =
+      List.fold_right (fun series acc ->
+        match List.rev series with
+        | last :: _ -> last + acc
+        | _ -> acc
+      ) extrapolations_series 0
+    in
+    acc + future_prediction
+  ) 0 input
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  Printf.printf "%d\n" result

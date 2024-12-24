@@ -1,0 +1,70 @@
+
+let trim_leading_zeros s =
+  let rec aux i =
+    if i < String.length s - 1 && s.[i] = '0' then aux (i + 1) else i
+  in
+  let start = aux 0 in
+  String.sub s start (String.length s - start)
+
+let split_stone s =
+  let mid = String.length s / 2 in
+  let left = trim_leading_zeros (String.sub s 0 mid) in
+  let right = trim_leading_zeros (String.sub s mid (String.length s - mid)) in
+  let left = if left = "" then "0" else left in
+  let right = if right = "" then "0" else right in
+  (left, right)
+
+let multiply_by_2024 s =
+  let num = Array.of_list (List.map (fun c -> int_of_char c - int_of_char '0') (List.of_seq (String.to_seq s))) in
+  let multiplier = [|2; 0; 2; 4|] in
+  let result = Array.make (Array.length num + Array.length multiplier) 0 in
+  for i = Array.length num - 1 downto 0 do
+    let carry = ref 0 in
+    for j = Array.length multiplier - 1 downto 0 do
+      let product = num.(i) * multiplier.(j) + result.(i + j + 1) + !carry in
+      result.(i + j + 1) <- product mod 10;
+      carry := product / 10
+    done;
+    result.(i) <- result.(i) + !carry
+  done;
+  let start = ref 0 in
+  while !start < Array.length result - 1 && result.(!start) = 0 do
+    start := !start + 1
+  done;
+  let sb = Buffer.create (Array.length result - !start) in
+  for i = !start to Array.length result - 1 do
+    Buffer.add_char sb (char_of_int (result.(i) + int_of_char '0'))
+  done;
+  Buffer.contents sb
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let line = try input_line ic with End_of_file -> "" in
+  close_in ic;
+  if line = "" then (print_endline "Input file is empty"; exit 1);
+  let stones_str = String.split_on_char ' ' line in
+  let stones_map = Hashtbl.create (List.length stones_str) in
+  List.iter (fun s -> Hashtbl.replace stones_map s (Hashtbl.find_opt stones_map s |> Option.value ~default:0L |> Int64.add 1L)) stones_str;
+  let steps = 75 in
+  for _step = 0 to steps - 1 do
+    let new_stones_map = Hashtbl.create (Hashtbl.length stones_map) in
+    Hashtbl.iter (fun stone count ->
+      if stone = "0" then
+        Hashtbl.replace new_stones_map "1" (Int64.add (Hashtbl.find_opt new_stones_map "1" |> Option.value ~default:0L) count)
+      else if String.length stone mod 2 = 0 then
+        let left, right = split_stone stone in
+        Hashtbl.replace new_stones_map left (Int64.add (Hashtbl.find_opt new_stones_map left |> Option.value ~default:0L) count);
+        Hashtbl.replace new_stones_map right (Int64.add (Hashtbl.find_opt new_stones_map right |> Option.value ~default:0L) count)
+      else
+        let new_stone = multiply_by_2024 stone in
+        Hashtbl.replace new_stones_map new_stone (Int64.add (Hashtbl.find_opt new_stones_map new_stone |> Option.value ~default:0L) count)
+    ) stones_map;
+    Hashtbl.clear stones_map;
+    Hashtbl.iter (fun k v -> Hashtbl.add stones_map k v) new_stones_map;
+  done;
+  let total_stones = ref 0L in
+  Hashtbl.iter (fun _ count -> total_stones := Int64.add !total_stones count) stones_map;
+  print_int (Int64.to_int !total_stones);
+  print_newline ()
+
+let () = solve ()

@@ -1,0 +1,44 @@
+
+let calculate_ways_to_win time record =
+  let delta = float_of_int (time * time - 4 * record) in
+  if delta <= 0. then 0
+  else
+    let sqrt_delta = sqrt delta in
+    let t1 = (float_of_int time -. sqrt_delta) /. 2. in
+    let t2 = (float_of_int time +. sqrt_delta) /. 2. in
+    let start = int_of_float (ceil (min t1 t2)) in
+    let end_ = int_of_float (floor (max t1 t2)) in
+    end_ - start + 1
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let time =
+    match List.nth lines 0 with
+    | line ->
+        let parts = String.split_on_char ':' line in
+        let line = String.trim (List.nth parts 1) in
+        int_of_string (String.concat "" (String.split_on_char ' ' line))
+    | _ -> failwith "Invalid input"
+  in
+  let distance =
+    match List.nth lines 1 with
+    | line ->
+        let parts = String.split_on_char ':' line in
+        let line = String.trim (List.nth parts 1) in
+        int_of_string (String.concat "" (String.split_on_char ' ' line))
+    | _ -> failwith "Invalid input"
+  in
+  let ways_to_win = calculate_ways_to_win time distance in
+  print_int ways_to_win;
+  print_newline ()

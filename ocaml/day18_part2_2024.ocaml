@@ -1,0 +1,58 @@
+
+let can_reach grid =
+  let n = Array.length grid in
+  if grid.(0).(0) || grid.(n - 1).(n - 1) then false
+  else
+    let dirs = [| (1, 0); (-1, 0); (0, 1); (0, -1) |] in
+    let visited = Array.make_matrix n n false in
+    let q = Queue.create () in
+    Queue.add (0, 0) q;
+    visited.(0).(0) <- true;
+    let rec bfs () =
+      match Queue.take_opt q with
+      | None -> false
+      | Some (x, y) ->
+          if x = n - 1 && y = n - 1 then true
+          else
+            let next_moves =
+              Array.fold_left
+                (fun acc (dx, dy) ->
+                  let nx, ny = x + dx, y + dy in
+                  if
+                    nx >= 0 && ny >= 0 && nx < n && ny < n && not grid.(ny).(nx)
+                    && not visited.(ny).(nx)
+                  then (
+                    visited.(ny).(nx) <- true;
+                    Queue.add (nx, ny) q;
+                    acc )
+                  else acc)
+                [] dirs
+            in
+            bfs ()
+    in
+    bfs ()
+
+let () =
+  let size = 71 in
+  let grid = Array.make_matrix size size false in
+  let input = open_in "input.txt" in
+  let rec read_lines i =
+    try
+      let line = input_line input in
+      let parts = String.split_on_char ',' line in
+      let x = int_of_string (List.nth parts 0) in
+      let y = int_of_string (List.nth parts 1) in
+      if x >= 0 && x < size && y >= 0 && y < size then grid.(y).(x) <- true;
+      if not (can_reach grid) then
+        Printf.printf "%d,%d\n" x y
+      else
+        read_lines (i + 1)
+    with
+    | End_of_file ->
+        close_in input;
+        print_endline "No cutoff found"
+    | _ ->
+        close_in input;
+        print_endline "Error reading input"
+  in
+  read_lines 0

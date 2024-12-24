@@ -1,0 +1,37 @@
+
+let even_digits s = String.length s mod 2 = 0
+
+let trim_leading_zeros s =
+  let rec aux i =
+    if i >= String.length s - 1 || String.get s i <> '0' then String.sub s i (String.length s - i)
+    else aux (i + 1)
+  in
+  aux 0
+
+let process_stone stone =
+  if stone = "0" then ["1"]
+  else if even_digits stone then
+    let mid = String.length stone / 2 in
+    let left = trim_leading_zeros (String.sub stone 0 mid) in
+    let right = trim_leading_zeros (String.sub stone mid (String.length stone - mid)) in
+    let left = if left = "" then "0" else left in
+    let right = if right = "" then "0" else right in
+    [left; right]
+  else
+    let n = int_of_string stone in
+    [string_of_int (n * 2024)]
+
+let rec iterate stones n =
+  if n = 0 then stones
+  else
+    let next = List.concat (List.map process_stone stones) in
+    iterate next (n - 1)
+
+let () =
+  let input = open_in "input.txt" in
+  let line = input_line input in
+  close_in input;
+  let stones = String.split_on_char ' ' line in
+  let result = iterate stones 25 in
+  print_int (List.length result);
+  print_newline ()

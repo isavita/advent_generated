@@ -1,0 +1,50 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let directions =
+  [ (0, 1); (1, 0); (1, 1); (-1, 1); (0, -1); (-1, 0); (-1, -1); (1, -1) ]
+
+let check_word grid word x y dx dy =
+  let rows = Array.length grid in
+  let cols = String.length grid.(0) in
+  let len = String.length word in
+  let rec check i =
+    if i = len then true
+    else
+      let nx = x + (dx * i) in
+      let ny = y + (dy * i) in
+      if nx < 0 || nx >= rows || ny < 0 || ny >= cols || grid.(nx).[ny] <> word.[i] then false
+      else check (i + 1)
+  in
+  check 0
+
+let count_occurrences grid word =
+  let rows = Array.length grid in
+  if rows = 0 then 0 else
+  let cols = String.length grid.(0) in
+  let count = ref 0 in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      List.iter (fun (dx, dy) ->
+        if check_word grid word i j dx dy then incr count
+      ) directions
+    done
+  done;
+  !count
+
+let () =
+  let lines = read_file "input.txt" in
+  let grid = Array.of_list lines in
+  let count = count_occurrences grid "XMAS" in
+  Printf.printf "XMAS appears %d times in the word search\n" count

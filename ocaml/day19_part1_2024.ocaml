@@ -1,0 +1,36 @@
+
+let solve () =
+  let input = open_in "input.txt" in
+  let available_line = input_line input in
+  let available_patterns =
+    String.split_on_char ',' available_line
+    |> List.map String.trim
+    |> List.sort_uniq compare
+  in
+  let _ = input_line input in
+  let rec read_designs count =
+    try
+      let design = input_line input in
+      if can_make design available_patterns then
+        read_designs (count + 1)
+      else
+        read_designs count
+    with End_of_file -> count
+  and can_make design patterns =
+    let n = String.length design in
+    let dp = Array.make (n + 1) false in
+    dp.(0) <- true;
+    for i = 1 to n do
+      List.iter (fun p ->
+        let lp = String.length p in
+        if i >= lp && dp.(i - lp) && String.sub design (i - lp) lp = p then
+          dp.(i) <- true
+      ) patterns;
+    done;
+    dp.(n)
+  in
+  let result = read_designs 0 in
+  close_in input;
+  Printf.printf "%d\n" result
+
+let () = solve ()

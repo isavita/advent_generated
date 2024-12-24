@@ -1,0 +1,102 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+type coord = { x : int; y : int }
+type grid = { width : int; height : int; data : (coord, char) Hashtbl.t }
+
+let build_grid input empty =
+  let width = String.length (List.hd input) in
+  let height = List.length input in
+  let data = Hashtbl.create (width * height) in
+  List.iteri
+    (fun y line ->
+      String.iteri
+        (fun x char -> if char <> empty then Hashtbl.add data { x; y } char)
+        line)
+    input;
+  { width; height; data }
+
+let get_empty_rows grid =
+  let empty_rows = ref [] in
+  for y = 0 to grid.height - 1 do
+    let is_empty = ref true in
+    for x = 0 to grid.width - 1 do
+      if Hashtbl.mem grid.data { x; y } then is_empty := false
+    done;
+    if !is_empty then empty_rows := y :: !empty_rows
+  done;
+  List.rev !empty_rows
+
+let get_empty_cols grid =
+  let empty_cols = ref [] in
+  for x = 0 to grid.width - 1 do
+    let is_empty = ref true in
+    for y = 0 to grid.height - 1 do
+      if Hashtbl.mem grid.data { x; y } then is_empty := false
+    done;
+    if !is_empty then empty_cols := x :: !empty_cols
+  done;
+  List.rev !empty_cols
+
+let calculate_offsets empty_indexes bound =
+  let offsets = Array.make bound 0 in
+  List.iter
+    (fun idx ->
+      for i = idx + 1 to bound - 1 do
+        offsets.(i) <- offsets.(i) + 1
+      done)
+    empty_indexes;
+  offsets
+
+let expand_grid grid expansion_factor =
+  let empty_cols = get_empty_cols grid in
+  let empty_rows = get_empty_rows grid in
+  let num_lines_to_add = expansion_factor - 1 in
+  let new_width = grid.width + (List.length empty_cols * num_lines_to_add) in
+  let new_height = grid.height + (List.length empty_rows * num_lines_to_add) in
+  let new_data = Hashtbl.create (Hashtbl.length grid.data) in
+  let dxs = calculate_offsets empty_cols grid.width in
+  let dys = calculate_offsets empty_rows grid.height in
+  Hashtbl.iter
+    (fun { x; y } char ->
+      let new_x = x + (dxs.(x) * num_lines_to_add) in
+      let new_y = y + (dys.(y) * num_lines_to_add) in
+      Hashtbl.add new_data { x = new_x; y = new_y } char)
+    grid.data;
+  { width = new_width; height = new_height; data = new_data }
+
+let abs x = if x < 0 then -x else x
+
+let calculate_length c1 c2 = abs (c2.x - c1.x) + abs (c2.y - c1.y)
+
+let solve input =
+  let grid = build_grid input '.' in
+  let expanded_grid = expand_grid grid 2 in
+  let res = ref 0 in
+  let already_seen = Hashtbl.create (Hashtbl.length expanded_grid.data) in
+  Hashtbl.iter
+    (fun coord1 _ ->
+      Hashtbl.iter
+        (fun coord2 _ ->
+          let length = calculate_length coord1 coord2 in
+          res := !res + length)
+        already_seen;
+      Hashtbl.add already_seen coord1 ())
+    expanded_grid.data;
+  !res
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  print_int result;
+  print_newline ()

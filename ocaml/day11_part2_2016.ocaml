@@ -1,0 +1,166 @@
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  String.concat "\n" (loop [])
+
+type half = {
+  is_chip : bool;
+  material : string;
+}
+
+type state = {
+  floors : half list array;
+  elevator_level : int;
+  steps : int;
+}
+
+let initial_state input =
+  let lines = String.split_on_char '\n' input in
+  let floors = Array.make 4 [] in
+  List.iteri (fun line_index line ->
+    let parts = String.split_on_char ' ' line in
+    let parts = List.map (fun s -> String.sub s 0 (String.length s - (if String.ends_with ~suffix:"." s || String.ends_with ~suffix:"," s then 1 else 0))) parts in
+    List.iteri (fun i word ->
+      if word = "generator" then
+        let material = List.nth parts (i - 1) in
+        floors.(line_index) <- { is_chip = false; material } :: floors.(line_index)
+      else if word = "microchip" then
+        let material = String.sub (List.nth parts (i - 1)) 0 (String.index (List.nth parts (i - 1)) '-') in
+        floors.(line_index) <- { is_chip = true; material } :: floors.(line_index)
+    ) parts
+  ) lines;
+  { floors; elevator_level = 0; steps = 0 }
+
+let hash_key state =
+  let map_gen_to_index = Hashtbl.create 10 in
+  let map_chip_to_index = Hashtbl.create 10 in
+  Array.iteri (fun fl_index fl ->
+    List.iter (fun half ->
+      if half.is_chip then
+        Hashtbl.replace map_chip_to_index half.material fl_index
+      else
+        Hashtbl.replace map_gen_to_index half.material fl_index
+    ) fl
+  ) state.floors;
+  let gen_chip_pairs = ref [] in
+  Hashtbl.iter (fun material _ ->
+    gen_chip_pairs := (Hashtbl.find map_gen_to_index material, Hashtbl.find map_chip_to_index material) :: !gen_chip_pairs
+  ) map_gen_to_index;
+  let sorted_pairs = List.sort (fun (g1, c1) (g2, c2) ->
+    if g1 <> g2 then compare g1 g2 else compare c1 c2
+  ) !gen_chip_pairs in
+  Printf.sprintf "%d%s" state.elevator_level (String.concat "" (List.map (fun (g, c) -> Printf.sprintf "(%d,%d)" g c) sorted_pairs))
+
+let is_valid state =
+  Array.for_all (fun fl ->
+    let gens_seen = Hashtbl.create 10 in
+    List.iter (fun half ->
+      if not half.is_chip then Hashtbl.replace gens_seen half.material true
+    ) fl;
+    if Hashtbl.length gens_seen = 0 then
+      true
+    else
+      List.for_all (fun half ->
+        if half.is_chip then Hashtbl.mem gens_seen half.material else true
+      ) fl
+  ) state.floors
+
+let is_done state =
+  let len_sum = ref 0 in
+  for i = 0 to 2 do
+    len_sum := !len_sum + List.length state.floors.(i)
+  done;
+  !len_sum = 0
+
+let get_movable_perm_indices state =
+  let current_level = state.floors.(state.elevator_level) in
+  let perms_to_move = ref [] in
+  for i = 0 to List.length current_level - 1 do
+    for j = i + 1 to List.length current_level - 1 do
+      perms_to_move := [i; j] :: !perms_to_move
+    done
+  done;
+  for i = 0 to List.length current_level - 1 do
+    perms_to_move := [i] :: !perms_to_move
+  done;
+  !perms_to_move
+
+let clone state =
+  {
+    floors = Array.map (fun fl -> List.map (fun x -> x) fl) state.floors;
+    elevator_level = state.elevator_level;
+    steps = state.steps;
+  }
+
+let get_next_states state =
+  let movable_perm_indices = get_movable_perm_indices state in
+  let ele_diffs =
+    if state.elevator_level < Array.length state.floors - 1 then
+      if state.elevator_level > 0 then [1; -1] else [1]
+    else
+      [-1]
+  in
+  let future_states = ref [] in
+  List.iter (fun ele_diff ->
+    List.iter (fun perm_indices ->
+      let cl = clone state in
+      cl.elevator_level <- cl.elevator_level + ele_diff;
+      cl.steps <- cl.steps + 1;
+      let old_level = state.elevator_level in
+      let new_level = cl.elevator_level in
+      List.iter (fun index ->
+        cl.floors.(new_level) <- (List.nth state.floors.(old_level) index) :: cl.floors.(new_level)
+      ) perm_indices;
+      let rec remove_indices indices fl acc count =
+        match indices, fl with
+        | [], _ -> List.rev acc @ fl
+        | i :: rest_indices, h :: t ->
+          if count = i then remove_indices rest_indices t acc (count + 1)
+          else remove_indices indices t (h :: acc) (count + 1)
+        | _, [] -> failwith "Index out of bounds"
+      in
+      cl.floors.(old_level) <- remove_indices (List.sort compare perm_indices) cl.floors.(old_level) [] 0;
+      if is_valid cl then
+        future_states := cl :: !future_states
+    ) movable_perm_indices
+  ) ele_diffs;
+  !future_states
+
+let rtg_hell_day input =
+  let current_state = initial_state input in
+  current_state.floors.(0) <-
+    { is_chip = false; material = "elerium" } ::
+    { is_chip = true; material = "elerium" } ::
+    { is_chip = false; material = "dilithium" } ::
+    { is_chip = true; material = "dilithium" } ::
+    current_state.floors.(0);
+  let queue = ref [current_state] in
+  let prev_states = Hashtbl.create 1000 in
+  while List.length !queue > 0 do
+    let front = List.hd !queue in
+    queue := List.tl !queue;
+    if is_done front then
+      (Printf.printf "%d\n" front.steps;
+      exit 0);
+    let hash = hash_key front in
+    if Hashtbl.mem prev_states hash then
+      ()
+    else (
+      Hashtbl.replace prev_states hash true;
+      let next_states = get_next_states front in
+      queue := !queue @ next_states
+    )
+  done;
+  -1
+
+let () =
+  let input = read_file "input.txt" in
+  rtg_hell_day input

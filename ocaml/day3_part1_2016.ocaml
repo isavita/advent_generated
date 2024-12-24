@@ -1,0 +1,21 @@
+
+let is_valid_triangle a b c = a + b > c && a + c > b && b + c > a
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec loop count =
+    try
+      let line = input_line ic in
+      let sides = String.split_on_char ' ' line |> List.filter (fun s -> s <> "") in
+      match sides with
+      | [a; b; c] ->
+          let a = int_of_string a in
+          let b = int_of_string b in
+          let c = int_of_string c in
+          if is_valid_triangle a b c then loop (count + 1) else loop count
+      | _ -> loop count
+    with End_of_file ->
+      close_in ic;
+      count
+  in
+  Printf.printf "%d\n" (loop 0)

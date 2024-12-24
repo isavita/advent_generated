@@ -1,0 +1,87 @@
+
+let is_digit c = c >= '0' && c <= '9'
+
+let is_symbol c = not (is_digit c) && c <> '.'
+
+let read_file_to_matrix filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (Array.of_seq (String.to_seq line) :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  Array.of_list (read_lines [])
+
+let extract_number matrix x y =
+  let row = matrix.(y) in
+  let rec loop i acc =
+    if i < Array.length row && is_digit row.(i) then
+      loop (i + 1) (acc * 10 + (int_of_char row.(i) - int_of_char '0'))
+    else
+      (acc, i - x)
+  in
+  loop x 0
+
+let check_adjacent matrix x y =
+  let rows = Array.length matrix in
+  let cols = Array.length matrix.(0) in
+  let check_cell dx dy =
+    let adj_x = x + dx in
+    let adj_y = y + dy in
+    if adj_y >= 0 && adj_y < rows && adj_x >= 0 && adj_x < cols then
+      is_symbol matrix.(adj_y).(adj_x)
+    else
+      false
+  in
+  let rec check_all dx dy =
+    if dy > 1 then
+      false
+    else if dx > 1 then
+      check_all (-1) (dy + 1)
+    else if dx = 0 && dy = 0 then
+      check_all (dx + 1) dy
+    else if check_cell dx dy then
+      true
+    else
+      check_all (dx + 1) dy
+  in
+  check_all (-1) (-1)
+
+let is_adjacent_to_symbol matrix x y length =
+  let rec loop i =
+    if i < length then
+      if check_adjacent matrix (x + i) y then
+        true
+      else
+        loop (i + 1)
+    else
+      false
+  in
+  loop 0
+
+let sum_of_part_numbers matrix =
+  let rows = Array.length matrix in
+  let cols = Array.length matrix.(0) in
+  let visited = Array.make_matrix rows cols false in
+  let sum = ref 0 in
+  for y = 0 to rows - 1 do
+    for x = 0 to cols - 1 do
+      if not visited.(y).(x) && is_digit matrix.(y).(x) then
+        let number, length = extract_number matrix x y in
+        if is_adjacent_to_symbol matrix x y length then
+          sum := !sum + number;
+        for i = 0 to length - 1 do
+          visited.(y).(x + i) <- true
+        done
+    done
+  done;
+  !sum
+
+let () =
+  let matrix = read_file_to_matrix "input.txt" in
+  let result = sum_of_part_numbers matrix in
+  print_int result;
+  print_newline ()

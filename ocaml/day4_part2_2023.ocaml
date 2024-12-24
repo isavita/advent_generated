@@ -1,0 +1,54 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_line line =
+  let parts = String.split_on_char ':' line in
+  let card_data = String.split_on_char '|' (List.nth parts 1) in
+  let winning_nums =
+    List.fold_left (fun acc x ->
+        let num = int_of_string_opt x in
+        match num with
+        | Some n -> Hashtbl.add acc n true; acc
+        | None -> acc
+      ) (Hashtbl.create 16) (String.split_on_char ' ' (List.hd card_data))
+  in
+  let given_nums =
+    List.fold_left (fun acc x ->
+        let num = int_of_string_opt x in
+        match num with
+        | Some n -> Hashtbl.add acc n true; acc
+        | None -> acc
+      ) (Hashtbl.create 16) (String.split_on_char ' ' (List.nth card_data 1))
+  in
+  (winning_nums, given_nums)
+
+let count_matches winning given =
+  Hashtbl.fold (fun k _ acc -> if Hashtbl.mem given k then acc + 1 else acc) winning 0
+
+let solve lines =
+  let cards = List.map parse_line lines in
+  let counts = Array.make (List.length cards) 1 in
+  List.iteri (fun i (winning, given) ->
+      let matches = count_matches winning given in
+      for j = 1 to matches do
+        if i + j < Array.length counts then
+          counts.(i + j) <- counts.(i + j) + counts.(i)
+      done
+    ) cards;
+  Array.fold_left (+) 0 counts
+
+let () =
+  let lines = read_file "input.txt" in
+  let result = solve lines in
+  print_int result;
+  print_newline ()

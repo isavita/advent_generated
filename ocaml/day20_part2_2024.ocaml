@@ -1,0 +1,114 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+type point = { x : int; y : int }
+
+let solve grid =
+  let h = List.length grid in
+  let w = String.length (List.hd grid) in
+  let s = ref { x = 0; y = 0 } in
+  let e = ref { x = 0; y = 0 } in
+  let walls = Array.make_matrix h w false in
+  let track_cells = ref [] in
+  for i = 0 to h - 1 do
+    let row = List.nth grid i in
+    for j = 0 to w - 1 do
+      let ch = String.get row j in
+      if ch = 'S' then s := { x = i; y = j }
+      else if ch = 'E' then e := { x = i; y = j };
+      if ch = '#' then walls.(i).(j) <- true
+      else track_cells := { x = i; y = j } :: !track_cells
+    done
+  done;
+  let dirs = [| { x = 1; y = 0 }; { x = -1; y = 0 }; { x = 0; y = 1 }; { x = 0; y = -1 } |] in
+  let is_track x y = x >= 0 && x < h && y >= 0 && y < w && not walls.(x).(y) in
+  let normal_dist_from start =
+    let dist = Array.make_matrix h w (-1) in
+    dist.(start.x).(start.y) <- 0;
+    let q = Queue.create () in
+    Queue.add start q;
+    while not (Queue.is_empty q) do
+      let cur = Queue.pop q in
+      for i = 0 to Array.length dirs - 1 do
+        let d = dirs.(i) in
+        let nx = cur.x + d.x in
+        let ny = cur.y + d.y in
+        if nx >= 0 && nx < h && ny >= 0 && ny < w && not walls.(nx).(ny) && dist.(nx).(ny) < 0 then (
+          dist.(nx).(ny) <- dist.(cur.x).(cur.y) + 1;
+          Queue.add { x = nx; y = ny } q
+        )
+      done
+    done;
+    dist
+  in
+  let dist_from_s = normal_dist_from !s in
+  let dist_from_e = normal_dist_from !e in
+  let normal_cost = dist_from_s.(!e.x).(!e.y) in
+  if normal_cost < 0 then
+    print_int 0
+  else
+    let module Pair = struct
+      type t = int * int * int * int
+      let compare = compare
+    end in
+    let module CheatMap = Map.Make(Pair) in
+    let cheats = ref CheatMap.empty in
+    List.iter (fun start_pos ->
+      let sd = dist_from_s.(start_pos.x).(start_pos.y) in
+      if sd >= 0 then (
+        let dist_c = Array.make_matrix h w (-1) in
+        dist_c.(start_pos.x).(start_pos.y) <- 0;
+        let q = Queue.create () in
+        Queue.add start_pos q;
+        while not (Queue.is_empty q) do
+          let cur = Queue.pop q in
+          let steps = dist_c.(cur.x).(cur.y) in
+          if steps < 20 then
+            for i = 0 to Array.length dirs - 1 do
+              let d = dirs.(i) in
+              let nx = cur.x + d.x in
+              let ny = cur.y + d.y in
+              if nx >= 0 && nx < h && ny >= 0 && ny < w && dist_c.(nx).(ny) < 0 then (
+                dist_c.(nx).(ny) <- steps + 1;
+                Queue.add { x = nx; y = ny } q
+              )
+            done
+        done;
+        for x = 0 to h - 1 do
+          for y = 0 to w - 1 do
+            let s = dist_c.(x).(y) in
+            if s > 0 && s <= 20 && is_track x y then (
+              let ed = dist_from_e.(x).(y) in
+              if ed >= 0 then (
+                let cost = sd + s + ed in
+                if cost < normal_cost then (
+                  let key = (start_pos.x, start_pos.y, x, y) in
+                  match CheatMap.find_opt key !cheats with
+                  | None -> cheats := CheatMap.add key cost !cheats
+                  | Some old_cost -> if cost < old_cost then cheats := CheatMap.add key cost !cheats
+                )
+              )
+            )
+          done
+        done
+      )
+    ) !track_cells;
+    let count = ref 0 in
+    CheatMap.iter (fun _ cost ->
+      if normal_cost - cost >= 100 then incr count
+    ) !cheats;
+    print_int !count
+
+let () =
+  let grid = read_file "input.txt" in
+  solve grid

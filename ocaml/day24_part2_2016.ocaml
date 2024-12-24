@@ -1,0 +1,91 @@
+
+let cleaning_robot input =
+  let grid =
+    String.split_on_char '\n' input
+    |> List.map (fun s -> String.to_seq s |> Array.of_seq)
+    |> Array.of_list
+  in
+  let graph = ref [] in
+  let poi_coords = ref [] in
+  Array.iteri
+    (fun r row ->
+      Array.iteri
+        (fun c cell ->
+          if cell >= '0' && cell <= '9' then
+            poi_coords := (r, c, int_of_char cell - int_of_char '0') :: !poi_coords)
+        row)
+    grid;
+  let poi_count = List.length !poi_coords in
+  let graph_arr = Array.make_matrix poi_count poi_count 0 in
+  let dirs = [ (0, -1); (0, 1); (1, 0); (-1, 0) ] in
+  let bfs_get_edge_weights start =
+    let poi_to_distance = Hashtbl.create poi_count in
+    Hashtbl.add poi_to_distance (grid.(fst start).(snd start)) 0;
+    let queue = Queue.create () in
+    Queue.add (start, 0) queue;
+    let visited = Hashtbl.create (Array.length grid * Array.length grid.(0)) in
+    while not (Queue.is_empty queue) do
+      let (r, c), distance = Queue.take queue in
+      if not (Hashtbl.mem visited (r, c)) then (
+        Hashtbl.add visited (r, c) true;
+        if grid.(r).(c) >= '0' && grid.(r).(c) <= '9' then
+          Hashtbl.replace poi_to_distance grid.(r).(c) distance;
+        List.iter
+          (fun (dr, dc) ->
+            let next_row, next_col = (r + dr, c + dc) in
+            if
+              next_row >= 0
+              && next_row < Array.length grid
+              && next_col >= 0
+              && next_col < Array.length grid.(0)
+              && grid.(next_row).(next_col) <> '#'
+            then Queue.add ((next_row, next_col), distance + 1) queue)
+          dirs)
+    done;
+    let distances = Array.make poi_count 0 in
+    Hashtbl.iter
+      (fun num_str dist ->
+        let n = int_of_char num_str - int_of_char '0' in
+        distances.(n) <- dist)
+      poi_to_distance;
+    distances
+  in
+  List.iter
+    (fun (r, c, index) ->
+      graph_arr.(index) <- bfs_get_edge_weights (r, c))
+    !poi_coords;
+  graph := Array.to_list (Array.map Array.to_list graph_arr);
+  let rec dfs graph entry_index visited return_to_zero =
+    if List.length visited = List.length graph then
+      if return_to_zero then List.nth (List.nth graph entry_index) 0 else 0
+    else
+      let min_distance = ref max_int in
+      List.iteri
+        (fun i v ->
+          if not (List.mem i visited) then
+            let dist =
+              v + dfs graph i (i :: visited) return_to_zero
+            in
+            min_distance := min !min_distance dist)
+        (List.nth graph entry_index);
+      !min_distance
+  in
+  dfs !graph 0 [ 0 ] true
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  String.concat "\n" (loop [])
+
+let () =
+  let input = read_file "input.txt" in
+  let n = cleaning_robot input in
+  print_int n;
+  print_newline ()

@@ -1,0 +1,80 @@
+
+let mod_val = 1 lsl 24
+let num_steps = 2000
+
+let next_secret s =
+  let open Int64 in
+  let x = mul s 64L in
+  let s = logxor s x in
+  let s = logand s (of_int (mod_val - 1)) in
+  let x = div s 32L in
+  let s = logxor s x in
+  let s = logand s (of_int (mod_val - 1)) in
+  let x = mul s 2048L in
+  let s = logxor s x in
+  let s = logand s (of_int (mod_val - 1)) in
+  s
+
+let encode_change4 c1 c2 c3 c4 =
+  (c1 + 9) + (c2 + 9) * 19 + (c3 + 9) * 19 * 19 + (c4 + 9) * 19 * 19 * 19
+
+let () =
+  let ic = open_in "input.txt" in
+  let initials =
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        if line = "" then read_lines acc
+        else read_lines (Int64.of_string line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let buyers =
+    List.map
+      (fun init_val ->
+        let prices = Array.make (num_steps + 1) 0 in
+        let s = ref init_val in
+        for j = 0 to num_steps do
+          prices.(j) <- Int64.to_int (Int64.rem !s 10L);
+          if j < num_steps then s := next_secret !s
+        done;
+        let changes = Array.make num_steps 0 in
+        for j = 0 to num_steps - 1 do
+          changes.(j) <- prices.(j + 1) - prices.(j)
+        done;
+        (prices, changes))
+      initials
+  in
+  let pattern_count = 19 * 19 * 19 * 19 in
+  let global_sum = Array.make pattern_count 0L in
+  List.iter
+    (fun (prices, changes) ->
+      let local_price = Array.make pattern_count (-1) in
+      for i = 0 to num_steps - 4 do
+        let c1 = changes.(i) in
+        let c2 = changes.(i + 1) in
+        let c3 = changes.(i + 2) in
+        let c4 = changes.(i + 3) in
+        if
+          c1 >= -9
+          && c1 <= 9
+          && c2 >= -9
+          && c2 <= 9
+          && c3 >= -9
+          && c3 <= 9
+          && c4 >= -9
+          && c4 <= 9
+        then
+          let idx = encode_change4 c1 c2 c3 c4 in
+          if local_price.(idx) < 0 then local_price.(idx) <- prices.(i + 4)
+      done;
+      Array.iteri
+        (fun idx p -> if p >= 0 then global_sum.(idx) <- Int64.add global_sum.(idx) (Int64.of_int p))
+        local_price)
+    buyers;
+  let ans = ref 0L in
+  Array.iter (fun s -> if s > !ans then ans := s) global_sum;
+  Printf.printf "%Ld\n" !ans

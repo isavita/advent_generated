@@ -1,0 +1,179 @@
+
+module Coord = struct
+  type t = { x : int; y : int }
+
+  let add c1 c2 = { x = c1.x + c2.x; y = c1.y + c2.y }
+  let substract c1 c2 = { x = c1.x - c2.x; y = c1.y - c2.y }
+  let opposite c = { x = -c.x; y = -c.y }
+end
+
+module Grid = struct
+  type t = {
+    width : int;
+    height : int;
+    data : (Coord.t, int) Hashtbl.t;
+  }
+
+  let north = { Coord.x = 0; y = -1 }
+  let west = { Coord.x = -1; y = 0 }
+  let south = { Coord.x = 0; y = 1 }
+  let east = { Coord.x = 1; y = 0 }
+
+  let is_in_bounds coord grid =
+    0 <= coord.Coord.x && coord.Coord.x < grid.width && 0 <= coord.Coord.y
+    && coord.Coord.y < grid.height
+
+  let neighbors4 coord grid =
+    let directions = [ north; west; south; east ] in
+    List.filter
+      (fun neighbor -> is_in_bounds neighbor grid)
+      (List.map (fun dir -> Coord.add coord dir) directions)
+
+  let build input =
+    let height = List.length input in
+    let width = String.length (List.hd input) in
+    let data = Hashtbl.create (width * height) in
+    List.iteri
+      (fun y line ->
+        String.iteri
+          (fun x char ->
+            Hashtbl.add data { Coord.x = x; y } (Char.code char - Char.code '0'))
+          line)
+      input;
+    { width; height; data }
+end
+
+module PriorityQueue = struct
+  type 'a t = {
+    mutable data : ('a * int) array;
+    mutable size : int;
+  }
+
+  let create () = { data = Array.make 1000000 (Obj.magic (), 0); size = 0 }
+
+  let is_empty q = q.size = 0
+
+  let push q item priority =
+    q.data.(q.size) <- (item, priority);
+    let rec heapify_up i =
+      if i > 0 then
+        let parent = (i - 1) / 2 in
+        if snd q.data.(i) < snd q.data.(parent) then (
+          let temp = q.data.(i) in
+          q.data.(i) <- q.data.(parent);
+          q.data.(parent) <- temp;
+          heapify_up parent)
+    in
+    heapify_up q.size;
+    q.size <- q.size + 1
+
+  let pop q =
+    if q.size = 0 then None
+    else
+      let item = fst q.data.(0) in
+      q.size <- q.size - 1;
+      q.data.(0) <- q.data.(q.size);
+      let rec heapify_down i =
+        let left = 2 * i + 1 in
+        let right = 2 * i + 2 in
+        let smallest =
+          if left < q.size && snd q.data.(left) < snd q.data.(i) then left
+          else i
+        in
+        let smallest =
+          if right < q.size && snd q.data.(right) < snd q.data.(smallest) then
+            right
+          else smallest
+        in
+        if smallest <> i then (
+          let temp = q.data.(i) in
+          q.data.(i) <- q.data.(smallest);
+          q.data.(smallest) <- temp;
+          heapify_down smallest)
+      in
+      heapify_down 0;
+      Some item
+end
+
+let abs x = if x < 0 then -x else x
+
+let heuristic c1 c2 = abs (c1.Coord.x - c2.Coord.x) + abs (c1.Coord.y - c2.Coord.y)
+
+type info = {
+  coord : Coord.t;
+  dir : Coord.t;
+  num_straight : int;
+}
+
+let a_star_constrained grid start goal min_straight max_straight =
+  let start_info = { coord = start; dir = { Coord.x = 0; y = 0 }; num_straight = 0 } in
+  let frontier = PriorityQueue.create () in
+  PriorityQueue.push frontier start_info 0;
+  let came_from = Hashtbl.create 10000 in
+  let cost_so_far = Hashtbl.create 10000 in
+  Hashtbl.add came_from start_info start_info;
+  Hashtbl.add cost_so_far start_info 0;
+  let rec loop () =
+    match PriorityQueue.pop frontier with
+    | None -> -1
+    | Some current ->
+        let current_cost = Hashtbl.find cost_so_far current in
+        if current.coord = goal then current_cost
+        else
+          let neighbors = Grid.neighbors4 current.coord grid in
+          List.iter
+            (fun next ->
+              let new_dir = Coord.substract next current.coord in
+              let new_num_straight =
+                if new_dir = current.dir then current.num_straight + 1 else 1
+              in
+              let next_info =
+                { coord = next; dir = new_dir; num_straight = new_num_straight }
+              in
+              let new_cost = current_cost + Hashtbl.find grid.data next in
+              let is_lower_cost =
+                try new_cost < Hashtbl.find cost_so_far next_info
+                with Not_found -> true
+              in
+              let is_valid_straight =
+                (current.num_straight >= min_straight
+                || new_dir = current.dir
+                || current.coord = start)
+                && new_num_straight <= max_straight
+              in
+              let is_not_opposite_direction =
+                new_dir <> Coord.opposite current.dir
+              in
+              if is_lower_cost && is_valid_straight && is_not_opposite_direction
+              then (
+                Hashtbl.replace cost_so_far next_info new_cost;
+                Hashtbl.replace came_from next_info current;
+                let priority = new_cost + heuristic next goal in
+                PriorityQueue.push frontier next_info priority))
+            neighbors;
+          loop ()
+  in
+  loop ()
+
+let solve input =
+  let grid = Grid.build input in
+  let start = { Coord.x = 0; y = 0 } in
+  let goal = { Coord.x = grid.width - 1; y = grid.height - 1 } in
+  a_star_constrained grid start goal 0 3
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  Printf.printf "%d\n" result

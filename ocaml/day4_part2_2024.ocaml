@@ -1,0 +1,53 @@
+
+let check_mas grid x y dx dy =
+  let rows = Array.length grid in
+  let cols = if rows > 0 then String.length grid.(0) else 0 in
+  let word = "MAS" in
+  let check forward =
+    let valid = ref true in
+    for i = 0 to String.length word - 1 do
+      let nx = x + (dx * i) in
+      let ny = y + (dy * i) in
+      if nx < 0 || ny < 0 || nx >= rows || ny >= cols || grid.(nx).[ny] <> word.[if forward then i else String.length word - 1 - i] then
+        valid := false
+    done;
+    !valid
+  in
+  check true || check false
+
+let check_xmas grid x y =
+  check_mas grid (x - 1) (y - 1) 1 1 && check_mas grid (x - 1) (y + 1) 1 (-1) ||
+  check_mas grid (x + 1) (y - 1) (-1) 1 && check_mas grid (x + 1) (y + 1) (-1) (-1)
+
+let count_xmas_patterns grid =
+  let rows = Array.length grid in
+  if rows < 3 then 0 else
+  let cols = String.length grid.(0) in
+  if cols < 3 then 0 else
+  let count = ref 0 in
+  for i = 1 to rows - 2 do
+    for j = 1 to cols - 2 do
+      if grid.(i).[j] = 'A' && check_xmas grid i j then
+        incr count
+    done
+  done;
+  !count
+
+let read_grid filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true do
+      let line = input_line chan in
+      if String.trim line <> "" then
+        lines := line :: !lines
+    done;
+    assert false
+  with End_of_file ->
+    close_in chan;
+    Array.of_list (List.rev !lines)
+
+let () =
+  let grid = read_grid "input.txt" in
+  let count = count_xmas_patterns grid in
+  Printf.printf "X-MAS patterns appear %d times in the word search\n" count

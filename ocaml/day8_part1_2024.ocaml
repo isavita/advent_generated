@@ -1,0 +1,50 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let solve grid =
+  let h = List.length grid in
+  let w = String.length (List.hd grid) in
+  let antennas = Hashtbl.create 16 in
+  for y = 0 to h - 1 do
+    let row = List.nth grid y in
+    for x = 0 to w - 1 do
+      let c = String.get row x in
+      if c <> '.' then
+        let coords = try Hashtbl.find antennas c with Not_found -> [] in
+        Hashtbl.replace antennas c ((y, x) :: coords)
+    done
+  done;
+  let antinodes = Hashtbl.create 64 in
+  Hashtbl.iter (fun _ coords ->
+    let n = List.length coords in
+    for i = 0 to n - 1 do
+      for j = i + 1 to n - 1 do
+        let (ay, ax) = List.nth coords i in
+        let (by, bx) = List.nth coords j in
+        let p1y = 2 * ay - by in
+        let p1x = 2 * ax - bx in
+        let p2y = 2 * by - ay in
+        let p2x = 2 * bx - ax in
+        if p1y >= 0 && p1y < h && p1x >= 0 && p1x < w then
+          Hashtbl.replace antinodes (p1y, p1x) true;
+        if p2y >= 0 && p2y < h && p2x >= 0 && p2x < w then
+          Hashtbl.replace antinodes (p2y, p2x) true
+      done
+    done
+  ) antennas;
+  Hashtbl.length antinodes
+
+let () =
+  let grid = read_file "input.txt" in
+  let result = solve grid in
+  Printf.printf "%d\n" result

@@ -1,0 +1,45 @@
+
+let input_file = "input.txt"
+
+type position = { x : int; y : int }
+
+let first_revisited_distance instructions =
+  let pos = ref { x = 0; y = 0 } in
+  let visited = Hashtbl.create 100 in
+  Hashtbl.add visited !pos true;
+  let directions = [| { x = 0; y = 1 }; { x = 1; y = 0 }; { x = 0; y = -1 }; { x = -1; y = 0 } |] in
+  let dir_index = ref 0 in
+  let rec loop = function
+    | [] -> -1
+    | hd :: tl ->
+        let turn = String.get hd 0 in
+        let blocks = int_of_string (String.sub hd 1 (String.length hd - 1)) in
+        dir_index :=
+          if turn = 'R' then
+            (!dir_index + 1) mod 4
+          else
+            (!dir_index - 1 + 4) mod 4;
+        let rec inner_loop i =
+          if i = blocks then
+            loop tl
+          else (
+            pos := { x = !pos.x + directions.(!dir_index).x; y = !pos.y + directions.(!dir_index).y };
+            if Hashtbl.mem visited !pos then
+              abs !pos.x + abs !pos.y
+            else (
+              Hashtbl.add visited !pos true;
+              inner_loop (i + 1)
+            )
+          )
+        in
+        inner_loop 0
+  in
+  loop instructions
+
+let () =
+  let ic = open_in input_file in
+  let line = input_line ic in
+  close_in ic;
+  let instructions = String.split_on_char ',' line |> List.map String.trim in
+  print_int (first_revisited_distance instructions);
+  print_newline ()

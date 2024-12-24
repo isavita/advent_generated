@@ -1,0 +1,81 @@
+
+let read_lines filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let read_happiness_values filename =
+  let lines = read_lines filename in
+  let happiness_map = Hashtbl.create 10 in
+  List.iter (fun line ->
+    let parts = String.split_on_char ' ' line in
+    if List.length parts >= 11 then
+      let from_guest = List.nth parts 0 in
+      let to_guest = String.sub (List.nth parts 10) 0 ((String.length (List.nth parts 10)) - 1) in
+      let change = int_of_string (List.nth parts 3) in
+      let change = if List.nth parts 2 = "lose" then -change else change in
+      let inner_map =
+        try Hashtbl.find happiness_map from_guest
+        with Not_found ->
+          let m = Hashtbl.create 5 in
+          Hashtbl.add happiness_map from_guest m;
+          m
+      in
+      Hashtbl.add inner_map to_guest change
+  ) lines;
+  happiness_map
+
+let get_guest_list happiness_map =
+  Hashtbl.fold (fun guest _ acc -> guest :: acc) happiness_map []
+
+let rec permutations l =
+  match l with
+  | [] -> [[]]
+  | x :: xs ->
+      let rec insert_into_all_positions x = function
+        | [] -> [[x]]
+        | hd :: tl as l -> (x :: l) :: (List.map (fun sub -> hd :: sub) (insert_into_all_positions x tl))
+      in
+      List.flatten (List.map (insert_into_all_positions x) (permutations xs))
+
+let calculate_happiness arrangement happiness_map =
+  let n = List.length arrangement in
+  let rec loop i acc =
+    if i >= n then acc
+    else
+      let left = (i + n - 1) mod n in
+      let right = (i + 1) mod n in
+      let current = List.nth arrangement i in
+      let left_guest = List.nth arrangement left in
+      let right_guest = List.nth arrangement right in
+      let inner_map = Hashtbl.find happiness_map current in
+      let change_left =
+        try Hashtbl.find inner_map left_guest
+        with Not_found -> 0
+      in
+      let change_right =
+        try Hashtbl.find inner_map right_guest
+        with Not_found -> 0
+      in
+      loop (i + 1) (acc + change_left + change_right)
+  in
+  loop 0 0
+
+let () =
+  let happiness_map = read_happiness_values "input.txt" in
+  let guests = get_guest_list happiness_map in
+  let perms = permutations guests in
+  let max_happiness =
+    List.fold_left (fun max_h perm ->
+      max max_h (calculate_happiness perm happiness_map)
+    ) 0 perms
+  in
+  print_int max_happiness;
+  print_newline ()

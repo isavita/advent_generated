@@ -1,0 +1,50 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc_rules acc_updates is_update_section =
+    try
+      let line = input_line ic in
+      let line = String.trim line in
+      if line = "" then
+        read_lines acc_rules acc_updates true
+      else if not is_update_section then
+        match String.split_on_char '|' line with
+        | [x; y] ->
+            (match int_of_string_opt (String.trim x), int_of_string_opt (String.trim y) with
+            | Some x, Some y -> read_lines ((x, y) :: acc_rules) acc_updates is_update_section
+            | _ -> read_lines acc_rules acc_updates is_update_section)
+        | _ -> read_lines acc_rules acc_updates is_update_section
+      else
+        let nums = String.split_on_char ',' line |> List.filter_map (fun s -> int_of_string_opt (String.trim s)) in
+        if nums <> [] then
+          read_lines acc_rules (nums :: acc_updates) is_update_section
+        else
+          read_lines acc_rules acc_updates is_update_section
+    with
+    | End_of_file -> (List.rev acc_rules, List.rev acc_updates)
+  in
+  let rules, updates = read_lines [] [] false in
+  close_in ic;
+  (rules, updates)
+
+let is_correctly_ordered update rules =
+  let position = Hashtbl.create (List.length update) in
+  List.iteri (fun i x -> Hashtbl.add position x i) update;
+  List.for_all (fun (x, y) ->
+    match Hashtbl.find_opt position x, Hashtbl.find_opt position y with
+    | Some px, Some py -> px < py
+    | _ -> true
+  ) rules
+
+let () =
+  let rules, updates = read_input "input.txt" in
+  let sum =
+    List.fold_left (fun acc update ->
+      if is_correctly_ordered update rules then
+        acc + List.nth update (List.length update / 2)
+      else
+        acc
+    ) 0 updates
+  in
+  print_int sum;
+  print_newline ()
