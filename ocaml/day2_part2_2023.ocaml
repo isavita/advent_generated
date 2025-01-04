@@ -1,0 +1,93 @@
+
+open Printf
+
+let parse_color_count s =
+  let parts = String.split_on_char ' ' (String.trim s) in
+  match parts with
+  | [count; color] -> (int_of_string count, color)
+  | _ -> failwith "Invalid color count format"
+
+let parse_subset s =
+  let color_counts = String.split_on_char ',' s in
+  let red = ref 0 in
+  let green = ref 0 in
+  let blue = ref 0 in
+  List.iter (fun cc ->
+    let count, color = parse_color_count cc in
+    match color with
+    | "red" -> red := count
+    | "green" -> green := count
+    | "blue" -> blue := count
+    | _ -> failwith "Invalid color"
+  ) color_counts;
+  (!red, !green, !blue)
+
+let parse_game_line line =
+  match String.split_on_char ':' line with
+  | [game_part; subsets_part] ->
+    let game_id =
+      match String.split_on_char ' ' game_part with
+      | ["Game"; id] -> int_of_string id
+      | _ -> failwith "Invalid game id format"
+    in
+    let subsets = String.split_on_char ';' subsets_part in
+    let parsed_subsets = List.map parse_subset subsets in
+    (game_id, parsed_subsets)
+  | _ -> failwith "Invalid game line format"
+
+let is_game_possible (red_limit, green_limit, blue_limit) subsets =
+  List.for_all (fun (red, green, blue) ->
+    red <= red_limit && green <= green_limit && blue <= blue_limit
+  ) subsets
+
+let min_cubes_for_game subsets =
+  let max_red = ref 0 in
+  let max_green = ref 0 in
+  let max_blue = ref 0 in
+  List.iter (fun (red, green, blue) ->
+    max_red := max !max_red red;
+    max_green := max !max_green green;
+    max_blue := max !max_blue blue;
+  ) subsets;
+  (!max_red, !max_green, !max_blue)
+
+let power_of_cubes (red, green, blue) = red * green * blue
+
+let solve_part1 lines =
+  let possible_games_sum = ref 0 in
+  let limits = (12, 13, 14) in
+  List.iter (fun line ->
+    let game_id, subsets = parse_game_line line in
+    if is_game_possible limits subsets then
+      possible_games_sum := !possible_games_sum + game_id
+  ) lines;
+  !possible_games_sum
+
+let solve_part2 lines =
+  let total_power = ref 0 in
+  List.iter (fun line ->
+    let _, subsets = parse_game_line line in
+    let min_cubes = min_cubes_for_game subsets in
+    total_power := !total_power + power_of_cubes min_cubes
+  ) lines;
+  !total_power
+
+let read_lines filename =
+  let chan = open_in filename in
+  let rec read_all acc =
+    try
+      let line = input_line chan in
+      read_all (line :: acc)
+    with
+    | End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_all []
+
+let () =
+  let lines = read_lines "input.txt" in
+  let part1_result = solve_part1 lines in
+  let part2_result = solve_part2 lines in
+  printf "Part 1: %d\n" part1_result;
+  printf "Part 2: %d\n" part2_result

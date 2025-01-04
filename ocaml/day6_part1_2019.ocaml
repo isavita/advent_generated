@@ -1,0 +1,36 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let solve lines =
+  let orbit_map = Hashtbl.create 100 in
+  List.iter (fun line ->
+    match String.split_on_char ')' line with
+    | [center; orbiter] ->
+        let orbits = try Hashtbl.find orbit_map center with Not_found -> [] in
+        Hashtbl.replace orbit_map center (orbiter :: orbits)
+    | _ -> ()
+  ) lines;
+
+  let rec count_orbits start depth =
+    try
+      let orbits = Hashtbl.find orbit_map start in
+      depth + List.fold_left (fun acc orbit -> acc + count_orbits orbit (depth + 1)) 0 orbits
+    with Not_found -> depth
+  in
+  count_orbits "COM" 0
+
+let () =
+  let lines = read_file "input.txt" in
+  let result = solve lines in
+  Printf.printf "%d\n" result

@@ -1,0 +1,58 @@
+
+let snafu_to_decimal snafu =
+  let rec aux snafu_chars power acc =
+    match snafu_chars with
+    | [] -> acc
+    | c :: rest ->
+      let digit_value =
+        match c with
+        | '2' -> 2
+        | '1' -> 1
+        | '0' -> 0
+        | '-' -> -1
+        | '=' -> -2
+        | _ -> failwith "Invalid SNAFU digit"
+      in
+      aux rest (power * 5) (acc + (digit_value * power))
+  in
+  let snafu_chars = List.of_seq (String.to_seq snafu) in
+  aux (List.rev snafu_chars) 1 0
+
+let decimal_to_snafu decimal =
+  let rec aux decimal acc =
+    if decimal = 0 then
+      match acc with
+      | [] -> "0"
+      | _ -> String.of_seq (List.to_seq acc)
+    else
+      let remainder = decimal mod 5 in
+      let next_decimal = decimal / 5 in
+      match remainder with
+      | 0 -> aux next_decimal ('0' :: acc)
+      | 1 -> aux next_decimal ('1' :: acc)
+      | 2 -> aux next_decimal ('2' :: acc)
+      | 3 -> aux (next_decimal + 1) ('=' :: acc)
+      | 4 -> aux (next_decimal + 1) ('-' :: acc)
+      | _ -> failwith "Invalid remainder"
+  in
+  aux decimal []
+
+let () =
+  let input_lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with
+      | End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let decimal_sum =
+    List.fold_left (fun acc snafu -> acc + snafu_to_decimal snafu) 0 input_lines
+  in
+  let snafu_result = decimal_to_snafu decimal_sum in
+  print_endline snafu_result

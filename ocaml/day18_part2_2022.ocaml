@@ -1,0 +1,70 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+    | End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let parse_line line =
+  Scanf.sscanf line "%d,%d,%d" (fun x y z -> (x, y, z))
+
+let add (x1, y1, z1) (x2, y2, z2) = (x1 + x2, y1 + y2, z1 + z2)
+
+let min a b = if a < b then a else b
+let max a b = if a > b then a else b
+
+let solve lines =
+  let cubes = Hashtbl.create 100 in
+  let min_coord = ref (max_int, max_int, max_int) in
+  let max_coord = ref (min_int, min_int, min_int) in
+
+  List.iter (fun line ->
+    let cube = parse_line line in
+    Hashtbl.add cubes cube ();
+    let x, y, z = cube in
+    let min_x, min_y, min_z = !min_coord in
+    let max_x, max_y, max_z = !max_coord in
+    min_coord := (min min_x x, min min_y y, min min_z z);
+    max_coord := (max max_x x, max max_y y, max max_z z)
+  ) lines;
+
+  let min_x, min_y, min_z = !min_coord in
+  let max_x, max_y, max_z = !max_coord in
+  let min_coord = (min_x - 1, min_y - 1, min_z - 1) in
+  let max_coord = (max_x + 1, max_y + 1, max_z + 1) in
+
+  let neighbors = [(-1, 0, 0); (1, 0, 0); (0, -1, 0); (0, 1, 0); (0, 0, -1); (0, 0, 1)] in
+  let faces = ref 0 in
+  let q = Queue.create () in
+  let seen = Hashtbl.create 100 in
+  Queue.add min_coord q;
+  Hashtbl.add seen min_coord ();
+
+  while not (Queue.is_empty q) do
+    let curr = Queue.pop q in
+    List.iter (fun delta ->
+      let next = add curr delta in
+      let x, y, z = next in
+      let min_x, min_y, min_z = min_coord in
+      let max_x, max_y, max_z = max_coord in
+      if x < min_x || y < min_y || z < min_z || x > max_x || y > max_y || z > max_z then ()
+      else if Hashtbl.mem cubes next then incr faces
+      else if not (Hashtbl.mem seen next) then (
+        Hashtbl.add seen next ();
+        Queue.add next q
+      )
+    ) neighbors
+  done;
+  !faces
+
+let () =
+  let lines = read_file "input.txt" in
+  let result = solve lines in
+  Printf.printf "%d\n" result

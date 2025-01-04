@@ -1,0 +1,28 @@
+
+let parse_line line =
+  Scanf.sscanf line "Disc #%_d has %d positions; at time=0, it is at position %d."
+    (fun total start -> (total, start))
+
+let solve discs =
+  let rec find_time time =
+    if List.mapi (fun i (total, start) -> (start + time + i + 1) mod total) discs
+       |> List.for_all (( = ) 0)
+    then time
+    else find_time (time + 1)
+  in
+  find_time 0
+
+let () =
+  let input = open_in "input.txt" in
+  let discs =
+    let rec read_lines acc =
+      try
+        let line = input_line input in
+        read_lines (parse_line line :: acc)
+      with End_of_file -> List.rev acc
+    in
+    read_lines []
+  in
+  close_in input;
+  let result = solve discs in
+  Printf.printf "%d\n" result

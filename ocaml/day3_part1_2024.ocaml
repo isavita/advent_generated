@@ -1,0 +1,52 @@
+
+let is_digit = function '0' .. '9' -> true | _ -> false
+
+let parse_int s start =
+  let rec aux i acc =
+    if i >= String.length s || not (is_digit s.[i]) then
+      (acc, i)
+    else
+      aux (i + 1) (acc * 10 + (Char.code s.[i] - Char.code '0'))
+  in
+  aux start 0
+
+let process_line line =
+  let rec aux i acc =
+    if i >= String.length line then
+      acc
+    else
+      match line.[i] with
+      | 'm' when i + 3 < String.length line && String.sub line i 4 = "mul(" ->
+          let num1, next_i = parse_int line (i + 4) in
+          if next_i < String.length line && line.[next_i] = ',' then
+            let num2, next_next_i = parse_int line (next_i + 1) in
+            if next_next_i < String.length line && line.[next_next_i] = ')' then
+              aux (next_next_i + 1) (acc + (num1 * num2))
+            else
+              aux (i + 1) acc
+          else
+            aux (i + 1) acc
+      | _ -> aux (i + 1) acc
+  in
+  aux 0 0
+
+let () =
+  let sum =
+    try
+      let ic = open_in "input.txt" in
+      let rec read_and_sum acc =
+        try
+          let line = input_line ic in
+          read_and_sum (acc + process_line line)
+        with
+        | End_of_file ->
+            close_in ic;
+            acc
+      in
+      read_and_sum 0
+    with
+    | Sys_error msg ->
+        Printf.eprintf "Error reading input file: %s\n" msg;
+        0
+  in
+  Printf.printf "%d\n" sum

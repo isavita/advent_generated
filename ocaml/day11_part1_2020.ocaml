@@ -1,0 +1,67 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input lines =
+  Array.of_list (List.map (fun line -> Array.of_seq (String.to_seq line)) lines)
+
+let count_adjacent_occupied area row col =
+  let rows = Array.length area in
+  let cols = Array.length area.(0) in
+  let count = ref 0 in
+  for i = row - 1 to row + 1 do
+    for j = col - 1 to col + 1 do
+      if i = row && j = col then ()
+      else if i >= 0 && i < rows && j >= 0 && j < cols && area.(i).(j) = '#' then
+        incr count
+    done
+  done;
+  !count
+
+let simulate_seating area =
+  let rows = Array.length area in
+  let cols = Array.length area.(0) in
+  let new_area = Array.make_matrix rows cols ' ' in
+  let stabilized = ref true in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      new_area.(i).(j) <- area.(i).(j);
+      match area.(i).(j) with
+      | 'L' ->
+          if count_adjacent_occupied area i j = 0 then (
+            new_area.(i).(j) <- '#';
+            stabilized := false)
+      | '#' ->
+          if count_adjacent_occupied area i j >= 4 then (
+            new_area.(i).(j) <- 'L';
+            stabilized := false)
+      | _ -> ()
+    done
+  done;
+  (new_area, !stabilized)
+
+let count_occupied_seats area =
+  let count = ref 0 in
+  Array.iter (fun row -> Array.iter (fun seat -> if seat = '#' then incr count) row) area;
+  !count
+
+let rec solve area =
+  let new_area, stabilized = simulate_seating area in
+  if stabilized then count_occupied_seats new_area
+  else solve new_area
+
+let () =
+  let lines = read_file "input.txt" in
+  let area = parse_input lines in
+  let result = solve area in
+  print_int result;
+  print_newline ()

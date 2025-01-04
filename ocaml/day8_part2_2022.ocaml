@@ -1,0 +1,38 @@
+
+let neighbors = [ (0, 1); (0, -1); (1, 0); (-1, 0) ]
+
+let solve () =
+  let grid = Hashtbl.create 1000 in
+  let ic = open_in "input.txt" in
+  let rec read_grid y =
+    try
+      let line = input_line ic in
+      String.iteri (fun x c -> Hashtbl.add grid (x, y) (int_of_char c - int_of_char '0')) line;
+      read_grid (y + 1)
+    with End_of_file -> ()
+  in
+  read_grid 0;
+  close_in ic;
+  let max_score = ref 0 in
+  Hashtbl.iter (fun (x, y) v ->
+    let score = ref 1 in
+    List.iter (fun (dx, dy) ->
+      let nx, ny = ref x, ref y in
+      let view = ref 0 in
+      try
+        while true do
+          nx := !nx + dx;
+          ny := !ny + dy;
+          match Hashtbl.find_opt grid (!nx, !ny) with
+          | Some nv ->
+            incr view;
+            if nv >= v then (score := !score * !view; raise Exit)
+          | None -> score := !score * !view; raise Exit
+        done
+      with Exit -> ()
+    ) neighbors;
+    max_score := max !max_score !score
+  ) grid;
+  Printf.printf "%d\n" !max_score
+
+let () = solve ()

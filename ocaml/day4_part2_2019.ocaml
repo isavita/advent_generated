@@ -1,0 +1,34 @@
+
+let is_valid_password password =
+  let s = string_of_int password in
+  let len = String.length s in
+  let rec aux i has_double =
+    if i >= len - 1 then has_double
+    else if s.[i] > s.[i + 1] then false
+    else
+      let new_has_double =
+        if s.[i] = s.[i + 1] then
+          let not_larger_group =
+            (i = 0 || s.[i] <> s.[i - 1])
+            && (i + 2 >= len || s.[i] <> s.[i + 2])
+          in
+          has_double || not_larger_group
+        else has_double
+      in
+      aux (i + 1) new_has_double
+  in
+  aux 0 false
+
+let () =
+  let input = open_in "input.txt" in
+  let line = input_line input in
+  close_in input;
+  let parts = String.split_on_char '-' line in
+  let start = int_of_string (List.nth parts 0) in
+  let end_ = int_of_string (List.nth parts 1) in
+  let count = ref 0 in
+  for i = start to end_ do
+    if is_valid_password i then incr count
+  done;
+  print_int !count;
+  print_newline ()

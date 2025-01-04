@@ -1,0 +1,65 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let move_east grid =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let moved = ref false in
+  let next_grid = Array.map Array.copy grid in
+  for y = 0 to height - 1 do
+    for x = 0 to width - 1 do
+      if grid.(y).(x) = '>' then
+        let next_x = (x + 1) mod width in
+        if grid.(y).(next_x) = '.' then (
+          next_grid.(y).(x) <- '.';
+          next_grid.(y).(next_x) <- '>';
+          moved := true;
+        )
+    done
+  done;
+  (!moved, next_grid)
+
+let move_south grid =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let moved = ref false in
+  let next_grid = Array.map Array.copy grid in
+  for x = 0 to width - 1 do
+    for y = 0 to height - 1 do
+      if grid.(y).(x) = 'v' then
+        let next_y = (y + 1) mod height in
+        if grid.(next_y).(x) = '.' then (
+          next_grid.(y).(x) <- '.';
+          next_grid.(next_y).(x) <- 'v';
+          moved := true;
+        )
+    done
+  done;
+  (!moved, next_grid)
+
+let solve grid =
+  let rec aux step grid =
+    let east_moved, grid = move_east grid in
+    let south_moved, grid = move_south grid in
+    if not east_moved && not south_moved then
+      step
+    else
+      aux (step + 1) grid
+  in
+  aux 1 grid
+
+let () =
+  let lines = read_file "input.txt" in
+  let grid = Array.of_list (List.map (fun line -> Array.of_seq (String.to_seq line)) lines) in
+  let result = solve grid in
+  Printf.printf "%d\n" result

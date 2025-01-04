@@ -1,0 +1,74 @@
+
+let read_input filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      let row =
+        String.to_seq line
+        |> Seq.map (fun c -> int_of_string (String.make 1 c))
+        |> Array.of_seq
+      in
+      read_lines (row :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc |> Array.of_list
+  in
+  read_lines []
+
+let simulate_step grid =
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  let flashed = Hashtbl.create (rows * cols) in
+  for y = 0 to rows - 1 do
+    for x = 0 to cols - 1 do
+      grid.(y).(x) <- grid.(y).(x) + 1
+    done
+  done;
+  let rec flash x y flashes =
+    if Hashtbl.mem flashed (x, y) then
+      flashes
+    else
+      begin
+        Hashtbl.add flashed (x, y) true;
+        let flashes = ref (flashes + 1) in
+        for dx = -1 to 1 do
+          for dy = -1 to 1 do
+            if dx = 0 && dy = 0 then () else
+            let nx = x + dx in
+            let ny = y + dy in
+            if nx >= 0 && nx < cols && ny >= 0 && ny < rows then
+              begin
+                grid.(ny).(nx) <- grid.(ny).(nx) + 1;
+                if grid.(ny).(nx) > 9 then
+                  flashes := flash nx ny !flashes
+              end
+          done
+        done;
+        !flashes
+      end
+  in
+  let total_flashes = ref 0 in
+  for y = 0 to rows - 1 do
+    for x = 0 to cols - 1 do
+      if grid.(y).(x) > 9 then
+        total_flashes := flash x y !total_flashes
+    done
+  done;
+  Hashtbl.iter (fun (x, y) _ -> grid.(y).(x) <- 0) flashed;
+  !total_flashes
+
+let () =
+  let grid = read_input "input.txt" in
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  let target_flashes = rows * cols in
+  let rec solve step =
+    let flashes = simulate_step grid in
+    if flashes = target_flashes then
+      step
+    else
+      solve (step + 1)
+  in
+  let result = solve 1 in
+  Printf.printf "%d\n" result

@@ -1,0 +1,64 @@
+
+open Printf
+
+let max_red = 12
+let max_green = 13
+let max_blue = 14
+
+let parse_color_count s =
+  let parts = String.split_on_char ' ' (String.trim s) in
+  match parts with
+  | [count; color] -> (int_of_string count, color)
+  | _ -> failwith "Invalid color count format"
+
+let parse_subset s =
+  let color_counts = String.split_on_char ',' s in
+  let red = ref 0 in
+  let green = ref 0 in
+  let blue = ref 0 in
+  List.iter (fun cc ->
+    let count, color = parse_color_count cc in
+    match color with
+    | "red" -> red := !red + count
+    | "green" -> green := !green + count
+    | "blue" -> blue := !blue + count
+    | _ -> failwith "Invalid color"
+  ) color_counts;
+  (!red, !green, !blue)
+
+let parse_game_line line =
+  match String.split_on_char ':' line with
+  | [game_part; subsets_part] ->
+    let game_id =
+      match String.split_on_char ' ' game_part with
+      | ["Game"; id] -> int_of_string id
+      | _ -> failwith "Invalid game id format"
+    in
+    let subsets = String.split_on_char ';' subsets_part in
+    let parsed_subsets = List.map parse_subset subsets in
+    (game_id, parsed_subsets)
+  | _ -> failwith "Invalid game line format"
+
+let is_game_possible (game_id, subsets) =
+  List.for_all (fun (red, green, blue) ->
+    red <= max_red && green <= max_green && blue <= max_blue
+  ) subsets
+
+let solve filename =
+  let sum = ref 0 in
+  let ic = open_in filename in
+  try
+    while true do
+      let line = input_line ic in
+      let game = parse_game_line line in
+      if is_game_possible game then
+        sum := !sum + fst game
+    done;
+    0 (* This will never be reached, but the compiler needs it *)
+  with End_of_file ->
+    close_in ic;
+    !sum
+
+let () =
+  let result = solve "input.txt" in
+  printf "%d\n" result

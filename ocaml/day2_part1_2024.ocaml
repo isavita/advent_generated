@@ -1,0 +1,36 @@
+
+let is_safe levels =
+  let rec check_direction dir = function
+    | [] | [_] -> true
+    | x :: y :: rest ->
+      let diff = y - x in
+      if diff = 0 || abs diff > 3 then false
+      else
+        let new_dir = if diff > 0 then 1 else -1 in
+        if dir = 0 || dir = new_dir then check_direction new_dir (y :: rest)
+        else false
+  in
+  check_direction 0 levels
+
+let process_line line =
+  let levels =
+    String.split_on_char ' ' line
+    |> List.map int_of_string
+  in
+  if is_safe levels then 1 else 0
+
+let () =
+  let safe_count =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (acc + process_line line)
+      with
+        End_of_file ->
+          close_in ic;
+          acc
+    in
+    read_lines 0
+  in
+  Printf.printf "%d\n" safe_count

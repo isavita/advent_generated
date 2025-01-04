@@ -1,0 +1,42 @@
+
+let () =
+  let caves = Hashtbl.create 16 in
+  let input = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line input in
+      let paths = String.split_on_char '-' line in
+      let from_cave, to_cave = List.nth paths 0, List.nth paths 1 in
+      let add_connection cave1 cave2 =
+        let connections =
+          try Hashtbl.find caves cave1 with Not_found -> Hashtbl.create 4
+        in
+        Hashtbl.add connections cave2 true;
+        Hashtbl.replace caves cave1 connections
+      in
+      add_connection from_cave to_cave;
+      add_connection to_cave from_cave
+    done
+  with End_of_file -> close_in input;
+  let count = ref 0 in
+  let rec dfs current visited =
+    if current = "end" then incr count
+    else
+      try
+        let connections = Hashtbl.find caves current in
+        Hashtbl.iter
+          (fun next _ ->
+            if
+              not (Hashtbl.mem visited next)
+              || String.lowercase_ascii next <> next
+            then
+              let visited' = Hashtbl.copy visited in
+              Hashtbl.add visited' next true;
+              dfs next visited')
+          connections
+      with Not_found -> ()
+  in
+  let visited = Hashtbl.create 4 in
+  Hashtbl.add visited "start" true;
+  dfs "start" visited;
+  Printf.printf "%d\n" !count

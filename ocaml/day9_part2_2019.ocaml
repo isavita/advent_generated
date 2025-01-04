@@ -1,0 +1,78 @@
+
+let read_input filename =
+  let chan = open_in filename in
+  let line = input_line chan in
+  close_in chan;
+  String.split_on_char ',' line |> List.map int_of_string
+
+let run_intcode memory input =
+  let memory = Hashtbl.of_seq (List.mapi (fun i v -> (i, v)) memory |> List.to_seq) in
+  let get_param memory ip offset modes relative_base =
+    let mode =
+      if String.length modes >= offset
+      then int_of_string (String.make 1 modes.[String.length modes - offset])
+      else 0
+    in
+    let param = Hashtbl.find memory (ip + offset) in
+    match mode with
+    | 0 -> (try Hashtbl.find memory param with Not_found -> 0)
+    | 1 -> param
+    | 2 -> (try Hashtbl.find memory (relative_base + param) with Not_found -> 0)
+    | _ -> failwith "unknown parameter mode"
+  in
+  let set_param memory ip offset value modes relative_base =
+    let mode =
+      if String.length modes >= offset
+      then int_of_string (String.make 1 modes.[String.length modes - offset])
+      else 0
+    in
+    let param = Hashtbl.find memory (ip + offset) in
+    match mode with
+    | 0 -> Hashtbl.replace memory param value
+    | 2 -> Hashtbl.replace memory (relative_base + param) value
+    | _ -> failwith "unknown parameter mode"
+  in
+  let rec aux output ip relative_base =
+    let opcode = Hashtbl.find memory ip mod 100 in
+    let modes = string_of_int (Hashtbl.find memory ip / 100) in
+    match opcode with
+    | 1 ->
+        set_param memory ip 3 (get_param memory ip 1 modes relative_base + get_param memory ip 2 modes relative_base) modes relative_base;
+        aux output (ip + 4) relative_base
+    | 2 ->
+        set_param memory ip 3 (get_param memory ip 1 modes relative_base * get_param memory ip 2 modes relative_base) modes relative_base;
+        aux output (ip + 4) relative_base
+    | 3 ->
+        set_param memory ip 1 input modes relative_base;
+        aux output (ip + 2) relative_base
+    | 4 ->
+        let output = get_param memory ip 1 modes relative_base in
+        aux output (ip + 2) relative_base
+    | 5 ->
+        if get_param memory ip 1 modes relative_base <> 0
+        then aux output (get_param memory ip 2 modes relative_base) relative_base
+        else aux output (ip + 3) relative_base
+    | 6 ->
+        if get_param memory ip 1 modes relative_base = 0
+        then aux output (get_param memory ip 2 modes relative_base) relative_base
+        else aux output (ip + 3) relative_base
+    | 7 ->
+        let value = if get_param memory ip 1 modes relative_base < get_param memory ip 2 modes relative_base then 1 else 0 in
+        set_param memory ip 3 value modes relative_base;
+        aux output (ip + 4) relative_base
+    | 8 ->
+        let value = if get_param memory ip 1 modes relative_base = get_param memory ip 2 modes relative_base then 1 else 0 in
+        set_param memory ip 3 value modes relative_base;
+        aux output (ip + 4) relative_base
+    | 9 ->
+        let relative_base = relative_base + get_param memory ip 1 modes relative_base in
+        aux output (ip + 2) relative_base
+    | 99 -> output
+    | _ -> failwith (Printf.sprintf "unknown opcode: %d" opcode)
+  in
+  aux 0 0 0
+
+let () =
+  let program = read_input "input.txt" in
+  let result = run_intcode program 2 in
+  Printf.printf "%d\n" result

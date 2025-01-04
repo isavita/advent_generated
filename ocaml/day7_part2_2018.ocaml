@@ -1,0 +1,98 @@
+
+let parse_input filename =
+  let ic = open_in filename in
+  let deps = Hashtbl.create 16 in
+  let all_steps = Hashtbl.create 16 in
+  try
+    while true do
+      let line = input_line ic in
+      Scanf.sscanf line "Step %c must be finished before step %c can begin."
+        (fun a b ->
+          let a_step =
+            try Hashtbl.find all_steps a
+            with Not_found ->
+              let step = (a, int_of_char a - int_of_char 'A' + 61) in
+              Hashtbl.add all_steps a step;
+              step
+          in
+          let b_step =
+            try Hashtbl.find all_steps b
+            with Not_found ->
+              let step = (b, int_of_char b - int_of_char 'A' + 61) in
+              Hashtbl.add all_steps b step;
+              step
+          in
+          let existing_deps =
+            try Hashtbl.find deps b with Not_found -> []
+          in
+          Hashtbl.replace deps b (a :: existing_deps))
+    done;
+    assert false
+  with End_of_file ->
+    close_in ic;
+    deps, all_steps
+
+let simulate_work deps all_steps num_workers =
+  let workers = Array.make num_workers 0 in
+  let tasks = Array.make num_workers '\000' in
+  let time = ref 0 in
+  let is_being_worked_on step tasks =
+    Array.exists (fun task -> task = step) tasks
+  in
+  let find_min_duration durations =
+    Array.fold_left
+      (fun min duration ->
+        if duration > 0 && duration < min then duration else min)
+      max_int durations
+  in
+  let finish_step deps all_steps step =
+    Hashtbl.remove all_steps step;
+    Hashtbl.iter
+      (fun s _ ->
+        let remove_dep =
+          try
+            let deps_s = Hashtbl.find deps s in
+            List.filter (fun dep -> dep <> step) deps_s
+          with Not_found -> []
+        in
+        Hashtbl.replace deps s remove_dep)
+      all_steps
+  in
+  while Hashtbl.length all_steps > 0 do
+    let available =
+      Hashtbl.fold
+        (fun step _ acc ->
+          if
+            (not (Hashtbl.mem deps step)) || Hashtbl.find deps step = []
+            && not (is_being_worked_on step tasks)
+          then step :: acc
+          else acc)
+        all_steps []
+    in
+    let sorted_available = List.sort Char.compare available in
+    let available_ref = ref sorted_available in
+    for i = 0 to num_workers - 1 do
+      if workers.(i) = 0 && !available_ref <> [] then (
+        tasks.(i) <- List.hd !available_ref;
+        workers.(i) <- (Hashtbl.find all_steps (List.hd !available_ref) |> snd);
+        available_ref := List.tl !available_ref
+      )
+    done;
+    let min_duration = find_min_duration workers in
+    for i = 0 to num_workers - 1 do
+      if workers.(i) <> 0 then (
+        workers.(i) <- workers.(i) - min_duration;
+        if workers.(i) = 0 then (
+          finish_step deps all_steps tasks.(i);
+          tasks.(i) <- '\000'
+        )
+      )
+    done;
+    time := !time + min_duration
+  done;
+  !time
+
+let () =
+  let deps, all_steps = parse_input "input.txt" in
+  let time_taken = simulate_work deps all_steps 5 in
+  Printf.printf "%d\n" time_taken

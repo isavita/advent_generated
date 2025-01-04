@@ -1,0 +1,87 @@
+
+let reverse_section arr start length =
+  let n = Array.length arr in
+  let i = ref start in
+  let j = ref (start + length - 1) in
+  while !i < !j do
+    let a = !i mod n in
+    let b = !j mod n in
+    let temp = arr.(a) in
+    arr.(a) <- arr.(b);
+    arr.(b) <- temp;
+    incr i;
+    decr j
+  done
+
+let knot_hash input =
+  let lengths = List.append (List.map int_of_char (List.of_seq (String.to_seq input))) [17; 31; 73; 47; 23] in
+  let list = Array.init 256 (fun i -> i) in
+  let position = ref 0 in
+  let skip = ref 0 in
+  for _ = 0 to 63 do
+    List.iter (fun length ->
+      reverse_section list !position length;
+      position := !position + length + !skip;
+      incr skip
+    ) lengths
+  done;
+  let dense_hash = Array.init 16 (fun i ->
+    let xor_val = ref 0 in
+    for j = 0 to 15 do
+      xor_val := !xor_val lxor list.(i * 16 + j)
+    done;
+    !xor_val
+  ) in
+  let hex_hash = Bytes.create 32 in
+  Array.iteri (fun i v ->
+    let high = v lsr 4 in
+    let low = v land 0x0F in
+    Bytes.set hex_hash (i * 2) (if high < 10 then Char.chr (high + 48) else Char.chr (high + 87));
+    Bytes.set hex_hash (i * 2 + 1) (if low < 10 then Char.chr (low + 48) else Char.chr (low + 87))
+  ) dense_hash;
+  Bytes.to_string hex_hash
+
+let hex_to_binary hex_str =
+  let binary_str = Buffer.create (String.length hex_str * 4) in
+  String.iter (fun hex_digit ->
+    let value = int_of_string ("0x" ^ String.make 1 hex_digit) in
+    for i = 3 downto 0 do
+      Buffer.add_char binary_str (if (value lsr i) land 1 = 1 then '1' else '0')
+    done
+  ) hex_str;
+  Buffer.contents binary_str
+
+let rec dfs x y grid =
+  if x < 0 || x >= 128 || y < 0 || y >= 128 || grid.(x).(y) <> 1 then ()
+  else begin
+    grid.(x).(y) <- 0;
+    dfs (x - 1) y grid;
+    dfs (x + 1) y grid;
+    dfs x (y - 1) grid;
+    dfs x (y + 1) grid
+  end
+
+let () =
+  let ic = open_in "input.txt" in
+  let key_string = String.trim (input_line ic) in
+  close_in ic;
+  let grid = Array.make_matrix 128 128 0 in
+  let regions = ref 0 in
+  for i = 0 to 127 do
+    let row_key = key_string ^ "-" ^ string_of_int i in
+    let hash = knot_hash row_key in
+    let binary_row = hex_to_binary hash in
+    String.iteri (fun j bit ->
+      if bit = '1' then grid.(i).(j) <- 1
+    ) binary_row
+  done;
+  for i = 0 to 127 do
+    for j = 0 to 127 do
+      if grid.(i).(j) = 1 then begin
+        incr regions;
+        dfs i j grid
+      end
+    done
+  done;
+  print_int !regions;
+  print_newline ()

@@ -1,0 +1,168 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+type point = { x : int; y : int }
+
+let neighbours { x; y } =
+  [ { x; y = y + 1 }; { x = x + 1; y }; { x; y = y - 1 }; { x = x - 1; y } ]
+
+type map = {
+  x_max : int;
+  y_max : int;
+  grid : (point, char) Hashtbl.t;
+  aa : point;
+  zz : point;
+  teleport : (point, point) Hashtbl.t;
+  portal_name : (point, string) Hashtbl.t;
+  is_outer : (point, bool) Hashtbl.t;
+}
+
+let parse lines =
+  let grid = Hashtbl.create 1000 in
+  let x_max = List.length lines in
+  let y_max =
+    List.fold_left (fun acc line -> max acc (String.length line)) 0 lines
+  in
+  List.iteri
+    (fun i line ->
+      String.iteri
+        (fun j c -> Hashtbl.add grid { x = i; y = j } c)
+        line)
+    lines;
+  let aa = ref { x = 0; y = 0 } in
+  let zz = ref { x = 0; y = 0 } in
+  let is_outer = Hashtbl.create 100 in
+  let portal_name = Hashtbl.create 100 in
+  let teleport = Hashtbl.create 100 in
+  let cache = Hashtbl.create 100 in
+  let extract_portal grid { x; y } =
+    let c1 = Hashtbl.find_opt grid { x; y } in
+    match c1 with
+    | Some c1 when Char.uppercase_ascii c1 = c1 && Char.lowercase_ascii c1 <> c1 ->
+        let check_neighbour dx dy =
+          let c2 = Hashtbl.find_opt grid { x = x + dx; y = y + dy } in
+          match c2 with
+          | Some c2 when Char.uppercase_ascii c2 = c2 && Char.lowercase_ascii c2 <> c2 ->
+              let portal_name = String.make 1 c1 ^ String.make 1 c2 in
+              let portal_point1 = { x = x + (2 * dx); y = y + (2 * dy) } in
+              let portal_point2 = { x = x - dx; y = y - dy } in
+              if Hashtbl.find_opt grid portal_point1 = Some '.' then
+                Some (portal_name, portal_point1)
+              else if Hashtbl.find_opt grid portal_point2 = Some '.' then
+                Some (portal_name, portal_point2)
+              else
+                None
+          | _ -> None
+        in
+        (match check_neighbour 1 0 with
+        | Some res -> Some res
+        | None -> check_neighbour 0 1)
+    | _ -> None
+  in
+  for i = 0 to x_max - 1 do
+    for j = 0 to y_max - 1 do
+      match extract_portal grid { x = i; y = j } with
+      | Some (p_name, p_point) ->
+          Hashtbl.add portal_name p_point p_name;
+          if p_name = "AA" then (
+            aa := p_point;
+            Hashtbl.add is_outer p_point true)
+          else if p_name = "ZZ" then (
+            zz := p_point;
+            Hashtbl.add is_outer p_point true)
+          else
+            (match Hashtbl.find_opt cache p_name with
+            | Some target ->
+                Hashtbl.add teleport p_point target;
+                Hashtbl.add teleport target p_point
+            | None -> Hashtbl.add cache p_name p_point);
+          let is_outer_portal =
+            j = 0 || i = 0 || i = x_max - 2 || j = y_max - 2
+          in
+          Hashtbl.add is_outer p_point is_outer_portal
+      | None -> ()
+    done
+  done;
+  {
+    x_max;
+    y_max;
+    grid;
+    aa = !aa;
+    zz = !zz;
+    teleport;
+    portal_name;
+    is_outer;
+  }
+
+type status = { p : point; depth : int }
+
+let bfs_nested m =
+  let discovered = Hashtbl.create 1000 in
+  let todo = Queue.create () in
+  let root = { p = m.aa; depth = 0 } in
+  Hashtbl.add discovered root ();
+  Queue.add root todo;
+  let steps = ref 0 in
+  let rec loop () =
+    if Queue.is_empty todo then
+      -1
+    else
+      let level_size = Queue.length todo in
+      for _ = 1 to level_size do
+        let curr = Queue.pop todo in
+        List.iter
+          (fun n ->
+            match Hashtbl.find_opt m.grid n with
+            | Some '#' -> ()
+            | Some '.' ->
+                let target = { p = n; depth = curr.depth } in
+                if not (Hashtbl.mem discovered target) then (
+                  Hashtbl.add discovered target ();
+                  Queue.add target todo)
+            | Some c when Char.uppercase_ascii c = c && Char.lowercase_ascii c <> c ->
+                let is_outer = Hashtbl.find m.is_outer curr.p in
+                let target =
+                  if not is_outer then
+                    { p = Hashtbl.find m.teleport curr.p; depth = curr.depth + 1 }
+                  else
+                    let portal_name = Hashtbl.find m.portal_name curr.p in
+                    if curr.depth = 0 then
+                      if portal_name = "ZZ" then
+                        raise Exit
+                      else
+                        { p = curr.p; depth = curr.depth }
+                    else if portal_name = "AA" || portal_name = "ZZ" then
+                      { p = curr.p; depth = curr.depth }
+                    else
+                      { p = Hashtbl.find m.teleport curr.p; depth = curr.depth - 1 }
+                in
+                if not (Hashtbl.mem discovered target) then (
+                  Hashtbl.add discovered target ();
+                  Queue.add target todo)
+            | _ -> ())
+          (neighbours curr.p)
+      done;
+      steps := !steps + 1;
+      loop ()
+  in
+  try
+    loop ();
+    -1
+  with
+  | Exit -> !steps
+
+let () =
+  let lines = read_file "input.txt" in
+  let m = parse lines in
+  Printf.printf "%d\n" (bfs_nested m)

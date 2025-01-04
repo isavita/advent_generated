@@ -1,0 +1,59 @@
+
+open Digest
+
+let find_triplet s =
+  let len = String.length s in
+  let rec aux i =
+    if i + 2 >= len then None
+    else if s.[i] = s.[i + 1] && s.[i] = s.[i + 2] then Some s.[i]
+    else aux (i + 1)
+  in
+  aux 0
+
+let find_quintuplet c s =
+  let len = String.length s in
+  let rec aux i =
+    if i + 4 >= len then false
+    else if s.[i] = c && s.[i] = s.[i + 1] && s.[i] = s.[i + 2] && s.[i] = s.[i + 3] && s.[i] = s.[i + 4] then true
+    else aux (i + 1)
+  in
+  aux 0
+
+let md5_hex salt index =
+  let data = salt ^ string_of_int index in
+  to_hex (string data)
+
+let solve salt =
+  let rec aux index found_keys =
+    if found_keys = 64 then index - 1
+    else
+      let hash = md5_hex salt index in
+      match find_triplet hash with
+      | Some c ->
+        let is_key =
+          let rec check_next next_index =
+            if next_index > index + 1000 then false
+            else
+              let next_hash = md5_hex salt next_index in
+              if find_quintuplet c next_hash then true
+              else check_next (next_index + 1)
+          in
+          check_next (index + 1)
+        in
+        if is_key then aux (index + 1) (found_keys + 1)
+        else aux (index + 1) found_keys
+      | None -> aux (index + 1) found_keys
+  in
+  aux 0 0
+
+let () =
+  let input_line = try
+    let ic = open_in "input.txt" in
+    let line = input_line ic in
+    close_in ic;
+    line
+  with Sys_error _ ->
+    "abc" (* Default salt if input.txt not found *)
+  in
+  let result = solve input_line in
+  Printf.printf "%d\n" result

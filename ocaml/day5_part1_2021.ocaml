@@ -1,0 +1,37 @@
+
+let parse_line line =
+  let parts = String.split_on_char ' ' line in
+  let start_coords = String.split_on_char ',' (List.nth parts 0) in
+  let end_coords = String.split_on_char ',' (List.nth parts 2) in
+  let x1 = int_of_string (List.nth start_coords 0) in
+  let y1 = int_of_string (List.nth start_coords 1) in
+  let x2 = int_of_string (List.nth end_coords 0) in
+  let y2 = int_of_string (List.nth end_coords 1) in
+  (x1, y1, x2, y2)
+
+let solve () =
+  let grid = Hashtbl.create 1000 in
+  let input = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line input in
+      let x1, y1, x2, y2 = parse_line line in
+      if x1 = x2 then
+        let start_y, end_y = if y1 < y2 then y1, y2 else y2, y1 in
+        for y = start_y to end_y do
+          let count = Hashtbl.find_opt grid (x1, y) |> Option.value ~default:0 in
+          Hashtbl.replace grid (x1, y) (count + 1)
+        done
+      else if y1 = y2 then
+        let start_x, end_x = if x1 < x2 then x1, x2 else x2, x1 in
+        for x = start_x to end_x do
+          let count = Hashtbl.find_opt grid (x, y1) |> Option.value ~default:0 in
+          Hashtbl.replace grid (x, y1) (count + 1)
+        done
+    done
+  with End_of_file ->
+    close_in input;
+    let overlap_count = Hashtbl.fold (fun _ v acc -> if v > 1 then acc + 1 else acc) grid 0 in
+    Printf.printf "%d\n" overlap_count
+
+let () = solve ()

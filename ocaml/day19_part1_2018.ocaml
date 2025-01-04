@@ -1,0 +1,103 @@
+
+open Printf
+
+type opcode =
+  | Addr
+  | Addi
+  | Mulr
+  | Muli
+  | Banr
+  | Bani
+  | Borr
+  | Bori
+  | Setr
+  | Seti
+  | Gtir
+  | Gtri
+  | Gtrr
+  | Eqir
+  | Eqri
+  | Eqrr
+
+type instruction = {
+  opcode : opcode;
+  a : int;
+  b : int;
+  c : int;
+}
+
+let parse_opcode str =
+  match str with
+  | "addr" -> Addr
+  | "addi" -> Addi
+  | "mulr" -> Mulr
+  | "muli" -> Muli
+  | "banr" -> Banr
+  | "bani" -> Bani
+  | "borr" -> Borr
+  | "bori" -> Bori
+  | "setr" -> Setr
+  | "seti" -> Seti
+  | "gtir" -> Gtir
+  | "gtri" -> Gtri
+  | "gtrr" -> Gtrr
+  | "eqir" -> Eqir
+  | "eqri" -> Eqri
+  | "eqrr" -> Eqrr
+  | _ -> failwith ("Unknown opcode: " ^ str)
+
+let parse_instruction line =
+  Scanf.sscanf line "%s %d %d %d" (fun op a b c ->
+    { opcode = parse_opcode op; a; b; c })
+
+let execute_instruction registers instruction =
+  let get_val reg = registers.(reg) in
+  let set_val reg value = registers.(reg) <- value in
+  match instruction.opcode with
+  | Addr -> set_val instruction.c (get_val instruction.a + get_val instruction.b)
+  | Addi -> set_val instruction.c (get_val instruction.a + instruction.b)
+  | Mulr -> set_val instruction.c (get_val instruction.a * get_val instruction.b)
+  | Muli -> set_val instruction.c (get_val instruction.a * instruction.b)
+  | Banr -> set_val instruction.c (get_val instruction.a land get_val instruction.b)
+  | Bani -> set_val instruction.c (get_val instruction.a land instruction.b)
+  | Borr -> set_val instruction.c (get_val instruction.a lor get_val instruction.b)
+  | Bori -> set_val instruction.c (get_val instruction.a lor instruction.b)
+  | Setr -> set_val instruction.c (get_val instruction.a)
+  | Seti -> set_val instruction.c instruction.a
+  | Gtir -> set_val instruction.c (if instruction.a > get_val instruction.b then 1 else 0)
+  | Gtri -> set_val instruction.c (if get_val instruction.a > instruction.b then 1 else 0)
+  | Gtrr -> set_val instruction.c (if get_val instruction.a > get_val instruction.b then 1 else 0)
+  | Eqir -> set_val instruction.c (if instruction.a = get_val instruction.b then 1 else 0)
+  | Eqri -> set_val instruction.c (if get_val instruction.a = instruction.b then 1 else 0)
+  | Eqrr -> set_val instruction.c (if get_val instruction.a = get_val instruction.b then 1 else 0)
+
+let run_program ip_reg instructions =
+  let registers = Array.make 6 0 in
+  let ip = ref 0 in
+  while !ip >= 0 && !ip < Array.length instructions do
+    registers.(ip_reg) <- !ip;
+    let instruction = instructions.(!ip) in
+    execute_instruction registers instruction;
+    ip := registers.(ip_reg) + 1;
+  done;
+  registers.(0)
+
+let () =
+  let input_lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with
+        End_of_file ->
+          close_in ic;
+          List.rev acc
+    in
+    read_lines []
+  in
+  let ip_line = List.hd input_lines in
+  let ip_reg = Scanf.sscanf ip_line "#ip %d" (fun x -> x) in
+  let instructions = List.tl input_lines |> List.map parse_instruction |> Array.of_list in
+  let result = run_program ip_reg instructions in
+  printf "%d\n" result

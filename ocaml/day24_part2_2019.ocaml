@@ -1,0 +1,96 @@
+
+let side = 5
+let square = side * side
+
+let parse_input () =
+  let ic = open_in "input.txt" in
+  let grid = Array.make_matrix side side false in
+  for row = 0 to side - 1 do
+    let line = input_line ic in
+    for col = 0 to side - 1 do
+      grid.(row).(col) <- line.[col] = '#'
+    done
+  done;
+  close_in ic;
+  Array.init square (fun i -> grid.(i / side).(i mod side))
+
+let infested space level cell =
+  match Hashtbl.find_opt space level with
+  | Some grid -> grid.(cell)
+  | None -> false
+
+let min_max_level space =
+  let levels = Hashtbl.fold (fun k _ acc -> k :: acc) space [] in
+  List.fold_left (fun (min_l, max_l) l -> (min min_l l, max max_l l)) (max_int, min_int) levels
+
+let clean space =
+  let min_l, max_l = min_max_level space in
+  let count_min = ref 0 in
+  let count_max = ref 0 in
+  for cell = 0 to square - 1 do
+    if infested space min_l cell then incr count_min;
+    if infested space max_l cell then incr count_max
+  done;
+  if !count_min = 0 then Hashtbl.remove space min_l;
+  if !count_max = 0 then Hashtbl.remove space max_l
+
+let next_state space =
+  let new_space = Hashtbl.create 10 in
+  let min_level, max_level = min_max_level space in
+  for level = min_level - 1 to max_level + 1 do
+    let new_grid = Array.make square false in
+    Hashtbl.add new_space level new_grid;
+    for cell = 0 to square - 1 do
+      if cell = 12 then ()
+      else
+        let row, col = cell / side, cell mod side in
+        let neighbours = ref 0 in
+        if row = 0 && infested space (level - 1) 7 then incr neighbours;
+        if col = 0 && infested space (level - 1) 11 then incr neighbours;
+        if col = 4 && infested space (level - 1) 13 then incr neighbours;
+        if row = 4 && infested space (level - 1) 17 then incr neighbours;
+        if cell = 7 then
+          for i = 0 to side - 1 do
+            if infested space (level + 1) i then incr neighbours
+          done;
+        if cell = 11 then
+          for i = 0 to side - 1 do
+            if infested space (level + 1) (5 * i) then incr neighbours
+          done;
+        if cell = 13 then
+          for i = 0 to side - 1 do
+            if infested space (level + 1) (5 * i + side - 1) then incr neighbours
+          done;
+        if cell = 17 then
+          for i = 0 to side - 1 do
+            if infested space (level + 1) ((side - 1) * side + i) then incr neighbours
+          done;
+        if row > 0 && cell <> 17 && infested space level (cell - side) then incr neighbours;
+        if col > 0 && cell <> 13 && infested space level (cell - 1) then incr neighbours;
+        if col < side - 1 && cell <> 11 && infested space level (cell + 1) then incr neighbours;
+        if row < side - 1 && cell <> 7 && infested space level (cell + side) then incr neighbours;
+        if infested space level cell && !neighbours <> 1 then
+          new_grid.(cell) <- false
+        else if not (infested space level cell) && (!neighbours = 1 || !neighbours = 2) then
+          new_grid.(cell) <- true
+        else
+          new_grid.(cell) <- infested space level cell
+    done
+  done;
+  clean new_space;
+  new_space
+
+let () =
+  let input = parse_input () in
+  let space = Hashtbl.create 1 in
+  Hashtbl.add space 0 input;
+  let final_space = ref space in
+  for _ = 0 to 199 do
+    final_space := next_state !final_space
+  done;
+  let count = ref 0 in
+  Hashtbl.iter (fun _ grid ->
+    Array.iter (fun cell -> if cell then incr count) grid
+  ) !final_space;
+  print_int !count;
+  print_newline ()

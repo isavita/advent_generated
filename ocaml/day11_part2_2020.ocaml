@@ -1,0 +1,79 @@
+
+let directions = [(-1, -1); (0, -1); (1, -1); (-1, 0); (1, 0); (-1, 1); (0, 1); (1, 1)]
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let count_visible_occupied area row col =
+  let rows = Array.length area in
+  let cols = Array.length area.(0) in
+  let count = ref 0 in
+  List.iter (fun (dx, dy) ->
+    let rec check r c =
+      if r < 0 || r >= rows || c < 0 || c >= cols then ()
+      else
+        match area.(r).(c) with
+        | 'L' -> ()
+        | '#' -> incr count;
+                 ()
+        | _ -> check (r + dy) (c + dx)
+    in
+    check (row + dy) (col + dx)
+  ) directions;
+  !count
+
+let count_occupied_seats area =
+  let count = ref 0 in
+  Array.iter (fun row ->
+    Array.iter (fun seat ->
+      if seat = '#' then incr count
+    ) row
+  ) area;
+  !count
+
+let simulate_seating area =
+  let rows = Array.length area in
+  let cols = Array.length area.(0) in
+  let new_area = Array.make_matrix rows cols '.' in
+  let stabilized = ref true in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      match area.(i).(j) with
+      | 'L' ->
+        if count_visible_occupied area i j = 0 then (
+          new_area.(i).(j) <- '#';
+          stabilized := false
+        ) else
+          new_area.(i).(j) <- 'L'
+      | '#' ->
+        if count_visible_occupied area i j >= 5 then (
+          new_area.(i).(j) <- 'L';
+          stabilized := false
+        ) else
+          new_area.(i).(j) <- '#'
+      | '.' -> new_area.(i).(j) <- '.'
+    done
+  done;
+  (new_area, !stabilized)
+
+let solve () =
+  let lines = read_file "input.txt" in
+  let area = Array.of_list (List.map (fun line -> Array.of_seq (String.to_seq line)) lines) in
+  let rec stabilize area =
+    let new_area, stabilized = simulate_seating area in
+    if stabilized then area else stabilize new_area
+  in
+  let final_area = stabilize area in
+  Printf.printf "%d\n" (count_occupied_seats final_area)
+
+let () = solve ()

@@ -1,0 +1,47 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+      End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  read_lines []
+
+let parse_rule line =
+  Scanf.sscanf line "%[^:]: %d-%d or %d-%d"
+    (fun name r1_start r1_end r2_start r2_end ->
+      (name, [(r1_start, r1_end); (r2_start, r2_end)]))
+
+let is_valid value ranges =
+  List.exists (fun (start, endd) -> value >= start && value <= endd) ranges
+
+let is_valid_for_any_rule value rules =
+  List.exists (fun (_, ranges) -> is_valid value ranges) rules
+
+let solve lines =
+  let rec process_lines rules scanning_rules error_rate = function
+    | [] -> error_rate
+    | line :: rest ->
+      if line = "" then
+        process_lines rules scanning_rules error_rate rest
+      else if String.starts_with ~prefix:"your ticket:" line || String.starts_with ~prefix:"nearby tickets:" line then
+        process_lines rules false error_rate rest
+      else if scanning_rules then
+        match parse_rule line with
+        | (name, ranges) -> process_lines ((name, ranges) :: rules) scanning_rules error_rate rest
+      else
+        let values = String.split_on_char ',' line |> List.map int_of_string in
+        let invalid_sum = List.fold_left (fun acc v -> if not (is_valid_for_any_rule v rules) then acc + v else acc) 0 values in
+        process_lines rules scanning_rules (error_rate + invalid_sum) rest
+  in
+  process_lines [] true 0 lines
+
+let () =
+  let lines = read_file "input.txt" in
+  let result = solve lines in
+  Printf.printf "%d\n" result

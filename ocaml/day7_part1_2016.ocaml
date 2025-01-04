@@ -1,0 +1,39 @@
+
+let contains_abba s =
+  let len = String.length s in
+  let rec aux i =
+    if i > len - 4 then false
+    else if String.get s i <> String.get s (i + 1) &&
+            String.get s i = String.get s (i + 3) &&
+            String.get s (i + 1) = String.get s (i + 2) then true
+    else aux (i + 1)
+  in
+  aux 0
+
+let supports_tls ip =
+  let rec process_brackets ip inside_bracket_found =
+    try
+      let open String in
+      let start_bracket = index ip '[' in
+      let end_bracket = index_from ip (start_bracket + 1) ']' in
+      let bracket_content = sub ip (start_bracket + 1) (end_bracket - start_bracket - 1) in
+      if contains_abba bracket_content then false
+      else
+        let remaining_ip = sub ip 0 start_bracket ^ "-" ^ sub ip (end_bracket + 1) (length ip - end_bracket - 1) in
+        process_brackets remaining_ip true
+    with Not_found ->
+      if inside_bracket_found then contains_abba ip else contains_abba ip
+  in
+  process_brackets ip false
+
+let () =
+  let ic = open_in "input.txt" in
+  let count = ref 0 in
+  try
+    while true do
+      let line = input_line ic in
+      if supports_tls line then incr count
+    done
+  with End_of_file ->
+    close_in ic;
+    Printf.printf "%d\n" !count

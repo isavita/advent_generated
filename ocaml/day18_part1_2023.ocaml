@@ -1,0 +1,58 @@
+
+let parse_line line =
+  Scanf.sscanf line "%c %d (#%x)" (fun dir dist color -> (dir, dist, color))
+
+let solve lines =
+  let points =
+    List.fold_left
+      (fun (x, y, acc) (dir, dist, _) ->
+        let new_x, new_y =
+          match dir with
+          | 'U' -> (x, y - dist)
+          | 'D' -> (x, y + dist)
+          | 'L' -> (x - dist, y)
+          | 'R' -> (x + dist, y)
+          | _ -> failwith "Invalid direction"
+        in
+        (new_x, new_y, (new_x, new_y) :: acc))
+      (0, 0, [(0, 0)])
+      lines
+    |> fun (_, _, points) -> List.rev points
+  in
+
+  let n = List.length points in
+  let area =
+    let rec aux i acc =
+      if i >= n - 1 then acc
+      else
+        let x1, y1 = List.nth points i in
+        let x2, y2 = List.nth points (i + 1) in
+        aux (i + 1) (acc + (x1 * y2) - (x2 * y1))
+    in
+    abs (aux 0 0) / 2
+  in
+
+  let boundary_points =
+    List.fold_left
+      (fun acc (dir, dist, _) -> acc + dist)
+      0
+      lines
+  in
+
+  area + (boundary_points / 2) + 1
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (parse_line line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let result = solve lines in
+  Printf.printf "%d\n" result

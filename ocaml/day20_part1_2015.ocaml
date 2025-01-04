@@ -1,0 +1,35 @@
+
+let solve target =
+  let presents house =
+    let rec sum_divisors acc d =
+      if d * d > house then
+        if d * d = house then acc + d else acc
+      else if house mod d = 0 then
+        sum_divisors (acc + d + (house / d)) (d + 1)
+      else
+        sum_divisors acc (d + 1)
+    in
+    sum_divisors 0 1 * 10
+  in
+  let rec find_house house =
+    if presents house >= target then
+      house
+    else
+      find_house (house + 1)
+  in
+  find_house 1
+
+let () =
+  let input =
+    try
+      let ic = open_in "input.txt" in
+      let line = input_line ic in
+      close_in ic;
+      int_of_string line
+    with
+    | Sys_error _ | Failure _ ->
+        Printf.eprintf "Error reading input from input.txt\n";
+        exit 1
+  in
+  let result = solve input in
+  Printf.printf "%d\n" result

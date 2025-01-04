@@ -1,0 +1,38 @@
+
+let directions = Hashtbl.create 6
+let () =
+  Hashtbl.add directions "e" (1, 0);
+  Hashtbl.add directions "se" (0, 1);
+  Hashtbl.add directions "sw" (-1, 1);
+  Hashtbl.add directions "w" (-1, 0);
+  Hashtbl.add directions "nw" (0, -1);
+  Hashtbl.add directions "ne" (1, -1)
+
+let solve () =
+  let file = open_in "input.txt" in
+  let black_tiles = Hashtbl.create 1000 in
+  try
+    while true do
+      let line = input_line file in
+      let rec parse_line i q r =
+        if i >= String.length line then (q, r)
+        else
+          let dir, next_i =
+            match line.[i] with
+            | 'e' | 'w' as c -> (String.make 1 c, i + 1)
+            | 'n' | 's' as c -> (String.sub line i 2, i + 2)
+            | _ -> failwith "invalid input"
+          in
+          let dq, dr = Hashtbl.find directions dir in
+          parse_line next_i (q + dq) (r + dr)
+      in
+      let q, r = parse_line 0 0 0 in
+      let current = try Hashtbl.find black_tiles (q, r) with Not_found -> false in
+      Hashtbl.replace black_tiles (q, r) (not current)
+    done
+  with End_of_file ->
+    close_in file;
+    Hashtbl.fold (fun _ black count -> if black then count + 1 else count) black_tiles 0
+    |> Printf.printf "%d\n"
+
+let () = solve ()

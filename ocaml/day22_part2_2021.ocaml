@@ -1,0 +1,82 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  String.concat "\n" (read_lines [])
+
+type cube = {
+  is_on : bool;
+  x1 : int;
+  x2 : int;
+  y1 : int;
+  y2 : int;
+  z1 : int;
+  z2 : int;
+}
+
+let get_intersection c1 c2 =
+  let x1 = max c1.x1 c2.x1 in
+  let x2 = min c1.x2 c2.x2 in
+  let y1 = max c1.y1 c2.y1 in
+  let y2 = min c1.y2 c2.y2 in
+  let z1 = max c1.z1 c2.z1 in
+  let z2 = min c1.z2 c2.z2 in
+  if x1 > x2 || y1 > y2 || z1 > z2 then None
+  else
+    let is_on =
+      match (c1.is_on, c2.is_on) with
+      | true, true -> false
+      | false, false -> true
+      | _, _ -> c2.is_on
+    in
+    Some { is_on; x1; x2; y1; y2; z1; z2 }
+
+let volume c =
+  let vol = (c.x2 - c.x1 + 1) * (c.y2 - c.y1 + 1) * (c.z2 - c.z1 + 1) in
+  if c.is_on then vol else -vol
+
+let parse_input input =
+  let parse_line line =
+    let parts = String.split_on_char ' ' line in
+    let is_on = match List.hd parts with "on" -> true | _ -> false in
+    let coords = List.nth parts 1 in
+    let nums =
+      Scanf.sscanf coords "x=%d..%d,y=%d..%d,z=%d..%d"
+        (fun x1 x2 y1 y2 z1 z2 -> (x1, x2, y1, y2, z1, z2))
+    in
+    let x1, x2, y1, y2, z1, z2 = nums in
+    { is_on; x1; x2; y1; y2; z1; z2 }
+  in
+  List.map parse_line (String.split_on_char '\n' input)
+
+let solve input =
+  let cubes = parse_input input in
+  let rec process_cubes acc cubes =
+    match cubes with
+    | [] -> acc
+    | cube :: rest ->
+      let to_add =
+        List.fold_left
+          (fun acc final_cube ->
+            match get_intersection final_cube cube with
+            | Some intersection -> intersection :: acc
+            | None -> acc)
+          [] acc
+      in
+      let to_add = if cube.is_on then cube :: to_add else to_add in
+      process_cubes (List.rev_append to_add acc) rest
+  in
+  let final_cubes = process_cubes [] cubes in
+  List.fold_left (fun acc cube -> acc + volume cube) 0 final_cubes
+
+let () =
+  let input = read_file "input.txt" in
+  let result = solve input in
+  Printf.printf "%d\n" result

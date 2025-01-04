@@ -1,0 +1,42 @@
+
+let parse_stat line =
+  let parts = String.split_on_char ':' line in
+  int_of_string (String.trim (List.nth parts 1))
+
+let player_wins player_hp player_damage player_armor boss_hp boss_damage boss_armor =
+  let player_damage = max 1 (player_damage - boss_armor) in
+  let boss_damage = max 1 (boss_damage - player_armor) in
+  let player_turns = (boss_hp + player_damage - 1) / player_damage in
+  let boss_turns = (player_hp + boss_damage - 1) / boss_damage in
+  player_turns <= boss_turns
+
+let () =
+  let ic = open_in "input.txt" in
+  let boss_hp = parse_stat (input_line ic) in
+  let boss_damage = parse_stat (input_line ic) in
+  let boss_armor = parse_stat (input_line ic) in
+  close_in ic;
+  let weapons = [ (8, 4, 0); (10, 5, 0); (25, 6, 0); (40, 7, 0); (74, 8, 0) ] in
+  let armors = [ (0, 0, 0); (13, 0, 1); (31, 0, 2); (53, 0, 3); (75, 0, 4); (102, 0, 5) ] in
+  let rings = [ (0, 0, 0); (25, 1, 0); (50, 2, 0); (100, 3, 0); (20, 0, 1); (40, 0, 2); (80, 0, 3) ] in
+  let min_cost = ref max_int in
+  List.iter (fun (w_cost, w_damage, _) ->
+    List.iter (fun (a_cost, a_damage, a_armor) ->
+      let rec loop ri rj =
+        if ri < List.length rings then
+          if rj < List.length rings then
+            let (r1_cost, r1_damage, r1_armor) = List.nth rings ri in
+            let (r2_cost, r2_damage, r2_armor) = List.nth rings rj in
+            let player_damage = w_damage + a_damage + r1_damage + r2_damage in
+            let player_armor = a_armor + r1_armor + r2_armor in
+            let cost = w_cost + a_cost + r1_cost + r2_cost in
+            if player_wins 100 player_damage player_armor boss_hp boss_damage boss_armor then
+              min_cost := min !min_cost cost;
+            loop ri (rj + 1)
+          else
+            loop (ri + 1) (ri + 2)
+      in
+      loop 0 1
+    ) armors
+  ) weapons;
+  Printf.printf "%d\n" !min_cost

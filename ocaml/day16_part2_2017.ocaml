@@ -1,0 +1,85 @@
+
+open Printf
+
+let parse_move move =
+  match move.[0] with
+  | 's' ->
+      let n = int_of_string (String.sub move 1 (String.length move - 1)) in
+      `Spin n
+  | 'x' ->
+      let parts = String.split_on_char '/' (String.sub move 1 (String.length move - 1)) in
+      let a = int_of_string (List.nth parts 0) in
+      let b = int_of_string (List.nth parts 1) in
+      `Exchange (a, b)
+  | 'p' ->
+      let parts = String.split_on_char '/' (String.sub move 1 (String.length move - 1)) in
+      let a = String.get (List.nth parts 0) 0 in
+      let b = String.get (List.nth parts 1) 0 in
+      `Partner (a, b)
+  | _ -> failwith "Invalid move"
+
+let apply_move programs move =
+  match move with
+  | `Spin n ->
+      let len = Array.length programs in
+      let rotated = Array.make len ' ' in
+      for i = 0 to len - 1 do
+        rotated.(i) <- programs.((i + len - n) mod len)
+      done;
+      rotated
+  | `Exchange (a, b) ->
+      let temp = programs.(a) in
+      programs.(a) <- programs.(b);
+      programs.(b) <- temp;
+      programs
+  | `Partner (a, b) ->
+      let pos_a = ref (-1) in
+      let pos_b = ref (-1) in
+      for i = 0 to Array.length programs - 1 do
+        if programs.(i) = a then pos_a := i;
+        if programs.(i) = b then pos_b := i;
+      done;
+      let temp = programs.(!pos_a) in
+      programs.(!pos_a) <- programs.(!pos_b);
+      programs.(!pos_b) <- temp;
+      programs
+
+let programs_to_string programs =
+  Array.fold_left (fun acc c -> acc ^ String.make 1 c) "" programs
+
+let solve moves num_dances =
+  let initial_programs = Array.init 16 (fun i -> Char.chr (int_of_char 'a' + i)) in
+  let seen = Hashtbl.create 100 in
+  let rec dance programs count =
+    if count = num_dances then programs_to_string programs
+    else
+      let programs_str = programs_to_string programs in
+      if Hashtbl.mem seen programs_str then
+        let cycle_start = Hashtbl.find seen programs_str in
+        let cycle_len = count - cycle_start in
+        let remaining_dances = (num_dances - count) mod cycle_len in
+        let rec find_nth_in_cycle programs cycle_count =
+          if cycle_count = remaining_dances then programs_to_string programs
+          else
+            let next_programs =
+              List.fold_left apply_move programs moves
+            in
+            find_nth_in_cycle next_programs (cycle_count + 1)
+        in
+        find_nth_in_cycle programs 0
+      else
+        let next_programs = List.fold_left apply_move programs moves in
+        Hashtbl.add seen programs_str count;
+        dance next_programs (count + 1)
+  in
+  dance initial_programs 0
+
+let () =
+  let input = open_in "input.txt" in
+  let line = input_line input in
+  close_in input;
+  let moves = List.map parse_move (String.split_on_char ',' line) in
+  let part1_result = solve moves 1 in
+  let part2_result = solve moves 1000000000 in
+  printf "Part 1: %s\n" part1_result;
+  printf "Part 2: %s\n" part2_result

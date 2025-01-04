@@ -1,0 +1,100 @@
+
+let read_lines filename =
+  let chan = open_in filename in
+  let rec read acc =
+    try
+      let line = input_line chan in
+      read (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read []
+
+let parse_time s =
+  Scanf.sscanf s "%d-%d-%d %d:%d"
+    (fun year month day hour minute ->
+      (year, month, day, hour, minute))
+
+type record = {
+  timestamp : int * int * int * int * int;
+  action : string;
+  guard_id : int;
+}
+
+let parse_record line =
+  let parts = String.split_on_char ']' line in
+  let time_part = String.sub (List.hd parts) 1 ((String.length (List.hd parts)) - 1) in
+  let action_part = List.nth parts 1 |> String.trim in
+  let timestamp = parse_time time_part in
+  let guard_id =
+    if String.starts_with ~prefix:"Guard" action_part then
+      Scanf.sscanf action_part "Guard #%d begins shift" (fun id -> id)
+    else -1
+  in
+  let action =
+    if String.starts_with ~prefix:"Guard" action_part then "begins shift"
+    else if String.starts_with ~prefix:"falls asleep" action_part then "falls asleep"
+    else "wakes up"
+  in
+  { timestamp; action; guard_id }
+
+let compare_times (y1, m1, d1, h1, min1) (y2, m2, d2, h2, min2) =
+  match compare y1 y2 with
+  | 0 -> (match compare m1 m2 with
+         | 0 -> (match compare d1 d2 with
+                | 0 -> (match compare h1 h2 with
+                       | 0 -> compare min1 min2
+                       | x -> x)
+                | x -> x)
+         | x -> x)
+  | x -> x
+
+let solve records =
+  let sorted_records = List.sort (fun r1 r2 -> compare_times r1.timestamp r2.timestamp) records in
+  let guard_sleep_minutes = Hashtbl.create 10 in
+  let current_guard = ref (-1) in
+  let sleep_start = ref (0,0,0,0,0) in
+  List.iter (fun record ->
+    match record.action with
+    | "begins shift" -> current_guard := record.guard_id
+    | "falls asleep" -> sleep_start := record.timestamp
+    | "wakes up" ->
+      let minutes =
+        match Hashtbl.find_opt guard_sleep_minutes !current_guard with
+        | Some arr -> arr
+        | None -> Array.make 60 0
+      in
+      let (_,_,_,_,start_min) = !sleep_start in
+      let (_,_,_,_,end_min) = record.timestamp in
+      for i = start_min to end_min - 1 do
+        minutes.(i) <- minutes.(i) + 1
+      done;
+      Hashtbl.replace guard_sleep_minutes !current_guard minutes
+    | _ -> ()
+  ) sorted_records;
+  let max_sleep = ref 0 in
+  let sleepiest_guard = ref (-1) in
+  Hashtbl.iter (fun guard_id minutes ->
+    let total_sleep = Array.fold_left (+) 0 minutes in
+    if total_sleep > !max_sleep then (
+      max_sleep := total_sleep;
+      sleepiest_guard := guard_id
+    )
+  ) guard_sleep_minutes;
+  let max_minute = ref 0 in
+  let max_minute_count = ref 0 in
+  let minutes = Hashtbl.find guard_sleep_minutes !sleepiest_guard in
+  Array.iteri (fun i count ->
+    if count > !max_minute_count then (
+      max_minute_count := count;
+      max_minute := i
+    )
+  ) minutes;
+  !sleepiest_guard * !max_minute
+
+let () =
+  let lines = read_lines "input.txt" in
+  let records = List.map parse_record lines in
+  let result = solve records in
+  Printf.printf "%d\n" result

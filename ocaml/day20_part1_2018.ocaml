@@ -1,0 +1,72 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let regex = input_line ic in
+  close_in ic;
+  let module Point = struct
+    type t = int * int
+    let compare (x1, y1) (x2, y2) =
+      let cmp = compare x1 x2 in
+      if cmp <> 0 then cmp else compare y1 y2
+  end in
+  let module PointMap = Map.Make(Point) in
+  let build_map regex =
+    let dm = ref PointMap.empty in
+    let stack = ref [] in
+    let cp = ref (0, 0) in
+    String.iter (fun c ->
+      match c with
+      | '(' -> stack := !cp :: !stack
+      | '|' -> cp := List.hd !stack
+      | ')' -> cp := List.hd !stack; stack := List.tl !stack
+      | 'N' -> let np = (!cp |> fun (x, y) -> (x, y - 1)) in
+               dm := PointMap.update !cp (function
+                       | None -> Some (PointMap.singleton np true)
+                       | Some m -> Some (PointMap.add np true m)) !dm;
+               cp := np
+      | 'S' -> let np = (!cp |> fun (x, y) -> (x, y + 1)) in
+               dm := PointMap.update !cp (function
+                       | None -> Some (PointMap.singleton np true)
+                       | Some m -> Some (PointMap.add np true m)) !dm;
+               cp := np
+      | 'E' -> let np = (!cp |> fun (x, y) -> (x + 1, y)) in
+               dm := PointMap.update !cp (function
+                       | None -> Some (PointMap.singleton np true)
+                       | Some m -> Some (PointMap.add np true m)) !dm;
+               cp := np
+      | 'W' -> let np = (!cp |> fun (x, y) -> (x - 1, y)) in
+               dm := PointMap.update !cp (function
+                       | None -> Some (PointMap.singleton np true)
+                       | Some m -> Some (PointMap.add np true m)) !dm;
+               cp := np
+      | _ -> ()
+    ) (String.sub regex 1 (String.length regex - 2));
+    !dm
+  in
+  let find_furthest_room dm =
+    let visited = ref PointMap.empty in
+    let queue = ref [(0, 0)] in
+    let max_doors = ref 0 in
+    while !queue <> [] do
+      let p = List.hd !queue in
+      queue := List.tl !queue;
+      match PointMap.find_opt p dm with
+      | Some neighbors ->
+          PointMap.iter (fun np _ ->
+            if not (PointMap.mem np !visited) then
+              let dist = match PointMap.find_opt p !visited with
+                | None -> 1
+                | Some d -> d + 1
+              in
+              visited := PointMap.add np dist !visited;
+              max_doors := max !max_doors dist;
+              queue := !queue @ [np]
+          ) neighbors
+      | None -> ()
+    done;
+    !max_doors
+  in
+  let dm = build_map regex in
+  let max_doors = find_furthest_room dm in
+  print_int max_doors;
+  print_newline ()

@@ -1,0 +1,44 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_point line =
+  match String.split_on_char ',' line with
+  | [x; y; z] -> (int_of_string x, int_of_string y, int_of_string z)
+  | _ -> failwith "Invalid input format"
+
+let solve lines =
+  let cubes = Hashtbl.create (List.length lines) in
+  List.iter (fun line ->
+    let x, y, z = parse_point line in
+    Hashtbl.add cubes (x, y, z) true
+  ) lines;
+
+  let directions = [
+    (1, 0, 0); (-1, 0, 0);
+    (0, 1, 0); (0, -1, 0);
+    (0, 0, 1); (0, 0, -1)
+  ] in
+
+  let calculate_exposed_sides (x, y, z) =
+    List.fold_left (fun acc (dx, dy, dz) ->
+      let nx, ny, nz = x + dx, y + dy, z + dz in
+      if Hashtbl.mem cubes (nx, ny, nz) then acc - 1 else acc
+    ) 6 directions
+  in
+
+  Hashtbl.fold (fun cube _ acc -> acc + calculate_exposed_sides cube) cubes 0
+
+let () =
+  let lines = read_file "input.txt" in
+  let result = solve lines in
+  Printf.printf "%d\n" result

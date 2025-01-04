@@ -1,0 +1,48 @@
+
+let parse_line line =
+  Scanf.sscanf line "%s x=%d..%d,y=%d..%d,z=%d..%d"
+    (fun action x1 x2 y1 y2 z1 z2 -> (action, x1, x2, y1, y2, z1, z2))
+
+let solve () =
+  let steps =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (parse_line line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let grid = Hashtbl.create 1000000 in
+  let min_coord, max_coord = -50, 50 in
+  let is_valid x y z =
+    x >= min_coord && x <= max_coord && y >= min_coord && y <= max_coord && z >= min_coord && z <= max_coord
+  in
+  let set_cube x y z v =
+    if is_valid x y z then
+      Hashtbl.replace grid (x, y, z) v
+  in
+  let get_cube x y z =
+    if is_valid x y z then
+      Hashtbl.find_opt grid (x, y, z) |> Option.value ~default:false
+    else
+      false
+  in
+  List.iter (fun (action, x1, x2, y1, y2, z1, z2) ->
+    if is_valid x1 y1 z1 && is_valid x2 y2 z2 then
+      for x = x1 to x2 do
+        for y = y1 to y2 do
+          for z = z1 to z2 do
+            set_cube x y z (action = "on")
+          done
+        done
+      done
+  ) steps;
+  let count = ref 0 in
+  Hashtbl.iter (fun _ v -> if v then incr count) grid;
+  Printf.printf "%d\n" !count
+
+let () = solve ()

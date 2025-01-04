@@ -1,0 +1,183 @@
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      aux (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  aux []
+
+let read_program filename =
+  let lines = read_file filename in
+  List.fold_left (fun acc s -> acc @ String.split_on_char ',' s) [] lines
+  |> List.map int_of_string
+
+type mode = Position | Immediate | Relative
+type opcode = Add | Mul | Input | Output | Jt | Jf | Lt | Eq | Rbo | Halt
+
+let decode n =
+  let op = match n mod 100 with
+    | 1 -> Add
+    | 2 -> Mul
+    | 3 -> Input
+    | 4 -> Output
+    | 5 -> Jt
+    | 6 -> Jf
+    | 7 -> Lt
+    | 8 -> Eq
+    | 9 -> Rbo
+    | 99 -> Halt
+    | _ -> failwith "Unknown opcode"
+  in
+  let n = n / 100 in
+  let modes = [|Position; Position; Position|] in
+  for i = 0 to 2 do
+    modes.(i) <- match (n / (int_of_float (10. ** float_of_int i))) mod 10 with
+      | 0 -> Position
+      | 1 -> Immediate
+      | 2 -> Relative
+      | _ -> failwith "Unknown mode"
+  done;
+  (op, modes)
+
+type machine = {
+  mutable data : (int, int) Hashtbl.t;
+  mutable ip : int;
+  mutable relbase : int;
+}
+
+let create_machine program = {
+  data = Hashtbl.create (List.length program);
+  ip = 0;
+  relbase = 0;
+}
+
+let init_machine m program =
+  List.iteri (fun i n -> Hashtbl.add m.data i n) program
+
+let get m i mo =
+  match mo with
+  | Immediate -> Hashtbl.find_opt m.data i |> Option.value ~default:0
+  | Position -> Hashtbl.find_opt m.data (Hashtbl.find_opt m.data i |> Option.value ~default:0) |> Option.value ~default:0
+  | Relative -> Hashtbl.find_opt m.data (m.relbase + (Hashtbl.find_opt m.data i |> Option.value ~default:0)) |> Option.value ~default:0
+
+let set m i mo v =
+  match mo with
+  | Position -> Hashtbl.replace m.data (Hashtbl.find_opt m.data i |> Option.value ~default:0) v
+  | Relative -> Hashtbl.replace m.data (m.relbase + (Hashtbl.find_opt m.data i |> Option.value ~default:0)) v
+  | _ -> failwith "Invalid mode for set"
+
+let step m input =
+  let op, modes = decode (Hashtbl.find m.data m.ip) in
+  match op with
+  | Add ->
+    let v = get m (m.ip + 1) modes.(0) + get m (m.ip + 2) modes.(1) in
+    set m (m.ip + 3) modes.(2) v;
+    m.ip <- m.ip + 4;
+    None
+  | Mul ->
+    let v = get m (m.ip + 1) modes.(0) * get m (m.ip + 2) modes.(1) in
+    set m (m.ip + 3) modes.(2) v;
+    m.ip <- m.ip + 4;
+    None
+  | Input ->
+    set m (m.ip + 1) modes.(0) input;
+    m.ip <- m.ip + 2;
+    None
+  | Output ->
+    let out = get m (m.ip + 1) modes.(0) in
+    m.ip <- m.ip + 2;
+    Some out
+  | Jt ->
+    if get m (m.ip + 1) modes.(0) <> 0 then
+      m.ip <- get m (m.ip + 2) modes.(1)
+    else
+      m.ip <- m.ip + 3;
+    None
+  | Jf ->
+    if get m (m.ip + 1) modes.(0) = 0 then
+      m.ip <- get m (m.ip + 2) modes.(1)
+    else
+      m.ip <- m.ip + 3;
+    None
+  | Lt ->
+    if get m (m.ip + 1) modes.(0) < get m (m.ip + 2) modes.(1) then
+      set m (m.ip + 3) modes.(2) 1
+    else
+      set m (m.ip + 3) modes.(2) 0;
+    m.ip <- m.ip + 4;
+    None
+  | Eq ->
+    if get m (m.ip + 1) modes.(0) = get m (m.ip + 2) modes.(1) then
+      set m (m.ip + 3) modes.(2) 1
+    else
+      set m (m.ip + 3) modes.(2) 0;
+    m.ip <- m.ip + 4;
+    None
+  | Rbo ->
+    m.relbase <- m.relbase + get m (m.ip + 1) modes.(0);
+    m.ip <- m.ip + 2;
+    None
+  | Halt ->
+    raise Exit
+
+let run program =
+  let m = create_machine program in
+  init_machine m program;
+  let rec aux acc =
+    try
+      match step m 0 with
+      | Some out -> aux (out :: acc)
+      | None -> aux acc
+    with Exit -> List.rev acc
+  in
+  aux []
+
+type point = { x : int; y : int }
+type dir = N | E | S | W
+
+let dir_from_char = function
+  | '^' -> N
+  | '>' -> E
+  | 'v' -> S
+  | '<' -> W
+  | _ -> failwith "Invalid direction character"
+
+let neighbors4 = [| { x = 0; y = 1 }; { x = 0; y = -1 }; { x = 1; y = 0 }; { x = -1; y = 0 } |]
+
+let parse program =
+  let output = run program in
+  let s = String.concat "" (List.map (fun c -> String.make 1 (Char.chr c)) output) in
+  let lines = String.split_on_char '\n' s in
+  let scaffolding = Hashtbl.create 100 in
+  let robot = ref { x = 0; y = 0 } in
+  let dir = ref N in
+  List.iteri (fun y line ->
+    String.iteri (fun x c ->
+      match c with
+      | '#' -> Hashtbl.add scaffolding { x; y } ()
+      | '^' | 'v' | '<' | '>' ->
+        robot := { x; y };
+        dir := dir_from_char c;
+        Hashtbl.add scaffolding { x; y } ()
+      | _ -> ()
+    ) line
+  ) lines;
+  (scaffolding, !robot, !dir)
+
+let sum_align scaffolding =
+  Hashtbl.fold (fun p () acc ->
+    let is_intersection = Array.for_all (fun n ->
+      Hashtbl.mem scaffolding { x = p.x + n.x; y = p.y + n.y }
+    ) neighbors4 in
+    if is_intersection then acc + p.x * p.y else acc
+  ) scaffolding 0
+
+let () =
+  let program = read_program "input.txt" in
+  let scaffolding, _, _ = parse program in
+  Printf.printf "%d\n" (sum_align scaffolding)

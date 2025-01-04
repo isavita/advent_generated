@@ -1,0 +1,44 @@
+
+let priority c =
+  if c >= 'a' && c <= 'z' then
+    Char.code c - Char.code 'a' + 1
+  else if c >= 'A' && c <= 'Z' then
+    Char.code c - Char.code 'A' + 27
+  else
+    0
+
+let find_common_item s =
+  let len = String.length s in
+  let first_compartment = String.sub s 0 (len / 2) in
+  let second_compartment = String.sub s (len / 2) (len / 2) in
+  let first_set = Hashtbl.create (len / 2) in
+  String.iter (fun c -> Hashtbl.add first_set c ()) first_compartment;
+  let rec find_common_char i =
+    if i >= String.length second_compartment then
+      failwith "No common item found"
+    else
+      let c = String.get second_compartment i in
+      if Hashtbl.mem first_set c then
+        c
+      else
+        find_common_char (i + 1)
+  in
+  find_common_char 0
+
+let process_rucksacks filename =
+  let sum = ref 0 in
+  let chan = open_in filename in
+  try
+    while true do
+      let line = input_line chan in
+      let common_item = find_common_item line in
+      sum := !sum + priority common_item
+    done;
+    0
+  with End_of_file ->
+    close_in chan;
+    !sum
+
+let () =
+  let result = process_rucksacks "input.txt" in
+  Printf.printf "%d\n" result

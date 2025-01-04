@@ -1,0 +1,53 @@
+
+let read_all path =
+  let chan = open_in path in
+  let len = in_channel_length chan in
+  let buf = Bytes.create len in
+  really_input chan buf 0 len;
+  close_in chan;
+  Bytes.to_string buf
+
+let parse_input input =
+  let lines = String.split_on_char '\n' input in
+  let k = ref [] in
+  let l = ref [] in
+  let m = ref [] in
+  List.iteri (fun i line ->
+    match i mod 18 with
+    | 4 -> Scanf.sscanf line "div z %d" (fun v -> l := v :: !l)
+    | 5 -> Scanf.sscanf line "add x %d" (fun v -> k := v :: !k)
+    | 15 -> Scanf.sscanf line "add y %d" (fun v -> m := v :: !m)
+    | _ -> ()
+  ) lines;
+  (List.rev !k, List.rev !l, List.rev !m)
+
+let solve (k, l, m) =
+  let constraints = Hashtbl.create 14 in
+  let stack = ref [] in
+  List.iteri (fun i lv ->
+    match lv with
+    | 1 -> stack := i :: !stack
+    | 26 ->
+        let pop = List.hd !stack in
+        stack := List.tl !stack;
+        Hashtbl.add constraints pop (i, List.nth m pop + List.nth k i)
+    | _ -> failwith "invalid l value"
+  ) l;
+  let max = Array.make 14 0 in
+  for i = 0 to 13 do
+    if Hashtbl.mem constraints i then
+      let j, offset = Hashtbl.find constraints i in
+      let vmax = ref 9 in
+      while !vmax + offset > 9 do
+        decr vmax
+      done;
+      max.(i) <- !vmax;
+      max.(j) <- !vmax + offset
+  done;
+  let num = Array.fold_left (fun acc x -> acc * 10 + x) 0 max in
+  Printf.printf "%d\n" num
+
+let () =
+  let input = read_all "input.txt" in
+  let parsed = parse_input input in
+  solve parsed

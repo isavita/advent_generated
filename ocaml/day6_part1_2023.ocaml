@@ -1,0 +1,57 @@
+
+let parse_line line =
+  let parts = String.split_on_char ':' line in
+  match parts with
+  | _ :: data :: _ ->
+      String.split_on_char ' ' (String.trim data)
+      |> List.filter (fun s -> String.length s > 0)
+      |> List.map int_of_string
+  | _ -> []
+
+let calculate_distance hold_time race_time =
+  hold_time * (race_time - hold_time)
+
+let count_winning_ways race_time record_distance =
+  let rec aux hold_time count =
+    if hold_time > race_time then count
+    else
+      let distance = calculate_distance hold_time race_time in
+      if distance > record_distance then
+        aux (hold_time + 1) (count + 1)
+      else
+        aux (hold_time + 1) count
+  in
+  aux 0 0
+
+let solve input_lines =
+  match input_lines with
+  | time_line :: distance_line :: _ ->
+      let times = parse_line time_line in
+      let distances = parse_line distance_line in
+      List.map2 count_winning_ways times distances
+      |> List.fold_left ( * ) 1
+  | _ -> 0
+
+let () =
+  let input_lines =
+    try
+      let ic = open_in "input.txt" in
+      let lines =
+        let rec read_lines acc =
+          try
+            let line = input_line ic in
+            read_lines (line :: acc)
+          with End_of_file ->
+            close_in ic;
+            List.rev acc
+        in
+        read_lines []
+      in
+      lines
+    with Sys_error _ ->
+      print_endline "Error: input.txt not found.";
+      exit 1
+  in
+  let result = solve input_lines in
+  print_int result;
+  print_newline ()

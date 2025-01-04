@@ -1,0 +1,62 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let template = input_line ic in
+  let rules = Hashtbl.create 16 in
+  try
+    while true do
+      let line = input_line ic in
+      if line = "" then ()
+      else
+        match String.split_on_char ' ' line with
+        | [ a; "->"; b ] -> Hashtbl.add rules a b
+        | _ -> failwith "Invalid input format"
+    done;
+    assert false
+  with End_of_file ->
+    close_in ic;
+    template, rules
+
+let solve template rules =
+  let pair_counts = Hashtbl.create 16 in
+  for i = 0 to String.length template - 2 do
+    let pair = String.sub template i 2 in
+    Hashtbl.replace pair_counts pair (Hashtbl.find_opt pair_counts pair |> Option.value ~default:0L |> Int64.add 1L)
+  done;
+
+  for _step = 0 to 39 do
+    let new_pair_counts = Hashtbl.create 16 in
+    Hashtbl.iter (fun pair count ->
+      match Hashtbl.find_opt rules pair with
+      | Some insert ->
+        let p1 = String.make 1 pair.[0] ^ insert in
+        let p2 = insert ^ String.make 1 pair.[1] in
+        Hashtbl.replace new_pair_counts p1 (Hashtbl.find_opt new_pair_counts p1 |> Option.value ~default:0L |> Int64.add count);
+        Hashtbl.replace new_pair_counts p2 (Hashtbl.find_opt new_pair_counts p2 |> Option.value ~default:0L |> Int64.add count)
+      | None ->
+        Hashtbl.replace new_pair_counts pair (Hashtbl.find_opt new_pair_counts pair |> Option.value ~default:0L |> Int64.add count)
+    ) pair_counts;
+    Hashtbl.clear pair_counts;
+    Hashtbl.iter (fun k v -> Hashtbl.add pair_counts k v) new_pair_counts;
+  done;
+
+  let element_counts = Hashtbl.create 16 in
+  Hashtbl.iter (fun pair count ->
+    let c = pair.[0] in
+    Hashtbl.replace element_counts c (Hashtbl.find_opt element_counts c |> Option.value ~default:0L |> Int64.add count)
+  ) pair_counts;
+  let last_char = template.[String.length template - 1] in
+  Hashtbl.replace element_counts last_char (Hashtbl.find_opt element_counts last_char |> Option.value ~default:0L |> Int64.add 1L);
+
+  let max_count = ref 0L in
+  let min_count = ref Int64.max_int in
+  Hashtbl.iter (fun _ count ->
+    if count > !max_count then max_count := count;
+    if count < !min_count then min_count := count;
+  ) element_counts;
+  Int64.sub !max_count !min_count
+
+let () =
+  let template, rules = read_input "input.txt" in
+  let result = solve template rules in
+  Printf.printf "%Ld\n" result

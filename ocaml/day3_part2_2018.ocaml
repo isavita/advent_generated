@@ -1,0 +1,45 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let claims =
+    let rec loop acc =
+      try
+        let line = input_line ic in
+        let parts = String.split_on_char ' ' line in
+        let id = int_of_string (String.sub (List.nth parts 0) 1 (String.length (List.nth parts 0) - 1)) in
+        let coords = String.split_on_char ',' (String.sub (List.nth parts 2) 0 (String.length (List.nth parts 2) - 1)) in
+        let x = int_of_string (List.nth coords 0) in
+        let y = int_of_string (List.nth coords 1) in
+        let dims = String.split_on_char 'x' (List.nth parts 3) in
+        let width = int_of_string (List.nth dims 0) in
+        let height = int_of_string (List.nth dims 1) in
+        loop ((id, x, y, width, height) :: acc)
+      with End_of_file -> List.rev acc
+    in
+    loop []
+  in
+  close_in ic;
+  let fabric = Array.make_matrix 1000 1000 0 in
+  List.iter
+    (fun (_, x, y, width, height) ->
+      for i = y to y + height - 1 do
+        for j = x to x + width - 1 do
+          fabric.(i).(j) <- fabric.(i).(j) + 1
+        done
+      done)
+    claims;
+  let result =
+    List.find_map
+      (fun (id, x, y, width, height) ->
+        let overlap = ref false in
+        for i = y to y + height - 1 do
+          for j = x to x + width - 1 do
+            if fabric.(i).(j) > 1 then overlap := true
+          done
+        done;
+        if not !overlap then Some id else None)
+      claims
+  in
+  match result with
+  | Some id -> print_int id
+  | None -> ()

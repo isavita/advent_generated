@@ -1,0 +1,44 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_points max_x max_y points =
+    try
+      let line = input_line ic in
+      let coords = String.split_on_char ',' line in
+      let x = int_of_string (List.hd coords) in
+      let y = int_of_string (String.trim (List.nth coords 1)) in
+      read_points (max x max_x) (max y max_y) ((x, y) :: points)
+    with End_of_file ->
+      close_in ic;
+      (max_x, max_y, List.rev points)
+  in
+  let max_x, max_y, points = read_points 0 0 [] in
+  let grid = Array.make_matrix (max_x + 2) (max_y + 2) (-1) in
+  let areas = Array.make (List.length points) 0 in
+  let infinite = Array.make (List.length points) false in
+  let abs x = if x < 0 then -x else x in
+  for i = 0 to max_x + 1 do
+    for j = 0 to max_y + 1 do
+      let min_dist = ref (max_x + max_y) in
+      List.iteri (fun k (px, py) ->
+        let dist = abs (px - i) + abs (py - j) in
+        if dist < !min_dist then begin
+          min_dist := dist;
+          grid.(i).(j) <- k
+        end else if dist = !min_dist then
+          grid.(i).(j) <- -1
+      ) points;
+      if grid.(i).(j) <> -1 then begin
+        if i = 0 || j = 0 || i = max_x + 1 || j = max_y + 1 then
+          infinite.(grid.(i).(j)) <- true;
+        areas.(grid.(i).(j)) <- areas.(grid.(i).(j)) + 1
+      end
+    done
+  done;
+  let max_area = ref 0 in
+  Array.iteri (fun i area ->
+    if not infinite.(i) && area > !max_area then
+      max_area := area
+  ) areas;
+  print_int !max_area;
+  print_newline ()

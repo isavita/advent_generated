@@ -1,0 +1,42 @@
+
+open Printf
+
+type node = {
+  x : int;
+  y : int;
+  size : int;
+  used : int;
+  avail : int;
+}
+
+let parse_line line =
+  Scanf.sscanf line "/dev/grid/node-x%d-y%d %dT %dT %dT %d%%"
+    (fun x y size used avail _ -> { x; y; size; used; avail })
+
+let read_nodes filename =
+  let lines = In_channel.with_open_text filename In_channel.input_all in
+  let lines = String.split_on_char '\n' lines in
+  List.filter_map
+    (fun line ->
+      if String.starts_with ~prefix:"/dev/grid/node" line then
+        Some (parse_line line)
+      else None)
+    lines
+
+let count_viable_pairs nodes =
+  let count = ref 0 in
+  let n = List.length nodes in
+  for i = 0 to n - 1 do
+    for j = 0 to n - 1 do
+      if i <> j then
+        let node_a = List.nth nodes i in
+        let node_b = List.nth nodes j in
+        if node_a.used > 0 && node_a.used <= node_b.avail then incr count
+    done
+  done;
+  !count
+
+let () =
+  let nodes = read_nodes "input.txt" in
+  let viable_pairs = count_viable_pairs nodes in
+  printf "%d\n" viable_pairs

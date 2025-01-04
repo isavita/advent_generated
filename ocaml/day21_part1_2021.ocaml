@@ -1,0 +1,30 @@
+
+let () =
+  let input = open_in "input.txt" in
+  let line1 = input_line input in
+  let line2 = input_line input in
+  close_in input;
+  let player1_start = int_of_string (String.trim (String.sub line1 28 (String.length line1 - 28))) in
+  let player2_start = int_of_string (String.trim (String.sub line2 28 (String.length line2 - 28))) in
+  let rec game player1_pos player2_pos player1_score player2_score die_roll roll_count =
+    if player1_score >= 1000 then
+      Printf.printf "%d\n" (player2_score * roll_count)
+    else if player2_score >= 1000 then
+      Printf.printf "%d\n" (player1_score * roll_count)
+    else
+      let rolls1 = (die_roll mod 100) + ((die_roll + 1) mod 100) + ((die_roll + 2) mod 100) in
+      let new_player1_pos = ((player1_pos + rolls1 - 1) mod 10) + 1 in
+      let new_player1_score = player1_score + new_player1_pos in
+      let new_die_roll = die_roll + 3 in
+      let new_roll_count = roll_count + 3 in
+      if new_player1_score >= 1000 then
+        Printf.printf "%d\n" (player2_score * new_roll_count)
+      else
+        let rolls2 = (new_die_roll mod 100) + ((new_die_roll + 1) mod 100) + ((new_die_roll + 2) mod 100) in
+        let new_player2_pos = ((player2_pos + rolls2 - 1) mod 10) + 1 in
+        let new_player2_score = player2_score + new_player2_pos in
+        let new_die_roll2 = new_die_roll + 3 in
+        let new_roll_count2 = new_roll_count + 3 in
+        game new_player1_pos new_player2_pos new_player1_score new_player2_score new_die_roll2 new_roll_count2
+  in
+  game player1_start player2_start 0 0 1 0

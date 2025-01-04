@@ -1,0 +1,81 @@
+
+let read_input filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with
+    | End_of_file ->
+        close_in chan;
+        List.rev acc
+  in
+  let lines = read_lines [] in
+  let grid =
+    Array.of_list (List.map (fun line -> Array.of_seq (String.to_seq line)) lines)
+  in
+  grid
+
+let count_adjacent grid i j acre_type =
+  let count = ref 0 in
+  for x = -1 to 1 do
+    for y = -1 to 1 do
+      if x = 0 && y = 0 then ()
+      else
+        let ni = i + x in
+        let nj = j + y in
+        if
+          ni >= 0 && ni < Array.length grid && nj >= 0
+          && nj < Array.length grid.(0)
+          && grid.(ni).(nj) = acre_type
+        then incr count
+    done
+  done;
+  !count
+
+let next_acre_state grid i j =
+  match grid.(i).(j) with
+  | '.' -> if count_adjacent grid i j '|' >= 3 then '|' else '.'
+  | '|' -> if count_adjacent grid i j '#' >= 3 then '#' else '|'
+  | '#' ->
+      if count_adjacent grid i j '#' >= 1 && count_adjacent grid i j '|' >= 1 then
+        '#'
+      else '.'
+  | c -> c
+
+let transform grid =
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  let new_grid = Array.make_matrix rows cols '.' in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      new_grid.(i).(j) <- next_acre_state grid i j
+    done
+  done;
+  new_grid
+
+let count_resources grid =
+  let wooded = ref 0 in
+  let lumberyards = ref 0 in
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      match grid.(i).(j) with
+      | '|' -> incr wooded
+      | '#' -> incr lumberyards
+      | _ -> ()
+    done
+  done;
+  (!wooded, !lumberyards)
+
+let () =
+  let grid = read_input "input.txt" in
+  let final_grid =
+    let rec loop n g =
+      if n = 0 then g else loop (n - 1) (transform g)
+    in
+    loop 10 grid
+  in
+  let wooded, lumberyards = count_resources final_grid in
+  Printf.printf "%d\n" (wooded * lumberyards)

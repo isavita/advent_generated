@@ -1,0 +1,56 @@
+
+let read_all path =
+  let chan = open_in path in
+  let len = in_channel_length chan in
+  let buf = Bytes.create len in
+  really_input chan buf 0 len;
+  close_in chan;
+  Bytes.to_string buf
+
+let atoi s = int_of_string s
+
+let solve () =
+  let lines = String.split_on_char '\n' (read_all "input.txt") in
+  let k = ref [] in
+  let l = ref [] in
+  let m = ref [] in
+  List.iteri (fun i line ->
+    let parts = String.split_on_char ' ' line in
+    match i mod 18 with
+    | 4 -> (match parts with ["div"; "z"; v] -> l := (atoi v) :: !l | _ -> failwith "invalid input")
+    | 5 -> (match parts with ["add"; "x"; v] -> k := (atoi v) :: !k | _ -> failwith "invalid input")
+    | 15 -> (match parts with ["add"; "y"; v] -> m := (atoi v) :: !m | _ -> failwith "invalid input")
+    | _ -> ()
+  ) lines;
+  let k = List.rev !k in
+  let l = List.rev !l in
+  let m = List.rev !m in
+
+  let constraints = Hashtbl.create 14 in
+  let stack = ref [] in
+  List.iteri (fun i lv ->
+    match lv with
+    | 1 -> stack := i :: !stack
+    | 26 ->
+      let pop = List.hd !stack in
+      stack := List.tl !stack;
+      Hashtbl.add constraints pop (i, (List.nth m pop) + (List.nth k i))
+    | _ -> failwith "invalid l value"
+  ) l;
+
+  let min = Array.make 14 0 in
+  for i = 0 to 13 do
+    if Hashtbl.mem constraints i then
+      let j, offset = Hashtbl.find constraints i in
+      let vmin = ref 1 in
+      while !vmin + offset < 1 do
+        vmin := !vmin + 1
+      done;
+      min.(i) <- !vmin;
+      min.(j) <- !vmin + offset
+  done;
+
+  let num = Array.fold_left (fun acc x -> acc * 10 + x) 0 min in
+  Printf.printf "%d\n" num
+
+let () = solve ()

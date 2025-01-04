@@ -1,0 +1,45 @@
+
+let parse_input filename =
+  let ic = open_in filename in
+  let deps = Hashtbl.create 10 in
+  let all_steps = Hashtbl.create 10 in
+  try
+    while true do
+      let line = input_line ic in
+      let a, b = Scanf.sscanf line "Step %c must be finished before step %c can begin." (fun a b -> (a, b)) in
+      Hashtbl.replace deps b (a :: (try Hashtbl.find deps b with Not_found -> []));
+      Hashtbl.replace all_steps a true;
+      Hashtbl.replace all_steps b true
+    done;
+    (deps, all_steps)
+  with End_of_file ->
+    close_in ic;
+    (deps, all_steps)
+
+let topological_sort deps all_steps =
+  let order = ref [] in
+  let available = ref [] in
+  Hashtbl.iter (fun step _ ->
+    if not (Hashtbl.mem deps step) then available := step :: !available
+  ) all_steps;
+  available := List.sort compare !available;
+  while !available <> [] do
+    let next = List.hd !available in
+    available := List.tl !available;
+    order := next :: !order;
+    Hashtbl.iter (fun step parents ->
+      if List.mem next parents then
+        let new_parents = List.filter (fun x -> x <> next) parents in
+        if new_parents = [] then
+          available := step :: !available
+        else
+          Hashtbl.replace deps step new_parents
+    ) deps;
+    available := List.sort compare !available
+  done;
+  String.of_seq (List.to_seq (List.rev !order))
+
+let () =
+  let deps, all_steps = parse_input "input.txt" in
+  let order = topological_sort deps all_steps in
+  print_endline order

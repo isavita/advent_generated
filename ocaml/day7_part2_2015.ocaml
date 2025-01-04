@@ -1,0 +1,56 @@
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let some_assembly_required input =
+  let wire_to_rule = Hashtbl.create 100 in
+  List.iter (fun inst ->
+    let parts = String.split_on_char ' ' inst in
+    match List.rev parts with
+    | wire :: "->" :: rule_parts ->
+        Hashtbl.add wire_to_rule wire (String.concat " " (List.rev rule_parts))
+    | _ -> failwith "Invalid instruction format"
+  ) input;
+
+  let rec memo_dfs graph entry memo =
+    if Hashtbl.mem memo entry then
+      Hashtbl.find memo entry
+    else
+      match int_of_string_opt entry with
+      | Some n -> n
+      | None ->
+          let source_rule = Hashtbl.find graph entry in
+          let parts = String.split_on_char ' ' source_rule in
+          let result =
+            match parts with
+            | [a] -> memo_dfs graph a memo
+            | ["NOT"; a] -> lnot (memo_dfs graph a memo) land 0xffff
+            | [a; "AND"; b] -> (memo_dfs graph a memo) land (memo_dfs graph b memo)
+            | [a; "OR"; b] -> (memo_dfs graph a memo) lor (memo_dfs graph b memo)
+            | [a; "LSHIFT"; b] -> (memo_dfs graph a memo) lsl (memo_dfs graph b memo)
+            | [a; "RSHIFT"; b] -> (memo_dfs graph a memo) asr (memo_dfs graph b memo)
+            | _ -> failwith "Invalid rule format"
+          in
+          Hashtbl.add memo entry result;
+          result
+  in
+
+  let memo = Hashtbl.create 100 in
+  let a_signal = memo_dfs wire_to_rule "a" memo in
+  Hashtbl.replace wire_to_rule "b" (string_of_int a_signal);
+  Hashtbl.clear memo;
+  memo_dfs wire_to_rule "a" memo
+
+let () =
+  let input = read_file "input.txt" in
+  print_int (some_assembly_required input);
+  print_newline ()

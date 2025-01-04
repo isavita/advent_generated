@@ -1,0 +1,89 @@
+
+let apply_gravity moons axis =
+  let len = Array.length moons in
+  for i = 0 to len - 1 do
+    for j = i + 1 to len - 1 do
+      match axis with
+      | 'x' ->
+          if moons.(i).(0) > moons.(j).(0) then (
+            moons.(i).(3) <- moons.(i).(3) - 1;
+            moons.(j).(3) <- moons.(j).(3) + 1)
+          else if moons.(i).(0) < moons.(j).(0) then (
+            moons.(i).(3) <- moons.(i).(3) + 1;
+            moons.(j).(3) <- moons.(j).(3) - 1)
+      | 'y' ->
+          if moons.(i).(1) > moons.(j).(1) then (
+            moons.(i).(4) <- moons.(i).(4) - 1;
+            moons.(j).(4) <- moons.(j).(4) + 1)
+          else if moons.(i).(1) < moons.(j).(1) then (
+            moons.(i).(4) <- moons.(i).(4) + 1;
+            moons.(j).(4) <- moons.(j).(4) - 1)
+      | 'z' ->
+          if moons.(i).(2) > moons.(j).(2) then (
+            moons.(i).(5) <- moons.(i).(5) - 1;
+            moons.(j).(5) <- moons.(j).(5) + 1)
+          else if moons.(i).(2) < moons.(j).(2) then (
+            moons.(i).(5) <- moons.(i).(5) + 1;
+            moons.(j).(5) <- moons.(j).(5) - 1)
+      | _ -> ()
+    done
+  done
+
+let apply_velocity moons axis =
+  Array.iteri
+    (fun i moon ->
+      match axis with
+      | 'x' -> moon.(0) <- moon.(0) + moon.(3)
+      | 'y' -> moon.(1) <- moon.(1) + moon.(4)
+      | 'z' -> moon.(2) <- moon.(2) + moon.(5)
+      | _ -> ())
+    moons
+
+let find_cycle moons initial_moons axis =
+  let rec loop steps =
+    apply_gravity moons axis;
+    apply_velocity moons axis;
+    let match_ =
+      Array.for_all2
+        (fun m im ->
+          match axis with
+          | 'x' -> m.(0) = im.(0) && m.(3) = im.(3)
+          | 'y' -> m.(1) = im.(1) && m.(4) = im.(4)
+          | 'z' -> m.(2) = im.(2) && m.(5) = im.(5)
+          | _ -> false)
+        moons initial_moons
+    in
+    if match_ then steps else loop (steps + 1)
+  in
+  loop 1
+
+let gcd a b =
+  let rec gcd' a b = if b = 0 then a else gcd' b (a mod b) in
+  gcd' (abs a) (abs b)
+
+let lcm a b = a * b / gcd a b
+
+let read_moons ic =
+  let rec loop moons =
+    try
+      let line = input_line ic in
+      let x, y, z =
+        Scanf.sscanf line "<x=%d, y=%d, z=%d>" (fun x y z -> (x, y, z))
+      in
+      loop (Array.append moons [| [| x; y; z; 0; 0; 0 |] |])
+    with End_of_file -> moons
+  in
+  loop [||]
+
+let () =
+  let ic = open_in "input.txt" in
+  let moons = read_moons ic in
+  close_in ic;
+  let initial_moons = Array.map Array.copy moons in
+  let cycle_x = find_cycle (Array.map Array.copy moons) initial_moons 'x' in
+  let cycle_y = find_cycle (Array.map Array.copy moons) initial_moons 'y' in
+  let cycle_z = find_cycle (Array.map Array.copy moons) initial_moons 'z' in
+  let lcm_xy = lcm cycle_x cycle_y in
+  let lcm_xyz = lcm lcm_xy cycle_z in
+  print_int lcm_xyz;
+  print_newline ()

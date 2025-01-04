@@ -1,0 +1,94 @@
+
+open Printf
+
+let hex_to_bin_char = function
+  | '0' -> "0000"
+  | '1' -> "0001"
+  | '2' -> "0010"
+  | '3' -> "0011"
+  | '4' -> "0100"
+  | '5' -> "0101"
+  | '6' -> "0110"
+  | '7' -> "0111"
+  | '8' -> "1000"
+  | '9' -> "1001"
+  | 'A' -> "1010"
+  | 'B' -> "1011"
+  | 'C' -> "1100"
+  | 'D' -> "1101"
+  | 'E' -> "1110"
+  | 'F' -> "1111"
+  | _ -> failwith "Invalid hex character"
+
+let hex_to_bin hex =
+  String.concat "" (List.map hex_to_bin_char (List.of_seq (String.to_seq hex)))
+
+let bin_to_int bin = int_of_string ("0b" ^ bin)
+
+type packet =
+  | Literal of int * int
+  | Operator of int * int * packet list
+
+let rec parse_packet bits =
+  let version = bin_to_int (String.sub bits 0 3) in
+  let type_id = bin_to_int (String.sub bits 3 3) in
+  let remaining_bits = String.sub bits 6 (String.length bits - 6) in
+  match type_id with
+  | 4 ->
+      let rec parse_literal acc bits =
+        let prefix = String.sub bits 0 1 in
+        let value_bits = String.sub bits 1 4 in
+        let remaining_bits = String.sub bits 5 (String.length bits - 5) in
+        let acc' = acc ^ value_bits in
+        if prefix = "0" then
+          (bin_to_int acc', remaining_bits)
+        else
+          parse_literal acc' remaining_bits
+      in
+      let value, remaining_bits = parse_literal "" remaining_bits in
+      (Literal (version, value), remaining_bits)
+  | _ ->
+      let length_type_id = String.sub remaining_bits 0 1 in
+      let remaining_bits = String.sub remaining_bits 1 (String.length remaining_bits - 1) in
+      let sub_packets, remaining_bits =
+        if length_type_id = "0" then
+          let total_length = bin_to_int (String.sub remaining_bits 0 15) in
+          let remaining_bits = String.sub remaining_bits 15 (String.length remaining_bits - 15) in
+          let rec parse_sub_packets acc bits total_length_parsed =
+            if total_length_parsed >= total_length then
+              (List.rev acc, bits)
+            else
+              let packet, remaining_bits = parse_packet bits in
+              let packet_length = String.length bits - String.length remaining_bits in
+              parse_sub_packets (packet :: acc) remaining_bits (total_length_parsed + packet_length)
+          in
+          parse_sub_packets [] remaining_bits 0
+        else
+          let num_sub_packets = bin_to_int (String.sub remaining_bits 0 11) in
+          let remaining_bits = String.sub remaining_bits 11 (String.length remaining_bits - 11) in
+          let rec parse_sub_packets acc bits count =
+            if count >= num_sub_packets then
+              (List.rev acc, bits)
+            else
+              let packet, remaining_bits = parse_packet bits in
+              parse_sub_packets (packet :: acc) remaining_bits (count + 1)
+          in
+          parse_sub_packets [] remaining_bits 0
+      in
+      (Operator (version, type_id, sub_packets), remaining_bits)
+
+let rec sum_versions = function
+  | Literal (version, _) -> version
+  | Operator (version, _, sub_packets) ->
+      version + List.fold_left (fun acc p -> acc + sum_versions p) 0 sub_packets
+
+let () =
+  let input_line = In_channel.input_line (In_channel.open_text "input.txt") in
+  match input_line with
+  | Some hex ->
+      let bin = hex_to_bin hex in
+      let packet, _ = parse_packet bin in
+      let version_sum = sum_versions packet in
+      printf "%d\n" version_sum
+  | None ->
+      printf "Error: Input file is empty.\n"

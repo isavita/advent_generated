@@ -1,0 +1,38 @@
+
+let is_wall favorite_number x y =
+  let num = x * x + 3 * x + 2 * x * y + y + y * y + favorite_number in
+  let rec count_bits n acc =
+    if n = 0 then acc
+    else count_bits (n / 2) (acc + (n mod 2))
+  in
+  count_bits num 0 mod 2 <> 0
+
+let bfs start_x start_y target_x target_y favorite_number =
+  let visited = Hashtbl.create 1000 in
+  let queue = Queue.create () in
+  Queue.add (start_x, start_y, 0) queue;
+  Hashtbl.add visited (start_x, start_y) true;
+  let deltas = [(1, 0); (-1, 0); (0, 1); (0, -1)] in
+  let rec loop () =
+    if Queue.is_empty queue then -1
+    else
+      let x, y, steps = Queue.pop queue in
+      if x = target_x && y = target_y then steps
+      else
+        let nexts = List.map (fun (dx, dy) -> (x + dx, y + dy)) deltas in
+        List.iter (fun (nx, ny) ->
+          if nx >= 0 && ny >= 0 && not (is_wall favorite_number nx ny) && not (Hashtbl.mem visited (nx, ny)) then (
+            Hashtbl.add visited (nx, ny) true;
+            Queue.add (nx, ny, steps + 1) queue
+          )
+        ) nexts;
+        loop ()
+  in
+  loop ()
+
+let () =
+  let input = open_in "input.txt" in
+  let favorite_number = int_of_string (input_line input) in
+  close_in input;
+  let steps = bfs 1 1 31 39 favorite_number in
+  Printf.printf "%d\n" steps

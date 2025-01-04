@@ -1,0 +1,101 @@
+
+type monkey = {
+  name : string;
+  mutable value : int;
+  mutable has_value : bool;
+  mutable left : monkey option;
+  mutable right : monkey option;
+  mutable op : string;
+}
+
+let monkeys = Hashtbl.create 64
+
+let get_monkey name =
+  try Hashtbl.find monkeys name
+  with Not_found ->
+    let m = { name; value = 0; has_value = false; left = None; right = None; op = "" } in
+    Hashtbl.add monkeys name m;
+    m
+
+let solve m =
+  let rec solve_rec m =
+    if m.has_value then (m.value, true)
+    else
+      match (m.left, m.right) with
+      | Some l, Some r ->
+          let left_val, l_ok = solve_rec l in
+          let right_val, r_ok = solve_rec r in
+          if l_ok && r_ok then
+            match m.op with
+            | "+" -> (left_val + right_val, true)
+            | "-" -> (left_val - right_val, true)
+            | "*" -> (left_val * right_val, true)
+            | "/" -> (left_val / right_val, true)
+            | "==" -> if left_val = right_val then (0, true) else (1, true)
+            | _ -> failwith "Unknown op"
+          else (0, false)
+      | _ -> (0, false)
+  in
+  solve_rec m
+
+let expect m x =
+  let rec expect_rec m x =
+    if m.name = "humn" then x
+    else
+      match (m.left, m.right) with
+      | Some l, Some r ->
+          let left_val, l_ok = solve l in
+          let right_val, r_ok = solve r in
+          if not l_ok then
+            match m.op with
+            | "+" -> expect_rec l (x - right_val)
+            | "-" -> expect_rec l (x + right_val)
+            | "*" -> expect_rec l (x / right_val)
+            | "/" -> expect_rec l (x * right_val)
+            | "==" -> expect_rec l right_val
+            | _ -> failwith "Unknown op"
+          else if not r_ok then
+            match m.op with
+            | "+" -> expect_rec r (x - left_val)
+            | "-" -> expect_rec r (left_val - x)
+            | "*" -> expect_rec r (x / left_val)
+            | "/" -> expect_rec r (left_val / x)
+            | "==" -> expect_rec r left_val
+            | _ -> failwith "Unknown op"
+          else failwith "impossible"
+      | _ -> failwith "impossible"
+  in
+  expect_rec m x
+
+let parse () =
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      let parts = String.split_on_char ':' line in
+      let goal = String.trim (List.hd parts) in
+      let rest = String.trim (List.nth parts 1) in
+      let monkey = get_monkey goal in
+      match int_of_string_opt rest with
+      | Some num ->
+          monkey.value <- num;
+          monkey.has_value <- true
+      | None ->
+          let r = String.split_on_char ' ' rest in
+          let left = String.trim (List.nth r 0) in
+          let op = String.trim (List.nth r 1) in
+          let right = String.trim (List.nth r 2) in
+          monkey.left <- Some (get_monkey left);
+          monkey.op <- op;
+          monkey.right <- Some (get_monkey right)
+    done;
+    Hashtbl.find monkeys "root"
+  with End_of_file ->
+    close_in ic;
+    Hashtbl.find monkeys "root"
+
+let () =
+  let root = parse () in
+  (Hashtbl.find monkeys "humn").has_value <- false;
+  root.op <- "==";
+  Printf.printf "%d\n" (expect root 0)

@@ -1,0 +1,78 @@
+
+open Printf
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input lines =
+  let parse_line line =
+    let parts = String.split_on_char ':' line in
+    let pos = int_of_string (String.trim (List.nth parts 1)) in
+    pos
+  in
+  match lines with
+  | p1_line :: p2_line :: _ -> (parse_line p1_line, parse_line p2_line)
+  | _ -> failwith "Invalid input format"
+
+let part1 p1_start p2_start =
+  let rec play p1_pos p2_pos p1_score p2_score die_val die_rolls =
+    if p1_score >= 1000 then (p2_score * die_rolls)
+    else if p2_score >= 1000 then (p1_score * die_rolls)
+    else
+      let roll_sum = (die_val + 1) + (die_val + 2) + (die_val + 3) in
+      let next_die_val = (die_val + 3) mod 100 in
+      let next_die_rolls = die_rolls + 3 in
+      let next_pos = ((p1_pos + roll_sum - 1) mod 10) + 1 in
+      let next_score = p1_score + next_pos in
+      play p2_pos next_pos p2_score next_score next_die_val next_die_rolls
+  in
+  play p1_start p2_start 0 0 0 0
+
+let part2 p1_start p2_start =
+  let roll_counts = [ (3, 1); (4, 3); (5, 6); (6, 7); (7, 6); (8, 3); (9, 1) ] in
+  let rec play_quantum p1_pos p2_pos p1_score p2_score =
+    let memo = Hashtbl.create 10000 in
+    let rec play p1_pos p2_pos p1_score p2_score =
+      let key = (p1_pos, p2_pos, p1_score, p2_score) in
+      try Hashtbl.find memo key
+      with Not_found ->
+        if p1_score >= 21 then (1L, 0L)
+        else if p2_score >= 21 then (0L, 1L)
+        else
+          let wins =
+            List.fold_left
+              (fun (p1_wins, p2_wins) (roll_sum, count) ->
+                let next_p1_pos = ((p1_pos + roll_sum - 1) mod 10) + 1 in
+                let next_p1_score = p1_score + next_p1_pos in
+                let p2_wins', p1_wins' =
+                  play p2_pos next_p1_pos p2_score next_p1_score
+                in
+                ( Int64.add p1_wins (Int64.mul (Int64.of_int count) p1_wins'),
+                  Int64.add p2_wins (Int64.mul (Int64.of_int count) p2_wins') )
+              )
+              (0L, 0L) roll_counts
+          in
+          Hashtbl.add memo key wins;
+          wins
+    in
+    play p1_pos p2_pos p1_score p2_score
+  in
+  let p1_wins, p2_wins = play_quantum p1_start p2_start 0 0 in
+  max p1_wins p2_wins
+
+let () =
+  let lines = read_input "input.txt" in
+  let p1_start, p2_start = parse_input lines in
+  let result1 = part1 p1_start p2_start in
+  let result2 = part2 p1_start p2_start in
+  printf "Part 1: %d\n" result1;
+  printf "Part 2: %Ld\n" result2

@@ -1,0 +1,85 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let regex = input_line ic in
+  close_in ic;
+  let module Point = struct
+    type t = int * int
+
+    let compare (x1, y1) (x2, y2) =
+      match compare x1 x2 with 0 -> compare y1 y2 | other -> other
+  end in
+  let module PointMap = Map.Make (Point) in
+  let build_map regex =
+    let dm = ref PointMap.empty in
+    let stack = ref [] in
+    let cp = ref (0, 0) in
+    String.iter
+      (fun c ->
+        match c with
+        | '(' ->
+            stack := !cp :: !stack
+        | '|' ->
+            cp := List.hd !stack
+        | ')' ->
+            cp := List.hd !stack;
+            stack := List.tl !stack
+        | 'N' | 'S' | 'E' | 'W' as dir ->
+            let np =
+              match dir with
+              | 'N' ->
+                  fst !cp, snd !cp - 1
+              | 'S' ->
+                  fst !cp, snd !cp + 1
+              | 'E' ->
+                  fst !cp + 1, snd !cp
+              | 'W' ->
+                  fst !cp - 1, snd !cp
+              | _ ->
+                  assert false
+            in
+            let neighbors =
+              match PointMap.find_opt !cp !dm with
+              | Some n ->
+                  n
+              | None ->
+                  PointMap.empty
+            in
+            dm := PointMap.add !cp (PointMap.add np true neighbors) !dm;
+            cp := np
+        | _ ->
+            ())
+      (String.sub regex 1 (String.length regex - 2));
+    !dm
+  in
+  let count_rooms dm min_doors =
+    let visited = ref PointMap.empty in
+    let queue = ref [(0, 0)] in
+    let room_count = ref 0 in
+    while !queue <> [] do
+      let p = List.hd !queue in
+      queue := List.tl !queue;
+      let neighbors =
+        match PointMap.find_opt p dm with Some n -> n | None -> PointMap.empty
+      in
+      PointMap.iter
+        (fun np _ ->
+          if not (PointMap.mem np !visited) then (
+            let dist =
+              match PointMap.find_opt p !visited with
+              | Some d ->
+                  d + 1
+              | None ->
+                  1
+            in
+            visited := PointMap.add np dist !visited;
+            if dist >= min_doors then incr room_count;
+            queue := np :: !queue))
+        neighbors
+    done;
+    !room_count
+  in
+  let dm = build_map regex in
+  let rooms = count_rooms dm 1000 in
+  print_int rooms;
+  print_newline ()
