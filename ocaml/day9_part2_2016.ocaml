@@ -1,0 +1,36 @@
+
+let read_whole_file filename =
+  let ch = open_in filename in
+  let len = in_channel_length ch in
+  let str = really_input_string ch len in
+  close_in ch;
+  str
+
+let rec decompressed_length_v1 data pos =
+  let len = String.length data in
+  if pos >= len then 0
+  else if data.[pos] = '(' then
+    let marker_end = String.index_from data (pos + 1) ')' in
+    let marker = String.sub data (pos + 1) (marker_end - pos - 1) in
+    let num_chars, repeat = Scanf.sscanf marker "%dx%d" (fun a b -> (a, b)) in
+    (num_chars * repeat) + decompressed_length_v1 data (marker_end + 1 + num_chars)
+  else 1 + decompressed_length_v1 data (pos + 1)
+
+let rec decompressed_length_v2 data pos =
+  let len = String.length data in
+  if pos >= len then 0
+  else if data.[pos] = '(' then
+    let marker_end = String.index_from data (pos + 1) ')' in
+    let marker = String.sub data (pos + 1) (marker_end - pos - 1) in
+    let num_chars, repeat = Scanf.sscanf marker "%dx%d" (fun a b -> (a, b)) in
+    let next_pos = marker_end + 1 in
+    (decompressed_length_v2 (String.sub data next_pos num_chars) 0 * repeat)
+    + decompressed_length_v2 data (next_pos + num_chars)
+  else 1 + decompressed_length_v2 data (pos + 1)
+
+let () =
+  let data = read_whole_file "input.txt" |> String.trim in
+  print_int (decompressed_length_v1 data 0);
+  print_newline ();
+  print_int (decompressed_length_v2 data 0);
+  print_newline ()

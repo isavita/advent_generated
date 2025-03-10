@@ -1,0 +1,63 @@
+
+let read_input filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let mix nums =
+  let n = Array.length nums - 1 in
+  Array.iteri (fun i _ ->
+    let old_pos = nums.(i).(0) in
+    let new_pos = ( (old_pos + nums.(i).(1)) mod n + n) mod n in
+    if old_pos < new_pos then
+      for j = 0 to Array.length nums - 1 do
+        if nums.(j).(0) > old_pos && nums.(j).(0) <= new_pos then
+          nums.(j).(0) <- nums.(j).(0) - 1
+      done;
+    if new_pos < old_pos then
+      for j = 0 to Array.length nums - 1 do
+        if nums.(j).(0) >= new_pos && nums.(j).(0) < old_pos then
+          nums.(j).(0) <- nums.(j).(0) + 1
+      done;
+    nums.(i).(0) <- new_pos
+  ) nums
+
+let coords nums =
+  let l = Array.length nums in
+  let zero_pos =
+    let found = ref None in
+    for i = 0 to Array.length nums - 1 do
+      if nums.(i).(1) = 0 then found := Some nums.(i).(0)
+    done;
+    match !found with
+    | Some pos -> pos
+    | None -> failwith "No zero found"
+  in
+  let total_sum = ref 0 in
+  for i = 0 to Array.length nums - 1 do
+    let pos = nums.(i).(0) in
+    if pos = (zero_pos + 1000) mod l || pos = (zero_pos + 2000) mod l || pos = (zero_pos + 3000) mod l then
+      total_sum := !total_sum + nums.(i).(1)
+  done;
+  !total_sum
+
+let () =
+  let input_lines = read_input "input.txt" in
+  let nums = Array.init (List.length input_lines) (fun i ->
+    let n = int_of_string (List.nth input_lines i) in
+    [| i; n |]
+  ) in
+  let nums2 = Array.map (fun arr -> [| arr.(0); 811589153 * arr.(1) |]) nums in
+
+  for _i = 1 to 10 do
+    mix nums2
+  done;
+  print_int (coords nums2);
+  print_newline ()

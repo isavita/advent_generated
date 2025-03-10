@@ -1,0 +1,79 @@
+
+let has_abba s =
+  let len = String.length s in
+  let rec loop i =
+    if i > len - 4 then false
+    else
+      s.[i] = s.[i + 3] && s.[i + 1] = s.[i + 2] && s.[i] <> s.[i + 1]
+      || loop (i + 1)
+  in
+  loop 0
+
+let supports_tls ip =
+  let len = String.length ip in
+  let rec loop i hypernet abba_outside abba_inside =
+    if i >= len then abba_outside && not abba_inside
+    else
+      match ip.[i] with
+      | '[' -> loop (i + 1) true abba_outside abba_inside
+      | ']' -> loop (i + 1) false abba_outside abba_inside
+      | _ ->
+          if i <= len - 4 then
+            if has_abba (String.sub ip i 4) then
+              if hypernet then loop (i + 1) hypernet abba_outside true
+              else loop (i + 1) hypernet true abba_inside
+            else loop (i + 1) hypernet abba_outside abba_inside
+          else loop (i + 1) hypernet abba_outside abba_inside
+  in
+  loop 0 false false false
+
+let has_aba s =
+  let len = String.length s in
+  let rec loop i acc =
+    if i > len - 3 then List.rev acc
+    else if s.[i] = s.[i + 2] && s.[i] <> s.[i + 1] then
+      loop (i + 1) ((String.sub s i 3) :: acc)
+    else loop (i + 1) acc
+  in
+  loop 0 []
+
+let supports_ssl ip =
+  let len = String.length ip in
+  let rec loop i hypernet hypernet_abas supernet_abas =
+    if i >= len then
+      List.exists
+        (fun aba ->
+          let bab = String.make 1 aba.[1] ^ String.make 1 aba.[0] ^ String.make 1 aba.[1] in
+          List.exists (( = ) bab) hypernet_abas)
+        supernet_abas
+    else
+      match ip.[i] with
+      | '[' -> loop (i + 1) true hypernet_abas supernet_abas
+      | ']' -> loop (i + 1) false hypernet_abas supernet_abas
+      | _ ->
+          if i <= len - 3 then
+            let abas = has_aba (String.sub ip i 3) in
+            if hypernet then
+              loop (i + 1) hypernet (hypernet_abas @ abas) supernet_abas
+            else loop (i + 1) hypernet hypernet_abas (supernet_abas @ abas)
+          else loop (i + 1) hypernet hypernet_abas supernet_abas
+  in
+  loop 0 false [] []
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines ic tls_count ssl_count =
+    try
+      let line = input_line ic in
+      let new_tls_count =
+        if supports_tls line then tls_count + 1 else tls_count
+      in
+      let new_ssl_count =
+        if supports_ssl line then ssl_count + 1 else ssl_count
+      in
+      read_lines ic new_tls_count new_ssl_count
+    with End_of_file ->
+      close_in ic;
+      Printf.printf "%d\n%d\n" tls_count ssl_count
+  in
+  read_lines ic 0 0

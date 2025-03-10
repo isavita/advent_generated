@@ -1,0 +1,63 @@
+
+let read_packages filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (int_of_string line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let rec combinations k list =
+  match k, list with
+  | 0, _ -> [[]]
+  | _, [] -> []
+  | k, x :: xs ->
+      List.map (fun c -> x :: c) (combinations (k - 1) xs) @ combinations k xs
+
+let product = List.fold_left ( * ) 1
+
+let find_ideal_grouping packages =
+  let total_weight = List.fold_left ( + ) 0 packages in
+  let group_weight = total_weight / 3 in
+  let rec loop group_size =
+    if group_size >= List.length packages then None
+    else
+      let valid_groups =
+        List.filter_map
+          (fun combo ->
+            if List.fold_left ( + ) 0 combo = group_weight then
+              let remaining_packages =
+                List.filter (fun x -> not (List.mem x combo)) packages
+              in
+              let rec loop2 second_group_size =
+                if second_group_size >= List.length remaining_packages then None
+                else
+                  let second_combos = combinations second_group_size remaining_packages in
+                  if
+                    List.exists
+                      (fun second_combo ->
+                        List.fold_left ( + ) 0 second_combo = group_weight)
+                      second_combos
+                  then Some combo
+                  else loop2 (second_group_size + 1)
+              in
+              loop2 0
+            else None)
+          (combinations group_size packages)
+      in
+      match valid_groups with
+      | [] -> loop (group_size + 1)
+      | _ :: _ ->
+          Some (List.fold_left min max_int (List.map product valid_groups))
+  in
+  loop 0
+
+let () =
+  let packages = read_packages "input.txt" in
+  match find_ideal_grouping packages with
+  | Some entanglement -> print_int entanglement
+  | None -> ()

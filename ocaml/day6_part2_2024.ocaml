@@ -1,0 +1,98 @@
+
+type state = { x : int; y : int; dir_idx : int }
+
+let state_eq s1 s2 =
+  s1.x = s2.x && s1.y = s2.y && s1.dir_idx = s2.dir_idx
+
+let state_hash s =
+  Hashtbl.hash (s.x, s.y, s.dir_idx)
+
+let loops grid start_x start_y start_dir =
+  let h = Array.length grid in
+  let w = Array.length grid.(0) in
+  let dirs = [ (0, -1); (1, 0); (0, 1); (-1, 0) ] in
+  let seen = Hashtbl.create 100 in
+
+  let rec iterate x y dir_idx steps =
+    if steps >= 2000000 then
+      false (* Arbitrary limit to detect non-loops *)
+    else
+      let state = { x; y; dir_idx } in
+      if Hashtbl.mem seen state then
+        true
+      else (
+        Hashtbl.add seen state ();
+        let dir_x, dir_y = List.nth dirs dir_idx in
+        let nx = x + dir_x in
+        let ny = y + dir_y in
+        if nx < 0 || nx >= w || ny < 0 || ny >= h then
+          false
+        else if grid.(ny).(nx) = '#' then
+          let new_dir_idx = (dir_idx + 1) mod 4 in
+          iterate x y new_dir_idx (steps + 1)
+        else
+          iterate nx ny dir_idx (steps + 1)
+      )
+  in
+  iterate start_x start_y start_dir 0
+
+let find_loop_positions input_str =
+  let lines = String.split_on_char '\n' input_str in
+  let grid = Array.of_list (List.map (fun line -> Array.of_seq (String.to_seq line)) (List.filter (fun s -> String.length s > 0) lines)) in
+  let h = Array.length grid in
+  let w = Array.length grid.(0) in
+
+  let start_x = ref (-1) in
+  let start_y = ref (-1) in
+  let start_dir = ref 0 in
+
+  for i = 0 to h - 1 do
+    for j = 0 to w - 1 do
+      match grid.(i).(j) with
+      | '^' -> start_x := j; start_y := i; start_dir := 0
+      | '>' -> start_x := j; start_y := i; start_dir := 1
+      | 'v' -> start_x := j; start_y := i; start_dir := 2
+      | '<' -> start_x := j; start_y := i; start_dir := 3
+      | _ -> ()
+    done
+  done;
+
+  let sx = !start_x in
+  let sy = !start_y in
+  let sd = !start_dir in
+  grid.(sy).(sx) <- '.';
+
+  let can_loop = ref 0 in
+  for y = 0 to h - 1 do
+    for x = 0 to w - 1 do
+      if x = sx && y = sy then
+        ()
+      else if grid.(y).(x) = '.' then (
+        let original = grid.(y).(x) in
+        grid.(y).(x) <- '#';
+        if loops grid sx sy sd then
+          incr can_loop;
+        grid.(y).(x) <- original
+      )
+    done
+  done;
+
+  !can_loop
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (acc ^ line ^ "\n")
+    with End_of_file ->
+      close_in chan;
+      acc
+  in
+  read_lines ""
+
+let () =
+  let input_str = read_file "input.txt" in
+  let result = find_loop_positions input_str in
+  print_int result;
+  print_newline ()

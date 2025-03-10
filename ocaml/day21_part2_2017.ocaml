@@ -1,0 +1,101 @@
+
+let enhance rules memo input_str =
+  let rec rotate input_str =
+    let parts = String.split_on_char '/' input_str in
+    let size = List.length parts in
+    let new_parts = Array.make size "" in
+    for x = 0 to size - 1 do
+      let new_row = ref "" in
+      for y = size - 1 downto 0 do
+        new_row := !new_row ^ String.make 1 (String.get (List.nth parts y) x)
+      done;
+      new_parts.(x) <- !new_row
+    done;
+    String.concat "/" (Array.to_list new_parts)
+  in
+
+  let flip input_str =
+    let parts = String.split_on_char '/' input_str in
+    let flipped_parts = List.map (fun s -> String.init (String.length s) (fun i -> String.get s (String.length s - 1 - i))) parts in
+    String.concat "/" flipped_parts
+  in
+
+  let rec find_rule input_str = function
+    | [] -> None
+    | (pattern, result) :: rest ->
+      if pattern = input_str then Some result else find_rule input_str rest
+  in
+
+  let rec check_variants input_str rot_count flip_used =
+    match Hashtbl.find_opt memo input_str with
+    | Some result -> Some result
+    | None ->
+      match find_rule input_str rules with
+      | Some result -> Hashtbl.add memo input_str result; Some result
+      | None ->
+        if rot_count < 3 then
+          check_variants (rotate input_str) (rot_count + 1) flip_used
+        else if not flip_used then
+          check_variants (flip input_str) 0 true
+        else
+          None
+  in
+  
+  check_variants input_str 0 false
+
+let solve rules =
+  let initial_grid = [ ".#."; "..#"; "###" ] in
+  let rec iterate grid iterations =
+    if iterations = 0 then grid
+    else
+      let size = List.length grid in
+      let sub_size, new_size_factor =
+        if size mod 2 = 0 then (2, 3) else (3, 4)
+      in
+      let num_subgrids = size / sub_size in
+      let new_size = num_subgrids * new_size_factor in
+      let new_grid = Array.make new_size "" in
+      let memo = Hashtbl.create 1000 in
+      for y = 0 to num_subgrids - 1 do
+        for x = 0 to num_subgrids - 1 do
+          let subgrid =
+            List.init sub_size (fun dy ->
+              String.sub (List.nth grid (y * sub_size + dy)) (x * sub_size) sub_size
+            )
+          in
+          match enhance rules memo (String.concat "/" subgrid) with
+          | Some new_square ->
+            let new_square_rows = String.split_on_char '/' new_square in
+            List.iteri (fun dy row ->
+              new_grid.(y * new_size_factor + dy) <- new_grid.(y * new_size_factor + dy) ^ row
+            ) new_square_rows
+          | None -> failwith "No rule found"
+        done
+      done;
+      iterate (Array.to_list new_grid) (iterations - 1)
+  in
+  
+  let final_grid = iterate initial_grid 18 in
+  List.fold_left (fun acc row ->
+    acc + String.fold_left (fun count c -> if c = '#' then count + 1 else count) 0 row
+  ) 0 final_grid
+
+let read_rules filename =
+  let rules = ref [] in
+  let in_channel = open_in filename in
+  try
+    while true do
+      let line = input_line in_channel in
+      match String.split_on_char ' ' line with
+      | [pattern; "=>"; result] -> rules := (pattern, result) :: !rules
+      | _ -> ()
+    done;
+    !rules
+  with
+  | End_of_file -> close_in in_channel; List.rev !rules
+
+let () =
+  let rules = read_rules "input.txt" in
+  let result = solve rules in
+  print_int result;
+  print_newline ()

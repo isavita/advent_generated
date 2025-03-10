@@ -1,0 +1,54 @@
+
+let read_lines filename =
+  let chan = open_in filename in
+  let rec read_rec acc =
+    try
+      let line = input_line chan in
+      read_rec (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_rec []
+
+let get_points_with_steps path =
+  let points = Hashtbl.create 1000 in
+  let current = ref (0, 0) in
+  let steps = ref 0 in
+  let moves = String.split_on_char ',' path in
+  List.iter (fun move ->
+    let direction = String.get move 0 in
+    let distance = int_of_string (String.sub move 1 (String.length move - 1)) in
+    for _ = 1 to distance do
+      incr steps;
+      let (x, y) = !current in
+      let new_current =
+        match direction with
+        | 'U' -> (x, y + 1)
+        | 'D' -> (x, y - 1)
+        | 'L' -> (x - 1, y)
+        | 'R' -> (x + 1, y)
+        | _ -> failwith "Invalid direction"
+      in
+      current := new_current;
+      if not (Hashtbl.mem points new_current) then
+        Hashtbl.add points new_current !steps
+    done
+  ) moves;
+  points
+
+let () =
+  let lines = read_lines "input.txt" in
+  let wire1 = get_points_with_steps (List.nth lines 0) in
+  let wire2 = get_points_with_steps (List.nth lines 1) in
+
+  let min_steps = ref max_int in
+  Hashtbl.iter (fun point steps1 ->
+    if Hashtbl.mem wire2 point then
+      let steps2 = Hashtbl.find wire2 point in
+      let total_steps = steps1 + steps2 in
+      if total_steps < !min_steps then
+        min_steps := total_steps
+  ) wire1;
+
+  Printf.printf "%d\n" !min_steps

@@ -1,0 +1,79 @@
+
+let directions =
+  [ ("e", (1, 0)); ("se", (0, -1)); ("sw", (-1, -1));
+    ("w", (-1, 0)); ("nw", (0, 1)); ("ne", (1, 1)) ]
+
+let parse_line line =
+  let rec parse x y i =
+    if i >= String.length line then (x, y)
+    else
+      let dir, step =
+        match line.[i] with
+        | 'e' | 'w' -> String.make 1 line.[i], 1
+        | _ -> String.sub line i 2, 2
+      in
+      let dx, dy = List.assoc dir directions in
+      let x' = x + dx in
+      let y' = y + dy in
+      parse x' y' (i + step)
+  in
+  parse 0 0 0
+
+let initial_tiles filename =
+  let tiles = Hashtbl.create 1000 in
+  let ic = open_in filename in
+  try
+    while true do
+      let line = input_line ic in
+      let x, y = parse_line line in
+      let current = try Hashtbl.find tiles (x, y) with Not_found -> false in
+      Hashtbl.replace tiles (x, y) (not current)
+    done;
+    tiles
+  with End_of_file ->
+    close_in ic;
+    tiles
+
+let get_adjacent x y =
+  List.map (fun (_, (dx, dy)) -> (x + dx, y + dy)) directions
+
+let count_adjacent tiles x y =
+  List.fold_left (fun acc (nx, ny) ->
+    acc + (if Hashtbl.mem tiles (nx, ny) && Hashtbl.find tiles (nx, ny) then 1 else 0)
+  ) 0 (get_adjacent x y)
+
+let simulate tiles =
+  let min_x, max_x, min_y, max_y =
+    Hashtbl.fold (fun (x, y) _ (min_x, max_x, min_y, max_y) ->
+      (min min_x x, max max_x x, min min_y y, max max_y y)
+    ) tiles (max_int, min_int, max_int, min_int)
+  in
+  let new_tiles = Hashtbl.create (Hashtbl.length tiles) in
+  for x = min_x - 1 to max_x + 1 do
+    for y = min_y - 1 to max_y + 1 do
+      let adj_count = count_adjacent tiles x y in
+      let is_black = try Hashtbl.find tiles (x, y) with Not_found -> false in
+      if is_black then (
+        if adj_count = 1 || adj_count = 2 then
+          Hashtbl.replace new_tiles (x, y) true
+      ) else (
+        if adj_count = 2 then
+          Hashtbl.replace new_tiles (x, y) true
+      )
+    done
+  done;
+  new_tiles
+
+let count_black tiles =
+  Hashtbl.fold (fun _ v acc -> if v then acc + 1 else acc) tiles 0
+
+let () =
+  let tiles = initial_tiles "input.txt" in
+  let final_tiles =
+    let rec iterate n tiles =
+      if n = 0 then tiles
+      else iterate (n - 1) (simulate tiles)
+    in
+    iterate 100 tiles
+  in
+  Printf.printf "%d\n" (count_black final_tiles)

@@ -1,0 +1,43 @@
+
+type num = { mutable pos : int; val_ : int }
+
+let mix nums =
+  let n = Array.length nums - 1 in
+  Array.iteri (fun i _ ->
+    let oldpos = nums.(i).pos in
+    let newpos = ((((oldpos + nums.(i).val_) mod n) + n) mod n) in
+    if oldpos < newpos then
+      Array.iter (fun num ->
+        if num.pos > oldpos && num.pos <= newpos then
+          num.pos <- num.pos - 1
+      ) nums;
+    if newpos < oldpos then
+      Array.iter (fun num ->
+        if num.pos >= newpos && num.pos < oldpos then
+          num.pos <- num.pos + 1
+      ) nums;
+    nums.(i).pos <- newpos
+  ) nums
+
+let coords nums =
+  let l = Array.length nums in
+  let zeroPos = ref 0 in
+  for i = 0 to Array.length nums - 1 do
+    if nums.(i).val_ = 0 then zeroPos := nums.(i).pos
+  done;
+  let sum_val = ref 0 in
+  for i = 0 to Array.length nums - 1 do
+    let pos = nums.(i).pos in
+    if pos = (!zeroPos + 1000) mod l || pos = (!zeroPos + 2000) mod l || pos = (!zeroPos + 3000) mod l then
+      sum_val := !sum_val + nums.(i).val_
+  done;
+  !sum_val
+
+let main () =
+  let lines = In_channel.input_lines (In_channel.open_text "input.txt") in
+  let nums = Array.of_list (List.mapi (fun i line -> { pos = i; val_ = int_of_string (String.trim line) }) lines) in
+  
+  mix nums;
+  Printf.printf "%d\n" (coords nums)
+
+let () = main ()

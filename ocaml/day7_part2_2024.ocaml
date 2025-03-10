@@ -1,0 +1,94 @@
+
+let read_file filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input lines =
+  List.map (fun line ->
+    match String.split_on_char ':' line with
+    | [test_value; numbers] ->
+       let test_value = int_of_string (String.trim test_value) in
+       let numbers = List.map int_of_string (String.split_on_char ' ' (String.trim numbers)) in
+       (test_value, numbers)
+    | _ -> failwith "Invalid input format"
+  ) lines
+
+let evaluate_expression test_value numbers =
+  let operators = [|"+"; "*"; "||"|] in
+  let num_operators = List.length numbers - 1 in
+
+  let rec generate_combinations i current_combination =
+    if i = num_operators then
+      [current_combination]
+    else
+      Array.to_list operators |> List.map (fun op -> generate_combinations (i + 1) (op :: current_combination)) |> List.concat
+  in
+
+  let combinations = generate_combinations 0 [] in
+
+  let apply_operation op x y =
+    match op with
+    | "+" -> x + y
+    | "*" -> x * y
+    | "||" -> int_of_string (string_of_int x ^ string_of_int y)
+    | _ -> failwith "Invalid operator"
+  in
+
+  let evaluate ops =
+    let rec eval_helper result ops numbers_tail =
+      match ops, numbers_tail with
+      | [], [] -> result
+      | op :: ops_tail, num :: numbers_tail_tail ->
+         eval_helper (apply_operation op result num) ops_tail numbers_tail_tail
+      | _ -> failwith "Invalid state"
+    in
+    eval_helper (List.hd numbers) (List.rev ops) (List.tl numbers)
+  in
+
+  let format_expression ops =
+    let rec format_helper acc ops numbers_tail =
+      match ops, numbers_tail with
+      | [], [] -> acc
+      | op :: ops_tail, num :: numbers_tail_tail ->
+         format_helper (acc ^ " " ^ op ^ " " ^ string_of_int num) ops_tail numbers_tail_tail
+      | _ -> failwith "Invalid state"
+    in
+    string_of_int (List.hd numbers) ^ format_helper "" (List.rev ops) (List.tl numbers)
+  in
+
+  let find_solution =
+      List.find_map (fun ops ->
+        if evaluate ops = test_value then
+          Some (format_expression ops)
+        else
+          None
+      ) combinations
+  in
+  find_solution
+
+let calculate_sum_of_test_values test_values =
+  let sum =
+    List.fold_left (fun acc (test_value, numbers) ->
+      match evaluate_expression test_value numbers with
+      | Some _ -> acc + test_value
+      | None -> acc
+    ) 0 test_values
+  in
+  print_int sum;
+  print_newline ();
+  sum
+
+let main () =
+  let lines = read_file "input.txt" in
+  let test_values = parse_input lines in
+  calculate_sum_of_test_values test_values
+
+let _ = main ()

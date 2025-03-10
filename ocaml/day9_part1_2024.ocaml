@@ -1,0 +1,76 @@
+
+let solve () =
+  let line =
+    let ic = open_in "input.txt" in
+    let line = input_line ic in
+    close_in ic;
+    line
+  in
+
+  let disk = Array.make (String.length line * 10) "." in
+  let file_id = ref 0 in
+  let is_file = ref true in
+  let disk_len = ref 0 in
+  String.iter (fun c ->
+    let length = int_of_char c - int_of_char '0' in
+    for _ = 1 to length do
+      if !is_file then begin
+        disk.(!disk_len) <- string_of_int !file_id;
+      end else begin
+        disk.(!disk_len) <- ".";
+      end;
+      disk_len := !disk_len + 1;
+    done;
+    if !is_file then incr file_id;
+    is_file := not !is_file
+  ) line;
+
+  let find_lfree () =
+    let rec find i =
+      if i >= !disk_len then -1
+      else if disk.(i) = "." then i
+      else find (i + 1)
+    in
+    find 0
+  in
+
+  let find_rfile lfree =
+    let rec find i =
+      if i <= lfree then -1
+      else if disk.(i) <> "." then i
+      else find (i - 1)
+    in
+    find (!disk_len - 1)
+  in
+
+  let move_files () =
+    let rec move () =
+      let lfree = find_lfree () in
+      if lfree = -1 then ()
+      else
+        let rfile = find_rfile lfree in
+        if rfile = -1 then ()
+        else begin
+          let temp = disk.(lfree) in
+          disk.(lfree) <- disk.(rfile);
+          disk.(rfile) <- temp;
+          move ()
+        end
+    in
+    move ()
+  in
+
+  move_files ();
+
+  let checksum = ref 0 in
+  for i = 0 to !disk_len - 1 do
+    if disk.(i) <> "." then
+      checksum := !checksum + (i * int_of_string disk.(i))
+  done;
+
+  print_int !checksum;
+  print_newline ()
+
+let main () = solve ()
+
+let () = main ()

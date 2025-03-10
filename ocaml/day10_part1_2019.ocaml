@@ -1,0 +1,40 @@
+
+let get_angle a b =
+  Float.atan2 (float_of_int (snd b - snd a)) (float_of_int (fst b - fst a))
+
+let count_visible_asteroids station asteroids =
+  let angles = Hashtbl.create (List.length asteroids) in
+  let count = ref 0 in
+  List.iter (fun asteroid ->
+    if asteroid <> station then (
+      let angle = get_angle station asteroid in
+      if not (Hashtbl.mem angles angle) then (
+        Hashtbl.add angles angle true;
+        incr count
+      )
+    )
+  ) asteroids;
+  !count
+
+let find_best_location asteroids =
+  let max_visible = ref 0 in
+  List.iter (fun station ->
+    let visible = count_visible_asteroids station asteroids in
+    if visible > !max_visible then (
+      max_visible := visible;
+    )
+  ) asteroids;
+  !max_visible
+
+let main () =
+  let lines = In_channel.input_lines (In_channel.open_text "input.txt") in
+  let asteroids = ref [] in
+  List.iteri (fun y line ->
+    String.iteri (fun x c ->
+      if c = '#' then asteroids := (x, y) :: !asteroids
+    ) line
+  ) lines;
+  let result = find_best_location !asteroids in
+  Printf.printf "%d\n" result
+
+let () = main ()

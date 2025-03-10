@@ -1,0 +1,63 @@
+
+let parse_input file_path =
+  let ic = open_in file_path in
+  let lines = ref [] in
+  try
+    while true do
+      let line = input_line ic in
+      let levels =
+        String.split_on_char ' ' line
+        |> List.map int_of_string
+      in
+      lines := levels :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+
+let is_safe_sequence report =
+  let len = List.length report in
+  if len < 2 then
+    true
+  else
+    let increasing = ref true in
+    let decreasing = ref true in
+    let differences_valid = ref true in
+    let prev = ref (List.hd report) in
+    List.tl report |> List.iter (fun curr ->
+      if !increasing && !prev >= curr then increasing := false;
+      if !decreasing && !prev <= curr then decreasing := false;
+      let diff = abs (!prev - curr) in
+      if diff < 1 || diff > 3 then differences_valid := false;
+      prev := curr
+    );
+    (!increasing || !decreasing) && !differences_valid
+
+let is_safe report =
+  if is_safe_sequence report then
+    true
+  else
+    let len = List.length report in
+    let rec check_removal i =
+      if i >= len then
+        false
+      else
+        let modified_report =
+          List.mapi (fun j x -> if j = i then None else Some x) report
+          |> List.filter_map (fun x -> x)
+        in
+        if is_safe_sequence modified_report then
+          true
+        else
+          check_removal (i + 1)
+    in
+    check_removal 0
+
+let count_safe_reports reports =
+  List.fold_left (fun acc report -> if is_safe report then acc + 1 else acc) 0 reports
+
+let () =
+  let reports = parse_input "input.txt" in
+  let safe_count = count_safe_reports reports in
+  Printf.printf "%d\n" safe_count

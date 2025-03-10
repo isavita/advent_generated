@@ -1,0 +1,42 @@
+
+let is_real_room name checksum =
+  let name = String.map (fun c -> if c = '-' then ' ' else c) name in
+  let counts = Hashtbl.create (String.length name) in
+  String.iter (fun c -> if c <> ' ' then Hashtbl.replace counts c (try Hashtbl.find counts c + 1 with Not_found -> 1)) name;
+  let sorted = List.sort (fun a b ->
+    let count_a = try Hashtbl.find counts a with Not_found -> 0 in
+    let count_b = try Hashtbl.find counts b with Not_found -> 0 in
+    if count_a = count_b then compare a b else compare count_b count_a
+  ) (List.of_seq (Hashtbl.to_seq_keys counts)) in
+  let most_common = String.init (min 5 (List.length sorted)) (fun i -> List.nth sorted i) in
+  most_common = checksum
+
+let decrypt_name name sector_id =
+  String.map (fun c ->
+    if c = '-' then ' '
+    else
+      let shift = sector_id mod 26 in
+      char_of_int (((int_of_char c - int_of_char 'a' + shift) mod 26) + int_of_char 'a')
+  ) name
+
+let () =
+  let total_sector_ids = ref 0 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      let parts = String.split_on_char '-' line in
+      let name = String.concat "-" (List.rev (List.tl (List.rev parts))) in
+      let sector_id_checksum = List.hd (List.rev parts) in
+      let sector_id_checksum_parts = String.split_on_char '[' sector_id_checksum in
+      let sector_id = int_of_string (List.hd sector_id_checksum_parts) in
+      let checksum = String.sub (List.nth sector_id_checksum_parts 1) 0 (String.length (List.nth sector_id_checksum_parts 1) - 1) in
+      if is_real_room name checksum then begin
+        total_sector_ids := !total_sector_ids + sector_id;
+        if decrypt_name name sector_id = "northpole object storage" then
+          Printf.printf "%d\n" sector_id;
+      end;
+    done
+  with End_of_file ->
+    close_in ic;
+    Printf.printf "%d\n" !total_sector_ids

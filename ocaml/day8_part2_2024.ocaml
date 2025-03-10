@@ -1,0 +1,88 @@
+
+let gcd a b =
+  let rec gcd' a b =
+    if b = 0 then abs a
+    else gcd' b (a mod b)
+  in
+  gcd' a b
+
+let solve () =
+  let grid = In_channel.with_open_text "input.txt" In_channel.input_lines in
+  let h = List.length grid in
+  let w = String.length (List.hd grid) in
+  let antennas = Hashtbl.create 10 in
+  for y = 0 to h - 1 do
+    let row = String.trim (List.nth grid y) in
+    for x = 0 to w - 1 do
+      let c = String.get row x in
+      if c <> '.' then
+        let key = String.make 1 c in
+        let coords =
+          match Hashtbl.find_opt antennas key with
+          | Some coords -> coords
+          | None -> []
+        in
+        Hashtbl.replace antennas key ((y, x) :: coords)
+    done
+  done;
+
+  let lines_per_freq = Hashtbl.create 10 in
+  Hashtbl.iter (fun f coords ->
+    let lines = Hashtbl.create 10 in
+    let n = List.length coords in
+    for i = 0 to n - 1 do
+      for j = i + 1 to n - 1 do
+        let (ay, ax) = List.nth coords i in
+        let (by, bx) = List.nth coords j in
+        let dy = by - ay in
+        let dx = bx - ax in
+        let g = gcd dy dx in
+        let sy = dy / g in
+        let sx = dx / g in
+        let sx, sy =
+          if sx < 0 || (sx = 0 && sy < 0) then (-sx, -sy) else (sx, sy)
+        in
+        let c = sy * ax - sx * ay in
+        let line = (sx, sy, c) in
+        Hashtbl.add lines line ()
+      done
+    done;
+    let lines_set = Hashtbl.fold (fun k _ acc -> k :: acc) lines [] in
+    Hashtbl.add lines_per_freq f lines_set
+  ) antennas;
+
+  let antinodes = Hashtbl.create (h * w) in
+  Hashtbl.iter (fun _ lines ->
+    List.iter (fun (sx, sy, c) ->
+      if sx = 0 && sy = 0 then ()
+      else if sy = 0 then (
+        if c mod sx = 0 then
+          let y = -c / sx in
+          if 0 <= y && y < h then
+            for x = 0 to w - 1 do
+              Hashtbl.replace antinodes (y, x) ()
+            done
+      ) else if sx = 0 then (
+        if c mod sy = 0 then
+          let x = c / sy in
+          if 0 <= x && x < w then
+            for y = 0 to h - 1 do
+              Hashtbl.replace antinodes (y, x) ()
+            done
+      ) else (
+        for y = 0 to h - 1 do
+          let val_ = c + sx * y in
+          if val_ mod sy = 0 then
+            let x = val_ / sy in
+            if 0 <= x && x < w then
+              Hashtbl.replace antinodes (y, x) ()
+        done
+      )
+    ) lines
+  ) lines_per_freq;
+
+  Printf.printf "%d\n" (Hashtbl.length antinodes)
+
+let main () = solve ()
+
+let () = main ()

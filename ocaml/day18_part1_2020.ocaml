@@ -1,0 +1,51 @@
+
+let evaluate expression =
+  let rec eval expr =
+    match String.contains expr '(' with
+    | true ->
+      let start = String.rindex expr '(' in
+      let end_index = String.index_from expr (start + 1) ')' in
+      let sub_expr = String.sub expr (start + 1) (end_index - start - 1) in
+      let sub_result = eval sub_expr in
+      let new_expr =
+        String.sub expr 0 start
+        ^ string_of_int sub_result
+        ^ String.sub expr (end_index + 1) (String.length expr - end_index - 1)
+      in
+      eval new_expr
+    | false ->
+      let tokens = String.split_on_char ' ' expr in
+      let rec calculate total tokens index =
+        match index < List.length tokens with
+        | true ->
+          let token = List.nth tokens index in
+          if token = "+" then
+            let next_val = int_of_string (List.nth tokens (index + 1)) in
+            calculate (total + next_val) tokens (index + 2)
+          else if token = "*" then
+            let next_val = int_of_string (List.nth tokens (index + 1)) in
+            calculate (total * next_val) tokens (index + 2)
+          else
+            calculate total tokens (index + 2)
+        | false -> total
+      in
+      let initial_value = int_of_string (List.hd tokens) in
+      calculate initial_value tokens 1
+  in
+  eval expression
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let result = List.fold_left (fun acc line -> acc + evaluate line) 0 lines in
+  Printf.printf "%d\n" result

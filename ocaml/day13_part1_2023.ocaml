@@ -1,0 +1,91 @@
+
+let parse_mirror mirror_str =
+  let num_rows = List.length mirror_str in
+  let num_cols = String.length (List.hd mirror_str) in
+  let rows = Array.make num_rows 0 in
+  let cols = Array.make num_cols 0 in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      rows.(y) <- rows.(y) lsl 1;
+      cols.(x) <- cols.(x) lsl 1;
+      if char = '#' then (
+        rows.(y) <- rows.(y) + 1;
+        cols.(x) <- cols.(x) + 1
+      )
+    ) line
+  ) mirror_str;
+  (rows, cols)
+
+let get_mirror_axis lines =
+  let len = Array.length lines in
+  let rec check i =
+    if i >= len then 0
+    else
+      let is_mirror = ref true in
+      for j = 0 to min (i - 1) (len - i - 1) do
+        if lines.(i - 1 - j) <> lines.(i + j) then
+          is_mirror := false
+      done;
+      if !is_mirror then i else check (i + 1)
+  in
+  check 1
+
+let get_mirror_axis_with_one_smudge lines =
+  let len = Array.length lines in
+  let rec check i =
+    if i >= len then 0
+    else
+      let is_mirror = ref true in
+      let num_smudges = ref 0 in
+      for j = 0 to min (i - 1) (len - i - 1) do
+        if lines.(i - 1 - j) <> lines.(i + j) then
+          if !num_smudges > 0 then
+            is_mirror := false
+          else
+            let dif = lines.(i - 1 - j) lxor lines.(i + j) in
+            let is_only_one_smudge = (dif land (dif - 1)) = 0 in
+            if is_only_one_smudge then
+              num_smudges := !num_smudges + 1
+            else
+              is_mirror := false
+      done;
+      if !is_mirror && !num_smudges = 1 then i else check (i + 1)
+  in
+  check 1
+
+let solve mirrors =
+  List.fold_left (fun acc (rows, cols) ->
+    acc + get_mirror_axis cols + (get_mirror_axis rows * 100)
+  ) 0 mirrors
+
+let read_file filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true do
+      lines := input_line chan :: !lines
+    done;
+    !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+let parse_input input =
+  let rec group_mirrors acc current lines =
+    match lines with
+    | [] ->
+      if current = [] then acc else (List.rev current) :: acc
+    | line :: rest ->
+      if line = "" then
+        group_mirrors ((List.rev current) :: acc) [] rest
+      else
+        group_mirrors acc (line :: current) rest
+  in
+  let mirror_strings = group_mirrors [] [] input in
+  List.map parse_mirror mirror_strings
+
+let () =
+  let input = read_file "input.txt" in
+  let mirrors = parse_input input in
+  let result = solve mirrors in
+  Printf.printf "%d\n" result

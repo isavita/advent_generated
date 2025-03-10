@@ -1,0 +1,75 @@
+
+type game_state = {
+  mutable player_hp : int;
+  mutable player_mana : int;
+  mutable boss_hp : int;
+  mutable boss_damage : int;
+  mutable shield_timer : int;
+  mutable poison_timer : int;
+  mutable recharge_timer : int;
+  mutable mana_spent : int;
+}
+
+let min_mana_to_win initial_state =
+  let min_mana = ref max_int in
+  let rec simulate state player_turn =
+    if state.mana_spent >= !min_mana then ()
+    else if state.boss_hp <= 0 then min_mana := state.mana_spent
+    else if state.player_hp <= 0 then ()
+    else begin
+      if state.shield_timer > 0 then state.shield_timer <- state.shield_timer - 1;
+      if state.poison_timer > 0 then begin
+        state.boss_hp <- state.boss_hp - 3;
+        state.poison_timer <- state.poison_timer - 1;
+      end;
+      if state.recharge_timer > 0 then begin
+        state.player_mana <- state.player_mana + 101;
+        state.recharge_timer <- state.recharge_timer - 1;
+      end;
+
+      if not player_turn then begin
+        let damage = max 1 (state.boss_damage - if state.shield_timer > 0 then 7 else 0) in
+        state.player_hp <- state.player_hp - damage;
+        simulate state true
+      end else begin
+        if state.player_mana >= 53 then begin
+          let new_state = { state with player_mana = state.player_mana - 53; mana_spent = state.mana_spent + 53; boss_hp = state.boss_hp - 4 } in
+          simulate new_state false
+        end;
+        
+        if state.player_mana >= 73 then begin
+          let new_state = { state with player_mana = state.player_mana - 73; mana_spent = state.mana_spent + 73; boss_hp = state.boss_hp - 2; player_hp = state.player_hp + 2 } in
+          simulate new_state false
+        end;
+
+        if state.player_mana >= 113 && state.shield_timer = 0 then begin
+          let new_state = { state with player_mana = state.player_mana - 113; mana_spent = state.mana_spent + 113; shield_timer = 6 } in
+          simulate new_state false
+        end;
+
+        if state.player_mana >= 173 && state.poison_timer = 0 then begin
+          let new_state = { state with player_mana = state.player_mana - 173; mana_spent = state.mana_spent + 173; poison_timer = 6 } in
+          simulate new_state false
+        end;
+
+        if state.player_mana >= 229 && state.recharge_timer = 0 then begin
+          let new_state = { state with player_mana = state.player_mana - 229; mana_spent = state.mana_spent + 229; recharge_timer = 5 } in
+          simulate new_state false
+        end
+      end
+    end
+  in
+  initial_state.player_hp <- 50;
+  initial_state.player_mana <- 500;
+  simulate initial_state true;
+  !min_mana
+
+let () =
+  let ic = open_in "input.txt" in
+  let boss_hp = int_of_string (List.nth (String.split_on_char ':' (input_line ic)) 1 |> String.trim) in
+  let boss_damage = int_of_string (List.nth (String.split_on_char ':' (input_line ic)) 1 |> String.trim) in
+  close_in ic;
+  let initial_state = { player_hp = 0; player_mana = 0; boss_hp = boss_hp; boss_damage = boss_damage;
+                        shield_timer = 0; poison_timer = 0; recharge_timer = 0; mana_spent = 0 } in
+  print_int (min_mana_to_win initial_state);
+  print_newline ()

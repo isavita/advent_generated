@@ -1,0 +1,28 @@
+
+let () =
+  let discs = ref [] in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      Scanf.sscanf line "Disc #%_d has %d positions; at time=0, it is at position %d."
+        (fun total_positions start_position ->
+          discs := (total_positions, start_position) :: !discs)
+    done
+  with End_of_file ->
+    close_in ic;
+    discs := (11, 0) :: !discs;
+    let discs_arr = Array.of_list (List.rev !discs) in
+    let num_discs = Array.length discs_arr in
+    let rec find_time time =
+      let all_pass = ref true in
+      for i = 0 to num_discs - 1 do
+        let (total_positions, start_position) = discs_arr.(i) in
+        if (start_position + time + i + 1) mod total_positions <> 0 then (
+          all_pass := false;
+          )
+      done;
+      if !all_pass then time else find_time (time + 1)
+    in
+    let result = find_time 0 in
+    Printf.printf "%d\n" result

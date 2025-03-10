@@ -1,0 +1,55 @@
+
+let rect screen a b =
+  for i = 0 to b - 1 do
+    for j = 0 to a - 1 do
+      screen.(i).(j) <- 1
+    done
+  done
+
+let rotate_row screen y b =
+  let row = Array.copy screen.(y) in
+  let len = Array.length row in
+  for i = 0 to len - 1 do
+    screen.(y).(i) <- row.((i - b + len) mod len)
+  done
+
+let rotate_column screen x b =
+  let col = Array.init 6 (fun i -> screen.(i).(x)) in
+  let len = Array.length col in
+  for i = 0 to 5 do
+    screen.(i).(x) <- col.((i - b + len) mod len)
+  done
+
+let () =
+  let screen = Array.make_matrix 6 50 0 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      match String.split_on_char ' ' line with
+      | "rect" :: dims :: _ ->
+          let a, b = match String.split_on_char 'x' dims with
+            | a :: b :: _ -> int_of_string a, int_of_string b
+            | _ -> failwith "Invalid rect dimensions"
+          in
+          rect screen a b
+      | "rotate" :: "row" :: rest ->
+          let parts = String.split_on_char '=' (String.concat " " rest) in
+          let y = int_of_string (List.nth (String.split_on_char ' ' (List.nth parts 1)) 0) in
+          let b = int_of_string (List.nth (String.split_on_char ' ' (List.nth parts 1)) 2)
+          in
+          rotate_row screen y b
+      | "rotate" :: "column" :: rest ->
+        let parts = String.split_on_char '=' (String.concat " " rest) in
+          let x = int_of_string (List.nth (String.split_on_char ' ' (List.nth parts 1)) 0) in
+          let b = int_of_string (List.nth (String.split_on_char ' ' (List.nth parts 1)) 2)
+          in
+          rotate_column screen x b
+      | _ -> ()
+    done
+  with End_of_file ->
+    close_in ic;
+    let lit_pixels = ref 0 in
+    Array.iter (fun row -> Array.iter (fun cell -> lit_pixels := !lit_pixels + cell) row) screen;
+    print_int !lit_pixels;
+    print_newline ()

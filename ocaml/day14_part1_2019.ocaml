@@ -1,0 +1,58 @@
+
+let parse_chemical s =
+  let parts = String.split_on_char ' ' s in
+  let amount = int_of_string (List.hd parts) in
+  let name = List.nth parts 1 in
+  (name, amount)
+
+let calculate_ore chem amount reactions ingredients surplus =
+  let rec calculate ore chem amount surplus =
+    if chem = "ORE" then ore + amount
+    else
+      let available = Hashtbl.find_opt surplus chem |> Option.value ~default:0 in
+      if available >= amount then (
+        Hashtbl.replace surplus chem (available - amount);
+        ore
+      ) else (
+        let amount = amount - available in
+        Hashtbl.remove surplus chem;
+        let reaction_amount = Hashtbl.find reactions chem in
+        let times = (amount + reaction_amount - 1) / reaction_amount in
+        let ore = ref ore in
+        List.iter (fun (ingredient_name, ingredient_amount) ->
+          ore := calculate !ore ingredient_name (ingredient_amount * times) surplus
+        ) (Hashtbl.find ingredients chem);
+        let produced = times * reaction_amount in
+        Hashtbl.replace surplus chem (produced - amount);
+        !ore
+      )
+  in
+  calculate 0 chem amount surplus
+
+let main () =
+  let reactions = Hashtbl.create 10 in
+  let ingredients = Hashtbl.create 10 in
+  let surplus = Hashtbl.create 10 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      let parts = String.split_on_char '>' (String.trim line) in
+      let inputs_str = String.trim (List.hd parts) in
+      let output_str = String.trim (List.nth parts 1) in
+      let (output_name, output_amount) = parse_chemical output_str in
+      let inputs =
+        String.split_on_char ',' inputs_str
+        |> List.map String.trim
+        |> List.map parse_chemical
+      in
+      Hashtbl.add reactions output_name output_amount;
+      Hashtbl.add ingredients output_name inputs
+    done;
+    close_in ic
+  with End_of_file ->
+    close_in ic;
+    let ore_needed = calculate_ore "FUEL" 1 reactions ingredients surplus in
+    Printf.printf "%d\n" ore_needed
+
+let () = main ()

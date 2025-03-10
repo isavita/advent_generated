@@ -1,0 +1,33 @@
+
+let main () =
+  let register5 = ref 0 in
+  let seen = Hashtbl.create 1000 in
+  let last_unique = ref 0 in
+
+  let rec outer_loop () =
+    let register3 = ref (!register5 lor 65536) in
+    register5 := 7586220;
+
+    let rec inner_loop () =
+      let register1 = !register3 land 255 in
+      register5 := ((!register5 + register1) land 16777215) * 65899 land 16777215;
+
+      if !register3 < 256 then (
+        if Hashtbl.mem seen !register5 then (
+          Printf.printf "Part Two Answer: %d\n" !last_unique;
+          ()
+        ) else (
+          Hashtbl.add seen !register5 true;
+          last_unique := !register5;
+          outer_loop ()
+        )
+      ) else (
+        register3 := !register3 / 256;
+        inner_loop ()
+      )
+    in
+    inner_loop ()
+  in
+  outer_loop ()
+
+let () = main ()

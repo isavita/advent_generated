@@ -1,0 +1,26 @@
+
+let () =
+  let target =
+    let chan = open_in "input.txt" in
+    let line = input_line chan in
+    close_in chan;
+    (int_of_string line) / 11
+  in
+  let houses = Array.make (target + 1) 0 in
+  for elf = 1 to target do
+    let limit = min (elf * 50) target in
+    let rec loop house =
+      if house <= limit then begin
+        houses.(house) <- houses.(house) + elf;
+        loop (house + elf)
+      end
+    in
+    loop elf
+  done;
+  let rec find_house house_number =
+    if houses.(house_number) >= target then
+      print_int house_number
+    else
+      find_house (house_number + 1)
+  in
+  find_house 0

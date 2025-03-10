@@ -1,0 +1,90 @@
+
+type point = { x : int; y : int }
+
+let add p1 p2 = { x = p1.x + p2.x; y = p1.y + p2.y }
+
+let min a b = if a < b then a else b
+
+let max a b = if a > b then a else b
+
+let bounds grid =
+  let min_x = ref max_int in
+  let min_y = ref max_int in
+  let max_x = ref min_int in
+  let max_y = ref min_int in
+  Hashtbl.iter
+    (fun p _ ->
+      min_x := min !min_x p.x;
+      min_y := min !min_y p.y;
+      max_x := max !max_x p.x;
+      max_y := max !max_y p.y)
+    grid;
+  ({ x = !min_x; y = !min_y }, { x = !max_x + 1; y = !max_y + 1 })
+
+let fill grid =
+  let floor = (snd (bounds grid)).y in
+  let sands = ref 0 in
+  let first_floor_touch = ref 0 in
+  let rec simulate_sand sand =
+    if sand.y == floor - 1 then (
+      if !first_floor_touch = 0 then first_floor_touch := !sands;
+      Hashtbl.add grid sand true;
+      true)
+    else
+      let next_positions =
+        [ { x = 0; y = 1 }; { x = -1; y = 1 }; { x = 1; y = 1 } ]
+      in
+      let rec find_resting_place = function
+        | [] ->
+            Hashtbl.add grid sand true;
+            true
+        | d :: rest ->
+            let new_sand = add sand d in
+            if not (Hashtbl.mem grid new_sand) then (
+              simulate_sand new_sand)
+            else
+              find_resting_place rest
+      in
+      find_resting_place next_positions
+  in
+  while not (Hashtbl.mem grid { x = 500; y = 0 }) do
+    if simulate_sand { x = 500; y = 0 } then incr sands
+  done;
+  !first_floor_touch
+
+let main () =
+  let grid = Hashtbl.create 1000 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      let points =
+        List.map
+          (fun s ->
+            match String.split_on_char ',' s with
+            | [ x; y ] -> { x = int_of_string x; y = int_of_string y }
+            | _ -> failwith "Invalid input format")
+          (String.split_on_char ' ' line
+          |> List.filter (fun s -> String.length s > 0 && s <> "->"))
+      in
+      let rec process_pairs = function
+        | [] | [ _ ] -> ()
+        | p1 :: p2 :: rest ->
+            if p1.x == p2.x then
+              for y = min p1.y p2.y to max p1.y p2.y do
+                Hashtbl.add grid { x = p1.x; y } true
+              done
+            else
+              for x = min p1.x p2.x to max p1.x p2.x do
+                Hashtbl.add grid { x; y = p1.y } true
+              done;
+            process_pairs (p2 :: rest)
+      in
+      process_pairs points
+    done
+  with
+  | End_of_file ->
+      close_in ic;
+      Printf.printf "%d\n" (fill grid)
+
+let () = main ()

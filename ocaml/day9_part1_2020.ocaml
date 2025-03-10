@@ -1,0 +1,32 @@
+
+let find_invalid_number numbers preamble =
+  let rec check i =
+    if i >= Array.length numbers then None
+    else
+      let found = ref false in
+      for j = i - preamble to i - 1 do
+        for k = j + 1 to i - 1 do
+          if numbers.(j) + numbers.(k) = numbers.(i) then
+            found := true
+        done
+      done;
+      if not !found then Some numbers.(i)
+      else check (i + 1)
+  in
+  check preamble
+
+let () =
+  let preamble = 25 in
+  let numbers = ref [] in
+  let chan = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line chan in
+      numbers := int_of_string line :: !numbers
+    done
+  with End_of_file ->
+    close_in chan;
+    let numbers_array = Array.of_list (List.rev !numbers) in
+    match find_invalid_number numbers_array preamble with
+    | Some result -> Printf.printf "%d\n" result
+    | None -> Printf.printf "No invalid number found\n"

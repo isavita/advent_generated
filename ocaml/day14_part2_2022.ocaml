@@ -1,0 +1,99 @@
+
+let solve input =
+  let matrix, origin_col =
+    let coord_sets =
+      String.split_on_char '\n' input
+      |> List.map (fun line ->
+             String.split_on_char ' ' line
+             |> List.filter (fun s -> s <> "->")
+             |> List.map (fun raw_coord ->
+                    match String.split_on_char ',' raw_coord with
+                    | [ col; row ] -> (int_of_string col, int_of_string row)
+                    | _ -> failwith "Invalid coordinate"))
+    in
+    let lowest_col =
+      List.fold_left
+        (fun acc coord_set ->
+          List.fold_left (fun acc (col, _) -> min acc col) acc coord_set)
+        max_int coord_sets
+    in
+    let highest_row =
+      List.fold_left
+        (fun acc coord_set ->
+          List.fold_left (fun acc (_, row) -> max acc row) acc coord_set)
+        0 coord_sets
+    in
+    let extra_left_space = 200 in
+    let highest_col =
+      List.fold_left
+        (fun acc coord_set ->
+          List.fold_left
+            (fun acc (col, _) -> max acc (col - lowest_col + extra_left_space))
+            acc coord_set)
+        0 coord_sets
+    in
+    let width = highest_col + extra_left_space * 2 in
+    let height = highest_row + 3 in
+    let matrix = Array.make_matrix height width '.' in
+    List.iter
+      (fun coord_set ->
+        let rec draw_line (col1, row1) (col2, row2) =
+          if row1 = row2 then
+            for c = min col1 col2 to max col1 col2 do
+              matrix.(row1).(c) <- '#'
+            done
+          else
+            for r = min row1 row2 to max row1 row2 do
+              matrix.(r).(col1) <- '#'
+            done
+        in
+        match coord_set with
+        | [] -> ()
+        | first :: rest ->
+            List.fold_left
+              (fun prev curr ->
+                draw_line prev curr;
+                curr)
+              (first |> fun (c, r) -> (c - lowest_col + extra_left_space, r))
+              (List.map
+                 (fun (c, r) -> (c - lowest_col + extra_left_space, r))
+                 rest)
+            |> ignore)
+      coord_sets;
+    let origin_col = 500 - lowest_col + extra_left_space in
+    matrix.(0).(origin_col) <- '+';
+    for i = 0 to width - 1 do
+      matrix.(height - 1).(i) <- '#'
+    done;
+    (matrix, origin_col)
+  in
+  let drop_sand matrix origin_col =
+    let height = Array.length matrix in
+    let width = Array.length matrix.(0) in
+    let rec drop r c =
+      if r >= height - 1 then true
+      else
+        if matrix.(r + 1).(c) = '.' then (
+          drop (r + 1) c)
+        else if c > 0 && matrix.(r + 1).(c - 1) = '.' then (
+          drop (r + 1) (c - 1))
+        else if c < width - 1 && matrix.(r + 1).(c + 1) = '.' then (
+          drop (r + 1) (c + 1))
+        else (
+          matrix.(r).(c) <- 'o';
+          false)
+    in
+    drop 0 origin_col
+  in
+  let rec count ans =
+    if not (drop_sand matrix origin_col) then
+      if matrix.(0).(origin_col) = 'o' then ans + 1
+      else count (ans + 1)
+    else ans
+  in
+  count 0
+
+let () =
+  let input = In_channel.with_open_text "input.txt" In_channel.input_all in
+  let ans = solve input in
+  Printf.printf "%d\n" ans

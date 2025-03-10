@@ -1,0 +1,92 @@
+
+let () =
+  let instructions =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let registers = Hashtbl.create 10 in
+  let current_instruction = ref 0 in
+  let last_sound = ref 0 in
+
+  let get_value registers key =
+    try
+      int_of_string key
+    with Failure _ ->
+      try
+        Hashtbl.find registers key
+      with Not_found ->
+        0
+  in
+
+  let () =
+    let rec execute () =
+      if !current_instruction < 0 || !current_instruction >= List.length instructions then
+        ()
+      else (
+        let instruction = List.nth instructions !current_instruction in
+        let parts = String.split_on_char ' ' instruction in
+        let command = List.hd parts in
+        let register = List.nth parts 1 in
+
+        if not (Hashtbl.mem registers register) then
+          Hashtbl.add registers register 0;
+
+        match command with
+        | "snd" ->
+          last_sound := Hashtbl.find registers register;
+          current_instruction := !current_instruction + 1;
+          execute ()
+        | "set" ->
+          let value = get_value registers (List.nth parts 2) in
+          Hashtbl.replace registers register value;
+          current_instruction := !current_instruction + 1;
+          execute ()
+        | "add" ->
+          let value = get_value registers (List.nth parts 2) in
+          let current_value = Hashtbl.find registers register in
+          Hashtbl.replace registers register (current_value + value);
+          current_instruction := !current_instruction + 1;
+          execute ()
+        | "mul" ->
+          let value = get_value registers (List.nth parts 2) in
+          let current_value = Hashtbl.find registers register in
+          Hashtbl.replace registers register (current_value * value);
+          current_instruction := !current_instruction + 1;
+          execute ()
+        | "mod" ->
+          let value = get_value registers (List.nth parts 2) in
+          let current_value = Hashtbl.find registers register in
+          Hashtbl.replace registers register (current_value mod value);
+          current_instruction := !current_instruction + 1;
+          execute ()
+        | "rcv" ->
+          if Hashtbl.find registers register <> 0 then
+            print_int !last_sound
+          else (
+            current_instruction := !current_instruction + 1;
+            execute ()
+          )
+        | "jgz" ->
+          if Hashtbl.find registers register > 0 then (
+            let value = get_value registers (List.nth parts 2) in
+            current_instruction := !current_instruction + value;
+            execute ()
+          ) else (
+            current_instruction := !current_instruction + 1;
+            execute ()
+          )
+        | _ -> ()
+      )
+    in
+    execute ()
+  in
+  print_newline ()

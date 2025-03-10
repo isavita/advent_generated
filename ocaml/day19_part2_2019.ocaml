@@ -1,0 +1,132 @@
+
+let read_input filename =
+  let chan = open_in filename in
+  let line = input_line chan in
+  close_in chan;
+  String.split_on_char ',' line |> List.map int_of_string
+
+module IntMap = Map.Make (Int)
+
+type vm = {
+  code : int IntMap.t;
+  ip : int;
+  input : int list;
+  output : int list;
+  relative_base : int;
+}
+
+let make_vm code =
+  let code_map =
+    List.mapi (fun i x -> (i, x)) code |> List.to_seq |> IntMap.of_seq
+  in
+  { code = code_map; ip = 0; input = []; output = []; relative_base = 0 }
+
+let get code addr =
+  match IntMap.find_opt addr code with Some v -> v | None -> 0
+
+let set code addr value = IntMap.add addr value code
+
+let parse_instruction instruction =
+  let opcode = instruction mod 100 in
+  let mode1 = (instruction / 100) mod 10 in
+  let mode2 = (instruction / 1000) mod 10 in
+  let mode3 = (instruction / 10000) mod 10 in
+  (opcode, mode1, mode2, mode3)
+
+let get_param vm mode offset =
+  let value = get vm.code (vm.ip + offset) in
+  match mode with
+  | 0 -> get vm.code value
+  | 1 -> value
+  | 2 -> get vm.code (vm.relative_base + value)
+  | _ -> failwith "Invalid mode"
+
+let get_param_address vm mode offset =
+  let value = get vm.code (vm.ip + offset) in
+  match mode with
+  | 0 -> value
+  | 2 -> vm.relative_base + value
+  | _ -> failwith "Invalid mode for address"
+
+let rec run vm =
+  let (opcode, mode1, mode2, mode3) =
+    parse_instruction (get vm.code vm.ip)
+  in
+  match opcode with
+  | 1 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      let address = get_param_address vm mode3 3 in
+      let new_code = set vm.code address (param1 + param2) in
+      run { vm with code = new_code; ip = vm.ip + 4 }
+  | 2 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      let address = get_param_address vm mode3 3 in
+      let new_code = set vm.code address (param1 * param2) in
+      run { vm with code = new_code; ip = vm.ip + 4 }
+  | 3 ->
+      let address = get_param_address vm mode1 1 in
+      (match vm.input with
+      | [] -> vm
+      | hd :: tl ->
+          let new_code = set vm.code address hd in
+          run { vm with code = new_code; ip = vm.ip + 2; input = tl })
+  | 4 ->
+      let param1 = get_param vm mode1 1 in
+      run { vm with output = vm.output @ [ param1 ]; ip = vm.ip + 2 }
+  | 5 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      if param1 <> 0 then run { vm with ip = param2 }
+      else run { vm with ip = vm.ip + 3 }
+  | 6 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      if param1 = 0 then run { vm with ip = param2 }
+      else run { vm with ip = vm.ip + 3 }
+  | 7 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      let address = get_param_address vm mode3 3 in
+      let value = if param1 < param2 then 1 else 0 in
+      let new_code = set vm.code address value in
+      run { vm with code = new_code; ip = vm.ip + 4 }
+  | 8 ->
+      let param1 = get_param vm mode1 1 in
+      let param2 = get_param vm mode2 2 in
+      let address = get_param_address vm mode3 3 in
+      let value = if param1 = param2 then 1 else 0 in
+      let new_code = set vm.code address value in
+      run { vm with code = new_code; ip = vm.ip + 4 }
+  | 9 ->
+      let param1 = get_param vm mode1 1 in
+      run
+        {
+          vm with
+          relative_base = vm.relative_base + param1;
+          ip = vm.ip + 2;
+        }
+  | 99 -> vm
+  | _ -> failwith ("Unknown opcode: " ^ string_of_int opcode)
+
+let beam x y code =
+  let vm = make_vm code in
+  let final_vm = run { vm with input = [ x; y ] } in
+  match List.rev final_vm.output with
+  | hd :: _ -> hd = 1
+  | _ -> false
+
+let find_square code =
+  let rec search x y =
+    if not (beam x y code) then search (x + 1) y
+    else if not (beam (x + 99) y code) then search x (y + 1)
+    else if not (beam x (y + 99) code) then search (x + 1) y
+    else (x, y)
+  in
+  search 0 20
+
+let () =
+  let code = read_input "input.txt" in
+  let (x, y) = find_square code in
+  Printf.printf "%d\n" (x * 10000 + y)

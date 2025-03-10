@@ -1,0 +1,45 @@
+
+let solve () =
+  let lines = In_channel.with_open_text "input.txt" In_channel.input_lines in
+  let nr = List.length lines in
+  let nc = String.length (List.hd lines) in
+  let grid = Array.make_matrix nr nc 0 in
+  List.iteri (fun r line ->
+    String.iteri (fun c char ->
+      grid.(r).(c) <- int_of_string (String.make 1 char)
+    ) line
+  ) lines;
+
+  let dp = Array.make_matrix nr nc (-1) in
+  let dirs = [(1, 0); (-1, 0); (0, 1); (0, -1)] in
+
+  let rec dfs r c =
+    if dp.(r).(c) != -1 then
+      dp.(r).(c)
+    else
+      let h = grid.(r).(c) in
+      if h == 9 then (
+        dp.(r).(c) <- 1;
+        1
+      ) else (
+        let sum_paths = ref 0 in
+        List.iter (fun (dr, dc) ->
+          let nr2, nc2 = r + dr, c + dc in
+          if nr2 >= 0 && nr2 < nr && nc2 >= 0 && nc2 < nc && grid.(nr2).(nc2) == h + 1 then
+            sum_paths := !sum_paths + dfs nr2 nc2
+        ) dirs;
+        dp.(r).(c) <- !sum_paths;
+        !sum_paths
+      )
+  in
+
+  let total = ref 0 in
+  for r = 0 to nr - 1 do
+    for c = 0 to nc - 1 do
+      if grid.(r).(c) == 0 then
+        total := !total + dfs r c
+    done
+  done;
+  Printf.printf "%d\n" !total
+
+let () = solve ()

@@ -1,0 +1,58 @@
+
+let parse_lock b =
+  List.init 5 (fun c ->
+    let rec count r acc =
+      if r < 7 && b.(r).[c] = '#' then count (r + 1) (acc + 1) else acc
+    in
+    count 1 0)
+
+let parse_key b =
+  List.init 5 (fun c ->
+    let rec count r acc =
+      if r >= 0 && b.(r).[c] = '#' then count (r - 1) (acc + 1) else acc
+    in
+    count 5 0)
+
+let fits lock key = List.for_all2 (fun l k -> l + k <= 5) lock key
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      if String.length (String.trim line) > 0 then
+        read_lines (String.trim line :: acc)
+      else
+        read_lines acc
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let raw = read_lines [] in
+  let n = List.length raw in
+  if n mod 7 <> 0 then
+    print_int 0
+  else
+    let rec process_blocks i locks keys =
+      if i < n then
+        let block = Array.of_list (List.filteri (fun idx _ -> idx >= i && idx < i+7) raw) in
+        if Array.length block = 7 && Array.for_all (fun ln -> String.length ln >= 5) block then
+          if String.for_all (fun c -> c = '#') block.(0) then
+            process_blocks (i + 7) ((parse_lock block)::locks) keys
+          else
+            process_blocks (i + 7) locks ((parse_key block)::keys)
+        else
+          process_blocks (i+7) locks keys
+      else
+        (locks, keys)
+    in
+    let locks, keys = process_blocks 0 [] [] in
+    let count = ref 0 in
+    List.iter (fun lock ->
+      List.iter (fun key ->
+        if fits lock key then incr count
+      ) keys
+    ) locks;
+    print_int !count
+
+let () = solve ()

@@ -1,0 +1,75 @@
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let wires = Hashtbl.create 50 in
+  let rec parse_wires () =
+    try
+      let line = input_line ic in
+      if String.length line = 0 then parse_gates []
+      else
+        try
+          Scanf.sscanf line "%s@: %d" (fun w v -> Hashtbl.add wires w v);
+          parse_wires ()
+        with _ -> parse_gates []
+    with End_of_file -> []
+  and parse_gates acc =
+    try
+      let line = input_line ic in
+      if String.length line = 0 then acc
+      else
+        try
+          Scanf.sscanf line "%s %s %s -> %s" (fun i1 op i2 o ->
+              match op with
+              | "AND" | "OR" | "XOR" -> parse_gates ((i1, op, i2, o) :: acc)
+              | _ -> parse_gates acc)
+        with _ -> parse_gates acc
+    with End_of_file -> acc
+  in
+  let gates = parse_wires () in
+  let rec eval_gates remaining_gates =
+    match remaining_gates with
+    | [] -> ()
+    | _ ->
+        let progress, new_remaining_gates =
+          List.fold_left
+            (fun (progress, acc) (input1, op, input2, output) ->
+              match
+                (Hashtbl.find_opt wires input1, Hashtbl.find_opt wires input2)
+              with
+              | Some val1, Some val2 ->
+                  let result =
+                    match op with
+                    | "AND" -> if val1 = 1 && val2 = 1 then 1 else 0
+                    | "OR" -> if val1 = 1 || val2 = 1 then 1 else 0
+                    | "XOR" -> if val1 <> val2 then 1 else 0
+                    | _ -> failwith "Unexpected operator"
+                  in
+                  Hashtbl.add wires output result;
+                  (true, acc)
+              | _ -> (progress, (input1, op, input2, output) :: acc))
+            (false, []) remaining_gates
+        in
+        if not progress then
+          failwith
+            "Cannot evaluate remaining gates due to missing inputs or cyclic \
+             dependencies."
+        else eval_gates (List.rev new_remaining_gates)
+  in
+  eval_gates gates;
+  let z_wires =
+    Hashtbl.fold
+      (fun key value acc ->
+        try
+          let num = Scanf.sscanf key "z%d" (fun n -> n) in
+          (num, value) :: acc
+        with _ -> acc)
+      wires []
+  in
+  let sorted_z_wires = List.sort (fun (a, _) (b, _) -> compare b a) z_wires in
+  let binary_string =
+    List.fold_left (fun acc (_, v) -> acc ^ string_of_int v) "" sorted_z_wires
+  in
+  try int_of_string ("0b" ^ binary_string)
+  with Failure _ -> failwith "No wires starting with 'z' found."
+
+let () = print_int (solve ()); print_newline ()

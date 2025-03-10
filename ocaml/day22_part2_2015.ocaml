@@ -1,0 +1,61 @@
+
+let min_mana_to_win boss_hp boss_damage =
+  let min_mana = ref max_int in
+  let rec simulate state player_turn =
+    let player_hp, player_mana, boss_hp, boss_damage, shield_timer, poison_timer, recharge_timer, mana_spent = state in
+    if mana_spent >= !min_mana then
+      ()
+    else if boss_hp <= 0 then
+      min_mana := mana_spent
+    else if player_hp <= 0 then
+      ()
+    else (
+      let player_hp = if player_turn then player_hp - 1 else player_hp in
+      if player_hp <= 0 then
+        ()
+      else (
+        let shield_timer = if shield_timer > 0 then shield_timer - 1 else 0 in
+        let boss_hp = if poison_timer > 0 then boss_hp - 3 else boss_hp in
+        let poison_timer = if poison_timer > 0 then poison_timer - 1 else 0 in
+        let player_mana = if recharge_timer > 0 then player_mana + 101 else player_mana in
+        let recharge_timer = if recharge_timer > 0 then recharge_timer - 1 else 0 in
+        if not player_turn then (
+          let damage =
+            let base_damage = boss_damage in
+            let damage_reduction = if shield_timer > 0 then 7 else 0 in
+            let final_damage = base_damage - damage_reduction in
+            if final_damage < 1 then 1 else final_damage
+          in
+          let player_hp = player_hp - damage in
+          simulate (player_hp, player_mana, boss_hp, boss_damage, shield_timer, poison_timer, recharge_timer, mana_spent) true
+        ) else (
+          if player_mana >= 53 then
+            simulate (player_hp, player_mana - 53, boss_hp - 4, boss_damage, shield_timer, poison_timer, recharge_timer, mana_spent + 53) false;
+          if player_mana >= 73 then
+            simulate (player_hp + 2, player_mana - 73, boss_hp - 2, boss_damage, shield_timer, poison_timer, recharge_timer, mana_spent + 73) false;
+          if player_mana >= 113 && shield_timer == 0 then
+            simulate (player_hp, player_mana - 113, boss_hp, boss_damage, 6, poison_timer, recharge_timer, mana_spent + 113) false;
+          if player_mana >= 173 && poison_timer == 0 then
+            simulate (player_hp, player_mana - 173, boss_hp, boss_damage, shield_timer, 6, recharge_timer, mana_spent + 173) false;
+          if player_mana >= 229 && recharge_timer == 0 then
+            simulate (player_hp, player_mana - 229, boss_hp, boss_damage, shield_timer, poison_timer, 5, mana_spent + 229) false
+        )
+      )
+    )
+  in
+  let initial_state = (50, 500, boss_hp, boss_damage, 0, 0, 0, 0) in
+  simulate initial_state true;
+  !min_mana
+
+let () =
+  let ic = open_in "input.txt" in
+  let boss_hp =
+    let line = input_line ic in
+    int_of_string (List.hd (List.rev (String.split_on_char ' ' line)))
+  in
+  let boss_damage =
+    let line = input_line ic in
+    int_of_string (List.hd (List.rev (String.split_on_char ' ' line)))
+  in
+  close_in ic;
+  Printf.printf "%d\n" (min_mana_to_win boss_hp boss_damage)

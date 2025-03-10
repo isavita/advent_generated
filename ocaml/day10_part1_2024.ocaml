@@ -1,0 +1,52 @@
+
+let solve () =
+  let lines = In_channel.with_open_text "input.txt" In_channel.input_all |> String.split_on_char '\n' |> List.filter (fun s -> String.length s > 0) in
+  let nr = List.length lines in
+  let nc = String.length (List.hd lines) in
+  let grid = Array.make_matrix nr nc 0 in
+  List.iteri (fun r line ->
+    String.iteri (fun c char ->
+      grid.(r).(c) <- int_of_char char - int_of_char '0'
+    ) line
+  ) lines;
+
+  let dirs = [(1,0);(-1,0);(0,1);(0,-1)] in
+  let trailheads = ref [] in
+  for r = 0 to nr - 1 do
+    for c = 0 to nc - 1 do
+      if grid.(r).(c) = 0 then trailheads := (r, c) :: !trailheads
+    done
+  done;
+
+  let sum_scores = ref 0 in
+  List.iter (fun (th_r, th_c) ->
+    let reached = Hashtbl.create (nr * nc) in
+    let front = Queue.create () in
+    Queue.push ((th_r, th_c), 0) front;
+    let visited = Hashtbl.create (nr * nc * 10) in
+    while not (Queue.is_empty front) do
+      let (cur_r, cur_c), h = Queue.pop front in
+      if h = 9 then begin
+        Hashtbl.add reached (cur_r, cur_c) ()
+      end else
+        List.iter (fun (dr, dc) ->
+          let nr2 = cur_r + dr in
+          let nc2 = cur_c + dc in
+          if nr2 >= 0 && nr2 < nr && nc2 >= 0 && nc2 < nc then
+            if grid.(nr2).(nc2) = h + 1 then
+              let key = (nr2, nc2, h + 1) in
+              if not (Hashtbl.mem visited key) then begin
+                Hashtbl.add visited key ();
+                Queue.push ((nr2, nc2), h + 1) front
+              end
+        ) dirs
+    done;
+    sum_scores := !sum_scores + Hashtbl.length reached
+  ) !trailheads;
+
+  Printf.printf "%d\n" !sum_scores
+
+let main () =
+  solve ()
+
+let () = main ()

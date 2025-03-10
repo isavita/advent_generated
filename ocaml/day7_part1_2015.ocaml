@@ -1,0 +1,63 @@
+
+let read_lines filename =
+  let chan = open_in filename in
+  let rec read_all acc =
+    try
+      let line = input_line chan in
+      read_all (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_all []
+
+let split_string s c =
+  let rec split_string_rec s c acc current =
+    match String.index_opt s c with
+    | Some i ->
+      split_string_rec (String.sub s (i + 1) (String.length s - i - 1)) c
+        ((String.sub s 0 i) :: acc) ""
+    | None -> List.rev (s :: acc)
+  in
+  split_string_rec s c [] ""
+
+let rec get_signal (wires : (string, int) Hashtbl.t) instructions (wire : string) =
+  match int_of_string_opt wire with
+  | Some i -> i
+  | None ->
+    if Hashtbl.mem wires wire then Hashtbl.find wires wire
+    else
+      let find_instruction w =
+        List.find_opt (fun instr ->
+          let parts = split_string instr ' ' in
+          List.nth parts (List.length parts - 1) = w
+        ) instructions
+      in
+      match find_instruction wire with
+      | Some instr ->
+        let parts = split_string instr ' ' in
+        let signal =
+          match parts with
+          | [a; "->"; _] -> get_signal wires instructions a
+          | [a; "AND"; b; "->"; _] ->
+            (get_signal wires instructions a) land (get_signal wires instructions b)
+          | [a; "OR"; b; "->"; _] ->
+            (get_signal wires instructions a) lor (get_signal wires instructions b)
+          | [a; "LSHIFT"; b; "->"; _] ->
+            (get_signal wires instructions a) lsl (int_of_string b)
+          | [a; "RSHIFT"; b; "->"; _] ->
+            (get_signal wires instructions a) lsr (int_of_string b)
+          | ["NOT"; a; "->"; _] ->
+            lnot (get_signal wires instructions a) land 0xffff
+          | _ -> failwith "Invalid instruction"
+        in
+        Hashtbl.add wires wire signal;
+        signal
+      | None -> failwith "Wire not found"
+
+let () =
+  let instructions = read_lines "input.txt" in
+  let wires : (string, int) Hashtbl.t = Hashtbl.create 16 in
+  let answer = get_signal wires instructions "a" in
+  print_int answer;
+  print_newline ()

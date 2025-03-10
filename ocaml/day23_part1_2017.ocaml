@@ -1,0 +1,55 @@
+
+let () =
+  let instructions =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let registers = Hashtbl.create 8 in
+  List.iter (fun c -> Hashtbl.add registers c 0) ['a'; 'b'; 'c'; 'd'; 'e'; 'f'; 'g'; 'h'];
+
+  let get_value v =
+    try int_of_string v
+    with Failure _ -> Hashtbl.find registers (String.get v 0)
+  in
+
+  let run_program instructions registers =
+    let mul_invoked = ref 0 in
+    let i = ref 0 in
+    let instructions_array = Array.of_list instructions in
+    let len = Array.length instructions_array in
+    while !i < len do
+      let instruction = String.split_on_char ' ' instructions_array.(!i) in
+      match instruction with
+      | ["set"; x; y] ->
+          Hashtbl.replace registers (String.get x 0) (get_value y);
+          incr i
+      | ["sub"; x; y] ->
+          let reg_val = Hashtbl.find registers (String.get x 0) in
+          Hashtbl.replace registers (String.get x 0) (reg_val - get_value y);
+          incr i
+      | ["mul"; x; y] ->
+          let reg_val = Hashtbl.find registers (String.get x 0) in
+          Hashtbl.replace registers (String.get x 0) (reg_val * get_value y);
+          incr mul_invoked;
+          incr i
+      | ["jnz"; x; y] ->
+          if get_value x != 0 then
+            i := !i + get_value y
+          else
+            incr i
+      | _ -> failwith "Invalid instruction"
+    done;
+    !mul_invoked
+  in
+
+  let result = run_program instructions registers in
+  Printf.printf "%d\n" result

@@ -1,0 +1,85 @@
+
+let read_asteroids filename =
+  let in_channel = open_in filename in
+  let rec read_lines acc y =
+    try
+      let line = input_line in_channel in
+      let row =
+        line |> String.to_seqi |> Seq.filter (fun (_, c) -> c = '#') |> Seq.map (fun (x, _) -> x) |> List.of_seq
+      in
+      read_lines ((y, row) :: acc) (y + 1)
+    with
+    | End_of_file ->
+      close_in in_channel;
+      List.fold_left (fun acc (y, row) -> List.map (fun x -> (x, y)) row @ acc) [] (List.rev acc)
+  in
+  read_lines [] 0
+
+let count_visible_asteroids asteroids x y =
+  let angles = Hashtbl.create (List.length asteroids) in
+  let count = ref 0 in
+  List.iter
+    (fun (other_x, other_y) ->
+      if other_x <> x || other_y <> y then
+        let angle = atan2 (float_of_int (other_y - y)) (float_of_int (other_x - x)) in
+        if not (Hashtbl.mem angles angle) then (
+          Hashtbl.add angles angle true;
+          incr count))
+    asteroids;
+  !count
+
+let find_best_asteroid_location asteroids =
+  let best_location = ref (0, 0) in
+  let max_count = ref 0 in
+  List.iter
+    (fun (x, y) ->
+      let count = count_visible_asteroids asteroids x y in
+      if count > !max_count then (
+        max_count := count;
+        best_location := (x, y)))
+    asteroids;
+  (!best_location, !max_count)
+
+type asteroid = { x : int; y : int; angle : float; dist : float }
+
+let vaporize_asteroids asteroids station =
+  let station_x, station_y = station in
+  let targets =
+    List.filter_map
+      (fun (x, y) ->
+        if x = station_x && y = station_y then None
+        else
+          let angle = atan2 (float_of_int (y - station_y)) (float_of_int (x - station_x)) in
+          let dist = hypot (float_of_int (x - station_x)) (float_of_int (y - station_y)) in
+          let angle = if angle < -.Float.pi /. 2.0 then angle +. (2.0 *. Float.pi) else angle in
+          Some { x; y; angle; dist })
+      asteroids
+  in
+  let sorted_targets = List.sort (fun a b ->
+    let angle_comp = compare a.angle b.angle in
+    if angle_comp = 0 then compare a.dist b.dist else angle_comp) targets
+  in
+  let vaporized = ref [] in
+  let rec vaporize last_angle remaining_targets =
+    match remaining_targets with
+    | [] -> ()
+    | target :: rest ->
+      if target.angle <> last_angle then (
+        vaporized := target :: !vaporized;
+        vaporize target.angle rest
+      ) else
+        vaporize last_angle rest
+  in
+  vaporize (-.Float.infinity) sorted_targets;
+  List.rev !vaporized
+
+let () =
+  let asteroids = read_asteroids "input.txt" in
+  let station, _ = find_best_asteroid_location asteroids in
+  let vaporized = vaporize_asteroids asteroids station in
+  if List.length vaporized >= 200 then
+    let target = List.nth vaporized 199 in
+    let result = target.x * 100 + target.y in
+    Printf.printf "%d\n" result
+  else
+    Printf.printf "Less than 200 asteroids were vaporized.\n"

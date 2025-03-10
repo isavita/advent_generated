@@ -1,0 +1,103 @@
+
+let read_input file_path =
+  let elves = Hashtbl.create 1000 in
+  let ic = open_in file_path in
+  let rec read_lines y =
+    try
+      let line = input_line ic in
+      String.iteri (fun x c -> if c = '#' then Hashtbl.add elves (x, y) ()) line;
+      read_lines (y + 1)
+    with End_of_file -> close_in ic; elves
+  in
+  read_lines 0
+
+let get_adjacent_positions x y =
+  [
+    (x - 1, y - 1); (x, y - 1); (x + 1, y - 1);
+    (x - 1, y);           (x + 1, y);
+    (x - 1, y + 1); (x, y + 1); (x + 1, y + 1)
+  ]
+
+let simulate_rounds elves rounds =
+  let directions = [
+    ((0, -1), [(0, -1); (1, -1); (-1, -1)]); (* N *)
+    ((0, 1), [(0, 1); (1, 1); (-1, 1)]);   (* S *)
+    ((-1, 0), [(-1, 0); (-1, -1); (-1, 1)]); (* W *)
+    ((1, 0), [(1, 0); (1, -1); (1, 1)])    (* E *)
+  ] in
+  let directions_arr = Array.of_list directions in (* use array for O(1) rotation *)
+  let num_directions = Array.length directions_arr in
+
+  for round_num = 1 to rounds do
+    let proposals = Hashtbl.create (Hashtbl.length elves) in
+    let proposed_moves = Hashtbl.create (Hashtbl.length elves) in
+
+    Hashtbl.iter (fun (x, y) () ->
+      let adjacent = get_adjacent_positions x y in
+      let has_neighbor = List.exists (fun pos -> Hashtbl.mem elves pos) adjacent in
+      if has_neighbor then (
+        let move_proposed = ref false in
+        for i = 0 to num_directions - 1 do
+          if not !move_proposed then
+            let (move_dx, move_dy), checks = directions_arr.(i) in
+            let can_move = not (List.exists (fun (dx, dy) -> Hashtbl.mem elves (x + dx, y + dy)) checks) in
+            if can_move then (
+              let dest = (x + move_dx, y + move_dy) in
+              Hashtbl.add proposed_moves (x, y) dest;
+              (match Hashtbl.find_opt proposals dest with
+               | Some lst -> Hashtbl.replace proposals dest ((x,y)::lst)
+               | None -> Hashtbl.add proposals dest [(x,y)]);
+              move_proposed := true
+            )
+        done
+      )
+    ) elves;
+
+    let new_elves = Hashtbl.copy elves in
+    Hashtbl.iter (fun dest proposers ->
+      if List.length proposers = 1 then (
+        let proposer = List.hd proposers in
+        Hashtbl.remove new_elves proposer;
+        Hashtbl.add new_elves dest ()
+      )
+    ) proposals;
+
+    Hashtbl.clear elves;
+    Hashtbl.iter (fun k v -> Hashtbl.add elves k v) new_elves;
+    
+    (* Rotate directions efficiently using array rotation *)
+    let temp = directions_arr.(0) in
+    for i = 0 to num_directions - 2 do
+      directions_arr.(i) <- directions_arr.(i+1)
+    done;
+    directions_arr.(num_directions - 1) <- temp;
+
+  done;
+  elves
+
+let calculate_empty_ground elves =
+  let min_x = ref max_int in
+  let max_x = ref min_int in
+  let min_y = ref max_int in
+  let max_y = ref min_int in
+
+  Hashtbl.iter (fun (x, y) () ->
+    min_x := min !min_x x;
+    max_x := max !max_x x;
+    min_y := min !min_y y;
+    max_y := max !max_y y;
+  ) elves;
+
+  let width = !max_x - !min_x + 1 in
+  let height = !max_y - !min_y + 1 in
+  let total_tiles = width * height in
+  total_tiles - Hashtbl.length elves
+
+let main () =
+  let input_file = "input.txt" in
+  let elves = read_input input_file in
+  let elves = simulate_rounds elves 10 in
+  let empty_ground = calculate_empty_ground elves in
+  Printf.printf "%d\n" empty_ground
+
+let _ = main ()

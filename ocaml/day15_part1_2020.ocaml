@@ -1,0 +1,27 @@
+
+let solve filename target =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  let starting_numbers = Array.map int_of_string (String.split_on_char ',' line |> Array.of_list) in
+  let last_seen = Hashtbl.create (Array.length starting_numbers) in
+  for i = 0 to Array.length starting_numbers - 2 do
+    Hashtbl.add last_seen starting_numbers.(i) (i + 1)
+  done;
+  let last_num = starting_numbers.(Array.length starting_numbers - 1) in
+  let last_num = ref last_num in
+  for i = Array.length starting_numbers to target - 1 do
+    let new_num =
+      try
+        let last_seen_val = Hashtbl.find last_seen !last_num in
+        i - last_seen_val
+      with Not_found -> 0
+    in
+    Hashtbl.replace last_seen !last_num i;
+    last_num := new_num
+  done;
+  !last_num
+
+let () =
+  let result = solve "input.txt" 2020 in
+  Printf.printf "%d\n" result
