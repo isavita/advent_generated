@@ -1,0 +1,84 @@
+
+let neighbors_8 = [
+  (0, 1); (0, -1); (1, 0); (-1, 0);
+  (-1, -1); (-1, 1); (1, -1); (1, 1)
+]
+
+type part = { xmin : int; xmax : int; y : int; n : int }
+
+let is_valid grid p =
+  let rec check_x x =
+    if x > p.xmax then false
+    else
+      let rec check_neighbors = function
+        | [] -> false
+        | (dx, dy) :: tl ->
+          let new_x = x + dx in
+          let new_y = p.y + dy in
+          match Hashtbl.find_opt grid (new_x, new_y) with
+          | Some c when c <> '.' && (c < '0' || c > '9') -> true
+          | Some _ | None -> check_neighbors tl
+      in
+      if check_neighbors neighbors_8 then true
+      else check_x (x + 1)
+  in
+  check_x p.xmin
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let lines = List.rev !lines in
+    let grid = Hashtbl.create 100 in
+    let parts = ref [] in
+    let curr = ref None in
+    let add_part () =
+      match !curr with
+      | Some p -> parts := p :: !parts; curr := None
+      | None -> ()
+    in
+    List.iteri (fun y line ->
+      add_part ();
+      String.iteri (fun x c ->
+        Hashtbl.add grid (x, y) c;
+        if '0' <= c && c <= '9' then
+          match !curr with
+          | None -> curr := Some {xmin = x; xmax = x; y = y; n = int_of_char c - int_of_char '0'}
+          | Some p -> curr := Some {p with xmax = x; n = p.n * 10 + (int_of_char c - int_of_char '0')}
+        else add_part ()
+      ) line
+    ) lines;
+    add_part ();
+
+    let parts_grid = Hashtbl.create 100 in
+    List.iteri (fun i p ->
+      for x = p.xmin to p.xmax do
+        Hashtbl.add parts_grid (x, p.y) i
+      done
+    ) !parts;
+
+    let sum_val = ref 0 in
+    Hashtbl.iter (fun (x, y) c ->
+        if c = '*' then
+          let neighbor_parts = Hashtbl.create 8 in
+          List.iter (fun (dx, dy) ->
+              let neighbor_pos = (x + dx, y + dy) in
+              match Hashtbl.find_opt parts_grid neighbor_pos with
+              | Some part_idx -> Hashtbl.replace neighbor_parts part_idx ()
+              | None -> ()
+            ) neighbors_8;
+          if Hashtbl.length neighbor_parts = 2 then
+            let prod = ref 1 in
+            Hashtbl.iter (fun part_idx _ ->
+                prod := !prod * (List.nth !parts part_idx).n
+              ) neighbor_parts;
+            sum_val := !sum_val + !prod
+    ) grid;
+    Printf.printf "%d\n" !sum_val
+
+let () = solve ()

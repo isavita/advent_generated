@@ -1,0 +1,66 @@
+
+(* Function to find the index of the memory bank with the most blocks *)
+let find_max_index arr =
+  let len = Array.length arr in
+  let max_val = ref arr.(0) in
+  let max_index = ref 0 in
+  for i = 1 to len - 1 do
+    if arr.(i) > !max_val then begin
+      max_val := arr.(i);
+      max_index := i;
+    end
+  done;
+  !max_index
+
+(* Function to redistribute blocks *)
+let redistribute arr =
+  let len = Array.length arr in
+  let index = find_max_index arr in
+  let blocks = arr.(index) in
+  arr.(index) <- 0;
+  let rec distribute remaining current_index =
+    if remaining = 0 then ()
+    else begin
+      arr.(current_index) <- arr.(current_index) + 1;
+      distribute (remaining - 1) ((current_index + 1) mod len)
+    end
+  in
+  distribute blocks ((index + 1) mod len)
+
+(* Function to convert an array to a string (for hashing) *)
+let array_to_string arr =
+  Array.fold_left (fun acc x -> acc ^ string_of_int x ^ ",") "" arr
+
+(* Function to solve the puzzle *)
+let solve initial_banks =
+  let banks = Array.copy initial_banks in
+  let seen = Hashtbl.create 100 in
+  let cycles = ref 0 in
+  let rec loop () =
+    let state = array_to_string banks in
+    if Hashtbl.mem seen state then
+      !cycles
+    else begin
+      Hashtbl.add seen state true;
+      redistribute banks;
+      cycles := !cycles + 1;
+      loop ()
+    end
+  in
+  loop ()
+
+(* Main function *)
+let () =
+  (* Read input from file *)
+  let ic = open_in "input.txt" in
+  let line = input_line ic in
+  close_in ic;
+
+  (* Parse the input string into an array of integers *)
+  let initial_banks =
+    Array.of_list (List.map int_of_string (String.split_on_char '\t' line))
+  in
+
+  (* Solve the puzzle and print the result *)
+  let result = solve initial_banks in
+  Printf.printf "%d\n" result

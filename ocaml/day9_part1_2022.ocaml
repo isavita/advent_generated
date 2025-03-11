@@ -1,0 +1,48 @@
+
+module IntPairSet = Set.Make(struct
+  type t = int * int
+  let compare = compare
+end)
+
+let move_tail (head_x, head_y) (tail_x, tail_y) =
+  let dx = head_x - tail_x in
+  let dy = head_y - tail_y in
+  if abs dx > 1 || abs dy > 1 then
+    (tail_x + (if dx = 0 then 0 else if dx > 0 then 1 else -1),
+     tail_y + (if dy = 0 then 0 else if dy > 0 then 1 else -1))
+  else
+    (tail_x, tail_y)
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let rec loop head tail visited =
+    try
+      let line = input_line ic in
+      let dir, steps_str = Scanf.sscanf line "%s %s" (fun x y -> (x, y)) in
+      let steps = int_of_string steps_str in
+      let rec move_step head tail visited step =
+        if step = steps then (head, tail, visited)
+        else
+          let new_head =
+            match dir with
+            | "R" -> (fst head + 1, snd head)
+            | "L" -> (fst head - 1, snd head)
+            | "U" -> (fst head, snd head + 1)
+            | "D" -> (fst head, snd head - 1)
+            | _ -> failwith "Invalid direction"
+          in
+          let new_tail = move_tail new_head tail in
+          let new_visited = IntPairSet.add new_tail visited in
+          move_step new_head new_tail new_visited (step + 1)
+      in
+      let (new_head, new_tail, new_visited) = move_step head tail visited 0 in
+      loop new_head new_tail new_visited
+    with End_of_file ->
+      close_in ic;
+      visited
+  in
+  let initial_visited = IntPairSet.singleton (0, 0) in
+  let final_visited = loop (0, 0) (0, 0) initial_visited in
+  Printf.printf "%d\n" (IntPairSet.cardinal final_visited)
+
+let () = solve ()

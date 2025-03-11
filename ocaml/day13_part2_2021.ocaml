@@ -1,0 +1,68 @@
+
+open Printf
+
+type point = int * int
+type fold = X of int | Y of int
+
+let parse_point line =
+  match String.split_on_char ',' line with
+  | [x; y] -> (int_of_string x, int_of_string y)
+  | _ -> failwith "Invalid point format"
+
+let parse_fold line =
+  let parts = String.split_on_char '=' line in
+  match parts with
+  | [axis_part; value_part] ->
+    let axis = String.sub axis_part 11 (String.length axis_part - 11) in
+    let value = int_of_string value_part in
+    if axis = "x" then X value else Y value
+  | _ -> failwith "Invalid fold format"
+
+let fold_point (x, y) fold =
+  match fold with
+  | X fold_x -> if x > fold_x then (fold_x - (x - fold_x), y) else (x, y)
+  | Y fold_y -> if y > fold_y then (x, fold_y - (y - fold_y)) else (x, y)
+
+let solve input_file =
+  let lines = In_channel.input_lines (In_channel.open_text input_file) in
+  let rec parse_input points folds lines =
+    match lines with
+    | [] -> (points, folds)
+    | line :: rest ->
+      if line = "" then
+        parse_input points folds rest
+      else if String.starts_with ~prefix:"fold along" line then
+        parse_input points (parse_fold line :: folds) rest
+      else
+        parse_input (parse_point line :: points) folds rest
+  in
+
+  let points, folds = parse_input [] [] lines in
+
+  let first_fold = List.hd (List.rev folds) in (* Apply only the first fold *)
+  let folded_points = List.map (fun p -> fold_point p first_fold) points in
+  let unique_points = List.sort_uniq compare folded_points in
+
+  printf "Part 1: %d\n" (List.length unique_points);
+
+  (* Part 2 *)
+  let folded_points_all =
+    List.fold_left (fun acc fold -> List.map (fun p -> fold_point p fold) acc) points (List.rev folds)
+  in
+  let unique_points_all = List.sort_uniq compare folded_points_all in
+
+  let max_x = List.fold_left (fun acc (x, _) -> max acc x) 0 unique_points_all in
+  let max_y = List.fold_left (fun acc (_, y) -> max acc y) 0 unique_points_all in
+
+  printf "Part 2:\n";
+  for y = 0 to max_y do
+    for x = 0 to max_x do
+      if List.mem (x, y) unique_points_all then
+        printf "#"
+      else
+        printf "."
+    done;
+    printf "\n"
+  done
+
+let () = solve "input.txt"

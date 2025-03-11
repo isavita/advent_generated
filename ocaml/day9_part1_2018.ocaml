@@ -1,0 +1,68 @@
+
+(* Doubly-linked list node *)
+type 'a node = {
+  mutable prev : 'a node;
+  mutable next : 'a node;
+  value : 'a;
+}
+
+(* Create a new node with circular references *)
+let create_node value =
+  let rec node = { prev = node; next = node; value } in
+  node
+
+(* Insert a new node after the given node *)
+let insert_after node value =
+  let new_node = { prev = node; next = node.next; value } in
+  node.next.prev <- new_node;
+  node.next <- new_node;
+  new_node
+
+(* Remove a node from the list *)
+let remove node =
+  node.prev.next <- node.next;
+  node.next.prev <- node.prev;
+  node.value
+
+(* Rotate the list by n positions (positive is clockwise, negative is counter-clockwise) *)
+let rec rotate node n =
+  if n = 0 then node
+  else if n > 0 then rotate node.next (n - 1)
+  else rotate node.prev (n + 1)
+
+(* Simulate the marble game and return the highest score *)
+let play_game players last_marble =
+  let scores = Array.make players 0 in
+  let current_marble = ref (create_node 0) in
+
+  for marble = 1 to last_marble do
+    let player = (marble - 1) mod players in
+    if marble mod 23 = 0 then begin
+      let removed_marble_node = rotate !current_marble (-7) in
+      current_marble := removed_marble_node.next;
+      scores.(player) <- scores.(player) + marble + remove removed_marble_node;
+    end else
+      current_marble := insert_after (rotate !current_marble 1) marble;
+  done;
+  Array.fold_left max 0 scores
+
+(* Main function *)
+let main () =
+  (* Read input from file *)
+  let ic = open_in "input.txt" in
+  let line = input_line ic in
+  close_in ic;
+
+  (* Parse input *)
+  let players, last_marble =
+    Scanf.sscanf line "%d players; last marble is worth %d points" (fun p m -> (p, m))
+  in
+    
+
+  (* Calculate and print the high score *)
+  let high_score = play_game players last_marble in
+  Printf.printf "%d\n" high_score
+;;
+
+(* Run the main function *)
+let () = main ()

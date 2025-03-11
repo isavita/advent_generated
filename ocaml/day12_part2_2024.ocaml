@@ -1,0 +1,88 @@
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let lines = ref [] in
+  try
+    while true do
+      let line = input_line ic in
+      if String.length (String.trim line) > 0 then
+        lines := (String.to_seq line |> List.of_seq) :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let graph = List.rev !lines |> Array.of_list in
+    let h = Array.length graph in
+    let w = if h > 0 then List.length graph.(0) else 0 in
+    let moves = [(-1, 0); (0, -1); (1, 0); (0, 1)] in
+    let total_sum = ref 0 in
+
+    let get_label = function
+      | (-1, 0) -> "left"
+      | (1, 0) -> "right"
+      | (0, -1) -> "up"
+      | _ -> "down"
+    in
+
+    let add_outer label side (x, y) =
+      let key = if List.mem label ["up"; "down"] then (y, x) else (x, y) in
+      Hashtbl.replace side label (key :: (try Hashtbl.find side label with Not_found -> []))
+    in
+
+    let check ary (i, j) =
+      List.exists (fun (di, dj) -> List.mem (i + di, j + dj) ary) [(0, -1); (0, 1)]
+    in
+    
+    let count_outer side =
+      let outer = ref 0 in
+      Hashtbl.iter (fun _ keys ->
+        let sorted_keys = List.sort_uniq compare keys in
+        let temp = ref [] in
+        List.iter (fun key ->
+          if not (check !temp key) then incr outer;
+          temp := key :: !temp
+        ) sorted_keys;
+      ) side;
+      !outer
+    in
+
+    for y = 0 to h - 1 do
+      for x = 0 to w - 1 do
+        let row = graph.(y) |> Array.of_list in
+        if row.(x) = '.' then ()
+        else
+          let area = ref 0 in
+          let target = row.(x) in
+          let visited = Hashtbl.create (h * w) in
+          let side = Hashtbl.create 4 in
+          List.iter (fun label -> Hashtbl.add side label []) ["left"; "up"; "right"; "down"];
+
+          let q = Queue.create () in
+          Queue.add (x, y, "") q;
+          while not (Queue.is_empty q) do
+            let (cx, cy, label) = Queue.take q in
+            let cur_row = graph.(cy) |> Array.of_list in
+            if cur_row.(cx) <> target then (
+              if label <> "" && not (Hashtbl.mem visited (cx, cy)) then
+                add_outer label side (cx, cy)
+            ) else (
+              Hashtbl.replace visited (cx, cy) true;
+              incr area;
+              cur_row.(cx) <- '.';
+              graph.(cy) <- Array.to_list cur_row;
+
+              List.iter (fun (dx, dy) ->
+                let nx, ny = cx + dx, cy + dy in
+                if 0 <= nx && nx < w && 0 <= ny && ny < h then
+                  Queue.add (nx, ny, get_label (dx, dy)) q
+                else
+                  add_outer (get_label (dx, dy)) side (nx, ny)
+              ) moves
+            )
+          done;
+          total_sum := !total_sum + (!area * (count_outer side))
+      done;
+    done;
+    print_int !total_sum;
+    print_newline ()
+
+let () = solve ()

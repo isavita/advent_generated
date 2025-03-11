@@ -1,0 +1,74 @@
+
+(* Define a type for the robot's position and velocity *)
+type robot = {
+  mutable p_x : int;
+  mutable p_y : int;
+  v_x : int;
+  v_y : int;
+}
+
+(* Function to parse a single line of input into a robot record *)
+let parse_robot line =
+  Scanf.sscanf line "p=%d,%d v=%d,%d" (fun p_x p_y v_x v_y ->
+    { p_x; p_y; v_x; v_y })
+
+(* Function to update a robot's position after one second, handling wrapping *)
+let update_robot robot width height =
+  robot.p_x <- (robot.p_x + robot.v_x) mod width;
+  robot.p_y <- (robot.p_y + robot.v_y) mod height;
+  if robot.p_x < 0 then robot.p_x <- robot.p_x + width;
+  if robot.p_y < 0 then robot.p_y <- robot.p_y + height
+
+(* Function to simulate the robots for a given number of seconds *)
+let simulate_robots robots width height seconds =
+  for _ = 1 to seconds do
+    List.iter (fun robot -> update_robot robot width height) robots
+  done
+
+(* Function to count robots in each quadrant *)
+let count_robots_in_quadrants robots width height =
+  let mid_x = width / 2 in
+  let mid_y = height / 2 in
+  let q1 = ref 0 in
+  let q2 = ref 0 in
+  let q3 = ref 0 in
+  let q4 = ref 0 in
+
+  List.iter (fun robot ->
+    if robot.p_x < mid_x && robot.p_y < mid_y then incr q1
+    else if robot.p_x > mid_x && robot.p_y < mid_y then incr q2
+    else if robot.p_x < mid_x && robot.p_y > mid_y then incr q3
+    else if robot.p_x > mid_x && robot.p_y > mid_y then incr q4
+  ) robots;
+  (!q1, !q2, !q3, !q4)
+
+(* Main function *)
+let () =
+  (* Read input from file *)
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+
+  (* Parse input into a list of robots *)
+  let robots = List.map parse_robot lines in
+
+  (* Define width, height, and simulation time *)
+  let width = 101 in
+  let height = 103 in
+  let seconds = 100 in
+
+  (* Simulate the robots *)
+  simulate_robots robots width height seconds;
+
+  (* Count robots in each quadrant *)
+  let q1, q2, q3, q4 = count_robots_in_quadrants robots width height in
+
+  (* Calculate and print the safety factor *)
+  Printf.printf "%d\n" (q1 * q2 * q3 * q4)

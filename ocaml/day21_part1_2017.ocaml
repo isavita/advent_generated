@@ -1,0 +1,131 @@
+
+(* Define a type for the grid, using a 2D array for efficiency *)
+type grid = bool array array
+
+(* Function to convert a string representation to a grid *)
+let grid_of_string (s : string) : grid =
+  let rows = String.split_on_char '/' s in
+  let size = List.length rows in
+  let arr = Array.make_matrix size size false in
+  List.iteri (fun y row ->
+    String.iteri (fun x c ->
+      arr.(y).(x) <- (c = '#')
+    ) row
+  ) rows;
+  arr
+
+(* Function to convert a grid to its string representation *)
+let string_of_grid (g : grid) : string =
+  let size = Array.length g in
+  let rows = ref [] in
+  for y = 0 to size - 1 do
+    let row = ref "" in
+    for x = 0 to size - 1 do
+      row := !row ^ (if g.(y).(x) then "#" else ".")
+    done;
+    rows := !row :: !rows
+  done;
+  String.concat "/" (List.rev !rows)
+
+(* Function to rotate a grid 90 degrees clockwise *)
+let rotate (g : grid) : grid =
+  let size = Array.length g in
+  let rotated = Array.make_matrix size size false in
+  for y = 0 to size - 1 do
+    for x = 0 to size - 1 do
+      rotated.(x).(size - 1 - y) <- g.(y).(x)
+    done
+  done;
+  rotated
+
+(* Function to flip a grid horizontally *)
+let flip_h (g : grid) : grid =
+  let size = Array.length g in
+  let flipped = Array.make_matrix size size false in
+  for y = 0 to size - 1 do
+    for x = 0 to size - 1 do
+      flipped.(y).(size - 1 - x) <- g.(y).(x)
+    done
+  done;
+  flipped
+  
+(* Function to generate all variations (rotations and flips) of a grid *)
+let variations (g : grid) : grid list =
+  let g1 = g in
+  let g2 = rotate g1 in
+  let g3 = rotate g2 in
+  let g4 = rotate g3 in
+  [g1; flip_h g1; g2; flip_h g2; g3; flip_h g3; g4; flip_h g4]
+
+(* Function to enhance a subgrid according to the rules *)
+let enhance_subgrid (rules : (string * string) list) (subgrid : grid) : grid =
+  let subgrid_str = string_of_grid subgrid in
+  let rec find_rule = function
+    | [] -> failwith ("No matching rule found for subgrid: " ^ subgrid_str)
+    | (pattern, result) :: rest ->
+        if List.exists (fun g -> string_of_grid g = pattern) (variations subgrid) then
+          grid_of_string result
+        else
+          find_rule rest
+  in
+  find_rule rules
+
+(* Function to enhance the entire grid *)
+let enhance (rules : (string * string) list) (g : grid) : grid =
+  let size = Array.length g in
+  let subgrid_size = if size mod 2 = 0 then 2 else 3 in
+  let new_subgrid_size = if size mod 2 = 0 then 3 else 4 in
+  let new_size = size / subgrid_size * new_subgrid_size in
+  let new_grid = Array.make_matrix new_size new_size false in
+  for y = 0 to size / subgrid_size - 1 do
+    for x = 0 to size / subgrid_size - 1 do
+      let subgrid = Array.make_matrix subgrid_size subgrid_size false in
+      for i = 0 to subgrid_size - 1 do
+        for j = 0 to subgrid_size - 1 do
+          subgrid.(i).(j) <- g.(y * subgrid_size + i).(x * subgrid_size + j)
+        done
+      done;
+      let enhanced_subgrid = enhance_subgrid rules subgrid in
+      for i = 0 to new_subgrid_size - 1 do
+        for j = 0 to new_subgrid_size - 1 do
+          new_grid.(y * new_subgrid_size + i).(x * new_subgrid_size + j) <- enhanced_subgrid.(i).(j)
+        done
+      done
+    done
+  done;
+  new_grid
+
+(* Function to count the number of 'on' pixels in a grid *)
+let count_on (g : grid) : int =
+  Array.fold_left (fun acc row ->
+    acc + Array.fold_left (fun acc cell -> if cell then acc + 1 else acc) 0 row
+  ) 0 g
+
+(* Main function *)
+let () =
+  (* Read rules from input.txt *)
+  let ic = open_in "input.txt" in
+  let rec read_rules acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char ' ' line in
+      let pattern = List.nth parts 0 in
+      let result = List.nth parts 2 in
+      read_rules ((pattern, result) :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let rules = read_rules [] in
+
+  (* Initial grid *)
+  let initial_grid = grid_of_string ".#./..#/###" in
+
+  (* Iterate 5 times *)
+  let final_grid = ref initial_grid in
+  for _ = 1 to 5 do
+    final_grid := enhance rules !final_grid
+  done;
+
+  (* Count and print the number of 'on' pixels *)
+  Printf.printf "%d\n" (count_on !final_grid)

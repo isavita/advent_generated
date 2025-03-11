@@ -1,0 +1,47 @@
+
+let dir_map = [
+  ('N', (0, 1)); ('E', (1, 0)); ('S', (0, -1)); ('W', (-1, 0));
+  ('U', (0, 1)); ('R', (1, 0)); ('D', (0, -1)); ('L', (-1, 0));
+  ('^', (0, 1)); ('>', (1, 0)); ('v', (0, -1)); ('<', (-1, 0));
+]
+
+let dir_from_char c = List.assoc c dir_map
+
+let sign n = if n > 0 then 1 else if n < 0 then -1 else 0
+
+let next_point (hx, hy) (tx, ty) =
+  if abs (hx - tx) <= 1 && abs (hy - ty) <= 1 then (tx, ty)
+  else (tx + sign (hx - tx), ty + sign (hy - ty))
+
+let visited ropelen ic =
+  let rope = Array.make ropelen (0, 0) in
+  let visited = Hashtbl.create 1000 in
+  let rec process_lines () =
+    try
+      let line = input_line ic in
+      match String.split_on_char ' ' line with
+      | [b; n_str] ->
+          let d = dir_from_char b.[0] in
+          let n = int_of_string n_str in
+          for _ = 1 to n do
+            let dx, dy = d in
+            let hx, hy = rope.(0) in
+            rope.(0) <- (hx + dx, hy + dy);
+            for j = 1 to ropelen - 1 do
+              rope.(j) <- next_point rope.(j-1) rope.(j)
+            done;
+            Hashtbl.replace visited rope.(ropelen - 1) ()
+          done;
+          process_lines ()
+      | _ -> process_lines ()
+    with End_of_file -> ()
+  in
+  process_lines ();
+  Hashtbl.length visited
+
+let () =
+  let ic = open_in "input.txt" in
+  let result = visited 10 ic in
+  close_in ic;
+  print_int result;
+  print_newline ()

@@ -1,0 +1,28 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines ic programs held_by =
+    try
+      let line = input_line ic in
+      match String.split_on_char ' ' line with
+      | prog :: _ :: "->" :: above ->
+          let programs = prog :: programs in
+          let held_by =
+            List.fold_left
+              (fun acc p -> String.split_on_char ',' p |> List.map String.trim |> List.append acc)
+              held_by
+              above
+          in
+          read_lines ic programs held_by
+      | prog :: _ -> read_lines ic (prog :: programs) held_by
+      | _ -> read_lines ic programs held_by
+    with End_of_file ->
+      close_in ic;
+      (programs, held_by)
+  in
+  let programs, held_by = read_lines ic [] [] in
+  let module StringSet = Set.Make (String) in
+  let programs_set = StringSet.of_list programs in
+  let held_by_set = StringSet.of_list held_by in
+  let bottom_program = StringSet.diff programs_set held_by_set in
+  print_endline (StringSet.choose bottom_program)

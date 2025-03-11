@@ -1,0 +1,62 @@
+
+type file = { size : int }
+
+type directory = {
+  mutable files : (string, file) Hashtbl.t;
+  mutable directories : (string, directory) Hashtbl.t;
+}
+
+let new_directory () =
+  { files = Hashtbl.create 10; directories = Hashtbl.create 10 }
+
+let rec total_size dir =
+  let size = ref 0 in
+  Hashtbl.iter (fun _ f -> size := !size + f.size) dir.files;
+  Hashtbl.iter (fun _ d -> size := !size + total_size d) dir.directories;
+  !size
+
+let () =
+  let root = new_directory () in
+  let current_dir = ref root in
+  let directory_stack = ref [ root ] in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      match String.split_on_char ' ' line with
+      | [ "$"; "cd"; path ] ->
+          if path = "/" then (
+            current_dir := root;
+            directory_stack := [ root ])
+          else if path = ".." then
+            match List.tl !directory_stack with
+            | [] -> ()
+            | h :: t ->
+                directory_stack := h :: t;
+                current_dir := h
+          else (
+            if not (Hashtbl.mem !current_dir.directories path) then
+              Hashtbl.add !current_dir.directories path (new_directory ());
+            current_dir := Hashtbl.find !current_dir.directories path;
+            directory_stack := !current_dir :: !directory_stack)
+      | [ "dir"; dir_name ] ->
+          if not (Hashtbl.mem !current_dir.directories dir_name) then
+            Hashtbl.add !current_dir.directories dir_name (new_directory ())
+      | [ size_str; name ] -> (
+          try
+            let size = int_of_string size_str in
+            Hashtbl.add !current_dir.files name { size }
+          with Failure _ -> ())
+      | _ -> ()
+    done
+  with End_of_file ->
+    close_in ic;
+    let sum_sizes = ref 0 in
+    let rec calculate_sizes directory =
+      let dir_size = total_size directory in
+      if dir_size <= 100000 then sum_sizes := !sum_sizes + dir_size;
+      Hashtbl.iter (fun _ d -> calculate_sizes d) directory.directories
+    in
+    calculate_sizes root;
+    print_int !sum_sizes;
+    print_newline ()

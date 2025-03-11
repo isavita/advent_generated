@@ -1,0 +1,153 @@
+
+(* Intcode Computer Implementation *)
+type mode = Position | Immediate | Relative
+type opcode = Add | Mul | Input | Output | JumpIfTrue | JumpIfFalse | LessThan | Equals | AdjustRelativeBase | Halt
+
+let get_mode m n =
+  match n with
+  | 1 -> if m / 100 mod 10 = 0 then Position else if m / 100 mod 10 = 1 then Immediate else Relative
+  | 2 -> if m / 1000 mod 10 = 0 then Position else if m / 1000 mod 10 = 1 then Immediate else Relative
+  | 3 -> if m / 10000 mod 10 = 0 then Position else if m / 10000 mod 10 = 1 then Immediate else Relative
+  | _ -> failwith "Invalid parameter index"
+
+let get_operand program base m n ip =
+  let mode = get_mode m n in
+  let address = program.(ip + n) in
+  match mode with
+  | Position  -> (if address >= Array.length program then 0 else program.(address) )
+  | Immediate -> address
+  | Relative  -> (if base + address >= Array.length program || base+address <0 then 0 else program.(base + address))
+
+let set_operand program base m n ip value =
+    let mode = get_mode m n in
+    let address = program.(ip+n) in
+    match mode with
+    | Position -> 
+        if address < Array.length program then program.(address) <- value 
+        else (Printf.printf "Warning: Out of bounds write at position %d (value %d)\n" address value)
+    | Immediate -> failwith "Cannot set value in immediate mode"
+    | Relative -> 
+        if base + address < Array.length program && base + address >=0 then program.(base + address) <- value
+        else Printf.printf "Warning: Out of bounds write at relative position %d (value %d)\n" (base + address) value
+
+
+let rec run_intcode program input_func output_func ip base =
+  let rec run ip base =
+    let opcode_full = program.(ip) in
+    let opcode = opcode_full mod 100 in
+    match opcode with
+    | 1 -> (* Add *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+      set_operand program base opcode_full 3 ip (op1 + op2);
+      run (ip + 4) base
+    | 2 -> (* Multiply *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+      set_operand program base opcode_full 3 ip (op1 * op2);
+      run (ip + 4) base
+    | 3 -> (* Input *)
+        let input_val = input_func () in
+        set_operand program base opcode_full 1 ip input_val;
+        run (ip + 2) base
+    | 4 -> (* Output *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      output_func op1;
+      run (ip + 2) base
+    | 5 -> (* Jump-if-true *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+      run (if op1 <> 0 then op2 else ip + 3) base
+    | 6 -> (* Jump-if-false *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+      run (if op1 = 0 then op2 else ip + 3) base
+    | 7 -> (* Less than *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+      set_operand program base opcode_full 3 ip (if op1 < op2 then 1 else 0);
+      run (ip + 4) base
+    | 8 -> (* Equals *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      let op2 = get_operand program base opcode_full 2 ip in
+        set_operand program base opcode_full 3 ip (if op1 = op2 then 1 else 0);
+      run (ip + 4) base
+    | 9 -> (* Adjust Relative Base *)
+      let op1 = get_operand program base opcode_full 1 ip in
+      run (ip + 2) (base + op1)
+    | 99 -> (* Halt *)
+      ()
+    | _ -> failwith ("Unknown opcode: " ^ string_of_int opcode)
+  in
+  run ip base
+
+(* Game Logic *)
+let read_program filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  Array.of_list (List.map int_of_string (String.split_on_char ',' line))
+
+(* Part 1 *)
+let part1 program =
+    let output_buffer = ref [] in
+    let output_func value =
+        output_buffer := value :: !output_buffer
+    in
+    let input_func () = 0 in  (* Dummy input function for Part 1 *)
+    let expanded_program = Array.make (Array.length program * 10) 0 in 
+    Array.blit program 0 expanded_program 0 (Array.length program);
+
+    run_intcode expanded_program input_func output_func 0 0;
+      
+    let rec count_blocks tiles count =
+      match tiles with
+      | _ :: _ :: 2 :: rest -> count_blocks rest (count + 1)
+      | _ :: _ :: _ :: rest -> count_blocks rest count
+      | _ -> count
+    in
+    count_blocks (List.rev !output_buffer) 0
+
+
+(* Part 2 *)
+let part2 program =
+  let score = ref 0 in
+  let paddle_x = ref 0 in
+  let ball_x = ref 0 in
+  let output_buffer = ref [] in
+
+  let input_func () =
+    (* Determine joystick position based on ball and paddle positions *)
+    if !ball_x < !paddle_x then -1
+    else if !ball_x > !paddle_x then 1
+    else 0
+  in
+
+  let output_func value =
+    output_buffer := value :: !output_buffer;
+    match !output_buffer with
+    | z :: y :: x :: _  ->
+        if x = -1 && y = 0 then score := z  (* Update score *)
+        else if z = 3 then paddle_x := x (* Update paddle X *)
+        else if z = 4 then ball_x := x;  (* Update ball X *)
+        output_buffer := [] (* Clear after processing triplet *)
+      
+    | _ -> ()
+  in
+
+  program.(0) <- 2; (* Set memory address 0 to 2 for free play *)
+  let expanded_program = Array.make (Array.length program * 10) 0 in 
+  Array.blit program 0 expanded_program 0 (Array.length program);
+  run_intcode expanded_program input_func output_func 0 0;
+  !score
+
+let () =
+  let program = read_program "input.txt" in
+  
+  (* Part 1 *)
+  let block_count = part1 (Array.copy program) in
+  Printf.printf "Part 1: Number of block tiles: %d\n" block_count;
+
+  (* Part 2 *)
+  let final_score = part2 (Array.copy program) in
+  Printf.printf "Part 2: Final score: %d\n" final_score

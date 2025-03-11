@@ -1,0 +1,84 @@
+
+(* Function to calculate the knot hash *)
+let knot_hash (input : string) : string =
+  let lengths = List.map int_of_char (List.init (String.length input) (String.get input)) @ [17; 31; 73; 47; 23] in
+  let list_size = 256 in
+  let list = Array.init list_size (fun i -> i) in
+  let current_position = ref 0 in
+  let skip_size = ref 0 in
+
+  let rec perform_rounds (rounds : int) : unit =
+    if rounds > 0 then begin
+      List.iter (fun length ->
+        (* Reverse the sublist *)
+        for i = 0 to (length / 2) - 1 do
+          let a = (!current_position + i) mod list_size in
+          let b = (!current_position + length - 1 - i) mod list_size in
+          let temp = list.(a) in
+          list.(a) <- list.(b);
+          list.(b) <- temp
+        done;
+        current_position := (!current_position + length + !skip_size) mod list_size;
+        skip_size := !skip_size + 1
+      ) lengths;
+      perform_rounds (rounds - 1)
+    end
+  in
+
+  perform_rounds 64;
+
+  (* Calculate dense hash *)
+  let dense_hash = Array.init 16 (fun i ->
+    let start_index = i * 16 in
+    let xor_sum = ref list.(start_index) in
+    for j = 1 to 15 do
+      xor_sum := !xor_sum lxor list.(start_index + j)
+    done;
+    !xor_sum
+  ) in
+
+  (* Convert to hexadecimal *)
+  Array.fold_left (fun acc x -> acc ^ Printf.sprintf "%02x" x) "" dense_hash
+
+(* Function to convert a hexadecimal string to a binary string *)
+let hex_to_binary (hex_str : string) : string =
+  let hex_to_bin_digit = function
+    | '0' -> "0000"
+    | '1' -> "0001"
+    | '2' -> "0010"
+    | '3' -> "0011"
+    | '4' -> "0100"
+    | '5' -> "0101"
+    | '6' -> "0110"
+    | '7' -> "0111"
+    | '8' -> "1000"
+    | '9' -> "1001"
+    | 'a' -> "1010"
+    | 'b' -> "1011"
+    | 'c' -> "1100"
+    | 'd' -> "1101"
+    | 'e' -> "1110"
+    | 'f' -> "1111"
+    | _ -> failwith "Invalid hex digit"
+  in
+  String.concat "" (List.map hex_to_bin_digit (List.init (String.length hex_str) (String.get hex_str)))
+
+(* Function to count used squares *)
+let count_used_squares (key : string) : int =
+  let count = ref 0 in
+  for row = 0 to 127 do
+    let row_input = key ^ "-" ^ (string_of_int row) in
+    let hash = knot_hash row_input in
+    let binary_hash = hex_to_binary hash in
+    String.iter (fun c -> if c = '1' then incr count) binary_hash;
+  done;
+  !count
+    
+(* Main function *)
+let () =
+  (* Read the key string from input.txt *)
+    let ic = open_in "input.txt" in
+      let key = input_line ic in
+      close_in ic;
+    (* Calculate and print the number of used squares *)
+    Printf.printf "%d\n" (count_used_squares key)

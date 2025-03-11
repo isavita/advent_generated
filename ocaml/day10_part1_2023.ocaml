@@ -1,0 +1,136 @@
+
+module Coord = struct
+  type t = int * int
+
+  let compare = compare
+  let add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+end
+
+module CoordMap = Map.Make (Coord)
+module CoordSet = Set.Make (Coord)
+
+type tile =
+  | Empty
+  | Start
+  | Vertical
+  | Horizontal
+  | TopLeftCorner
+  | TopRightCorner
+  | BottomLeftCorner
+  | BottomRightCorner
+
+type direction = Top | Right | Bottom | Left
+
+let tile_of_char = function
+  | '.' -> Empty
+  | 'S' -> Start
+  | '|' -> Vertical
+  | '-' -> Horizontal
+  | 'J' -> TopLeftCorner
+  | 'L' -> TopRightCorner
+  | '7' -> BottomLeftCorner
+  | 'F' -> BottomRightCorner
+  | _ -> failwith "Invalid tile"
+
+let char_of_tile = function
+  | Empty -> '.'
+  | Start -> 'S'
+  | Vertical -> '|'
+  | Horizontal -> '-'
+  | TopLeftCorner -> 'J'
+  | TopRightCorner -> 'L'
+  | BottomLeftCorner -> '7'
+  | BottomRightCorner -> 'F'
+
+let direction_to_offset = function
+  | Top -> (0, -1)
+  | Right -> (1, 0)
+  | Bottom -> (0, 1)
+  | Left -> (-1, 0)
+
+let opposite_direction = function
+  | Top -> Bottom
+  | Right -> Left
+  | Bottom -> Top
+  | Left -> Right
+
+let get_connected_directions = function
+  | Vertical -> [ Top; Bottom ]
+  | Horizontal -> [ Left; Right ]
+  | TopLeftCorner -> [ Top; Left ]
+  | TopRightCorner -> [ Top; Right ]
+  | BottomLeftCorner -> [ Bottom; Left ]
+  | BottomRightCorner -> [ Bottom; Right ]
+  | _ -> []
+
+let build_grid lines =
+  List.fold_left
+    (fun (y, grid) line ->
+      let grid =
+        String.fold_left
+          (fun (x, grid) char ->
+            let coord = (x, y) in
+            let grid =
+              match tile_of_char char with
+              | Empty -> grid
+              | tile -> CoordMap.add coord tile grid
+            in
+            (x + 1, grid))
+          (0, grid) line
+        |> snd
+      in
+      (y + 1, grid))
+    (0, CoordMap.empty) lines
+  |> snd
+
+let find_start grid =
+  CoordMap.fold
+    (fun coord tile start_coord ->
+      match tile with Start -> coord | _ -> start_coord)
+    grid (0, 0)
+
+let get_neighbors coord =
+  List.map
+    (fun dir -> (dir, Coord.add coord (direction_to_offset dir)))
+    [ Top; Right; Bottom; Left ]
+
+let get_pipe_from_neighbors coord grid =
+  List.fold_left
+    (fun acc (dir, neighbor_coord) ->
+      match CoordMap.find_opt neighbor_coord grid with
+      | Some neighbor_tile ->
+          if
+            List.exists
+              (fun d -> d = opposite_direction dir)
+              (get_connected_directions neighbor_tile)
+          then dir :: acc
+          else acc
+      | None -> acc)
+    [] (get_neighbors coord)
+
+let path_finding start grid =
+  let start_directions = get_pipe_from_neighbors start grid in
+  let rec loop path prev_dir current =
+    if current = start then List.rev (start :: path)
+    else
+      let current_tile = CoordMap.find current grid in
+      let next_dir =
+        List.find
+          (fun dir -> dir <> opposite_direction prev_dir)
+          (get_connected_directions current_tile)
+      in
+      let next_coord = Coord.add current (direction_to_offset next_dir) in
+      loop (current :: path) next_dir next_coord
+  in
+  loop [] (List.hd start_directions) (Coord.add start (direction_to_offset (List.hd start_directions)))
+
+let solve lines =
+  let grid = build_grid lines in
+  let start = find_start grid in
+  let path = path_finding start grid in
+  List.length path / 2
+
+let () =
+  let lines = In_channel.input_lines (In_channel.open_text "input.txt") in
+  print_int (solve lines);
+  print_newline ()

@@ -1,0 +1,33 @@
+
+let count_ways design patterns =
+  let n = String.length design in
+  let dp = Array.make (n + 1) 0 in
+  dp.(0) <- 1;
+  for i = 1 to n do
+    List.iter (fun p ->
+      let lp = String.length p in
+      if i >= lp && String.sub design (i - lp) lp = p then
+        dp.(i) <- dp.(i) + dp.(i - lp)
+    ) patterns
+  done;
+  dp.(n)
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let available_patterns =
+    String.split_on_char ',' (String.trim (input_line ic))
+    |> List.map String.trim
+  in
+  ignore (input_line ic);
+  let total_ways = ref 0 in
+  try
+    while true do
+      let design = String.trim (input_line ic) in
+      total_ways := !total_ways + count_ways design available_patterns
+    done
+  with End_of_file ->
+    close_in ic;
+    print_int !total_ways;
+    print_newline ()
+
+let () = solve ()

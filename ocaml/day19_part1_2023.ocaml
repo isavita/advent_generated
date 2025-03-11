@@ -1,0 +1,118 @@
+
+open Printf
+
+type part = { x : int; m : int; a : int; s : int }
+
+type rule =
+  | Cond of char * char * int * string
+  | Uncond of string
+
+type workflow = rule list
+
+let parse_workflow line =
+  let name, rest =
+    match String.split_on_char '{' line with
+    | [ n; r ] ->
+        let r = String.sub r 0 (String.length r - 1) in
+        (n, r)
+    | _ -> failwith "Invalid workflow format"
+  in
+  let rules_str = String.split_on_char ',' rest in
+  let parse_rule rule_str =
+    match String.split_on_char ':' rule_str with
+    | [ cond; dest ] -> (
+        match cond with
+        | s when String.contains s '>' ->
+            let c = String.get s 0 in
+            let v = int_of_string (String.sub s 2 (String.length s - 2)) in
+            Cond (c, '>', v, dest)
+        | s when String.contains s '<' ->
+            let c = String.get s 0 in
+            let v = int_of_string (String.sub s 2 (String.length s - 2)) in
+            Cond (c, '<', v, dest)
+        | _ -> failwith "Invalid condition format" )
+    | [ dest ] -> Uncond dest
+    | _ -> failwith "Invalid rule format"
+  in
+  (name, List.map parse_rule rules_str)
+
+let parse_part line =
+  let parts_str =
+    String.sub line 1 (String.length line - 2) |> String.split_on_char ','
+  in
+  let get_val s =
+    match String.split_on_char '=' s with
+    | [ _; v ] -> int_of_string v
+    | _ -> failwith "Invalid part format"
+  in
+  let x = List.find (fun s -> String.starts_with ~prefix:"x=" s) parts_str |> get_val in
+  let m = List.find (fun s -> String.starts_with ~prefix:"m=" s) parts_str |> get_val in
+  let a = List.find (fun s -> String.starts_with ~prefix:"a=" s) parts_str |> get_val in
+  let s = List.find (fun s -> String.starts_with ~prefix:"s=" s) parts_str |> get_val in
+  { x; m; a; s }
+
+let apply_rule part rule =
+  match rule with
+  | Cond (c, op, v, dest) -> (
+      let part_val =
+        match c with
+        | 'x' -> part.x
+        | 'm' -> part.m
+        | 'a' -> part.a
+        | 's' -> part.s
+        | _ -> failwith "Invalid category"
+      in
+      match op with
+      | '>' -> if part_val > v then Some dest else None
+      | '<' -> if part_val < v then Some dest else None
+      | _ -> failwith "Invalid operator" )
+  | Uncond dest -> Some dest
+
+let process_part workflows part =
+  let rec process workflow_name =
+    match workflow_name with
+    | "A" -> true
+    | "R" -> false
+    | _ ->
+        let workflow = Hashtbl.find workflows workflow_name in
+        let rec apply_rules rules =
+          match rules with
+          | [] -> failwith "No rule applied"
+          | rule :: rest -> (
+              match apply_rule part rule with
+              | Some dest -> process dest
+              | None -> apply_rules rest )
+        in
+        apply_rules workflow
+  in
+  process "in"
+
+let solve filename =
+  let workflows = Hashtbl.create 100 in
+  let parts = ref [] in
+  let reading_workflows = ref true in
+
+  let ic = open_in filename in
+  try
+    while true do
+      let line = input_line ic in
+      if line = "" then
+        reading_workflows := false
+      else if !reading_workflows then (
+        let name, workflow = parse_workflow line in
+        Hashtbl.add workflows name workflow )
+      else
+        parts := parse_part line :: !parts
+    done;
+    0 (* This will never be reached because of the exception. *)
+  with End_of_file ->
+    close_in ic;
+    let accepted_parts =
+      List.filter (process_part workflows) !parts
+    in
+    List.fold_left (fun acc part -> acc + part.x + part.m + part.a + part.s) 0
+      accepted_parts
+
+let () =
+  let result = solve "input.txt" in
+  printf "%d\n" result

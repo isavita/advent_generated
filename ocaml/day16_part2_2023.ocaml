@@ -1,0 +1,80 @@
+
+let read_input file_path =
+  let ic = open_in file_path in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  List.map (fun s -> Array.of_list (List.init (String.length s) (String.get s))) (read_lines [])
+
+let get_edge_start_positions grid =
+  let height = List.length grid in
+  let width = Array.length (List.hd grid) in
+  let starts = ref [] in
+  for x = 0 to width - 1 do
+    starts := ((x, 0), (0, 1)) :: !starts;
+    starts := ((x, height - 1), (0, -1)) :: !starts
+  done;
+  for y = 1 to height - 2 do
+    starts := ((0, y), (1, 0)) :: !starts;
+    starts := ((width - 1, y), (-1, 0)) :: !starts
+  done;
+  !starts
+
+let reflect (dx, dy) = function
+  | '/' -> (-dy, -dx)
+  | '\\' -> (dy, dx)
+  | _ -> (dx, dy)
+
+let split_beam (dx, dy) = function
+  | '|' when dx <> 0 -> [(0, -1); (0, 1)]
+  | '-' when dy <> 0 -> [(-1, 0); (1, 0)]
+  | _ -> []
+
+let simulate_beam grid start_pos start_dir =
+  let height = List.length grid in
+  let width = Array.length (List.hd grid) in
+  let queue = Queue.create () in
+  let visited = Hashtbl.create (width * height) in
+  let energized = Hashtbl.create (width * height) in
+  Queue.add (start_pos, start_dir) queue;
+  while not (Queue.is_empty queue) do
+    let (x, y), (dx, dy) = Queue.take queue in
+    if not (Hashtbl.mem visited ((x, y), (dx, dy))) then (
+      Hashtbl.add visited ((x, y), (dx, dy)) true;
+      Hashtbl.replace energized (x, y) true;
+      let nx, ny = x + dx, y + dy in
+      if 0 <= nx && nx < width && 0 <= ny && ny < height then
+        let cell = (List.nth grid ny).(nx) in
+        match cell with
+        | '.' -> Queue.add ((nx, ny), (dx, dy)) queue
+        | '/' | '\\' ->
+            let new_dir = reflect (dx, dy) cell in
+            Queue.add ((nx, ny), new_dir) queue
+        | '|' | '-' ->
+            let split_dirs = split_beam (dx, dy) cell in
+            if List.length split_dirs > 0 then
+              List.iter (fun new_dir -> Queue.add ((nx, ny), new_dir) queue) split_dirs
+            else
+              Queue.add ((nx, ny), (dx, dy)) queue
+        | _ -> Queue.add ((nx, ny), (dx, dy)) queue
+    )
+  done;
+  energized
+
+let part_two grid =
+  let starts = get_edge_start_positions grid in
+  List.fold_left
+    (fun max_energized (start_pos, start_dir) ->
+      let energized = simulate_beam grid start_pos start_dir in
+      max max_energized (Hashtbl.length energized))
+    0 starts
+
+let () =
+  let grid = read_input "input.txt" in
+  let energized_part_one = simulate_beam grid (0, 0) (1, 0) in
+   Printf.printf "%d\n" (part_two grid)

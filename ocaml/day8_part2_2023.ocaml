@@ -1,0 +1,58 @@
+
+let parse_line line =
+  let parts = String.split_on_char '=' line in
+  let head = String.trim (List.hd parts) in
+  let children_trim = String.sub (List.nth parts 1) 2 ((String.length (List.nth parts 1)) - 3) in
+  let children_parts = String.split_on_char ',' children_trim in
+  let children = (String.trim (List.hd children_parts), String.trim (List.nth children_parts 1)) in
+  (head, children)
+
+let parse_input input =
+  let instructions = List.hd input in
+  let nodes = List.fold_left (fun acc line ->
+    let (head, children) = parse_line line in
+    (head, children) :: acc
+  ) [] (List.tl (List.tl input)) in
+  (instructions, nodes)
+
+let rec gcd a b =
+  if b = 0 then a else gcd b (a mod b)
+
+let lcm a b =
+  (a * b) / (gcd a b)
+
+let lcm_list nums =
+  List.fold_left lcm 1 nums
+
+let solve input =
+  let (instructions, nodes) = parse_input input in
+  let starts = List.filter (fun (node, _) -> String.get node (String.length node - 1) = 'A') nodes in
+  let steps = List.map (fun (start_node, _) ->
+    let rec loop element count =
+      if String.get element (String.length element - 1) = 'Z' then count
+      else
+        let instruction = String.get instructions (count mod (String.length instructions)) in
+        let (left, right) = List.assoc element nodes in
+        let next_element = if instruction = 'L' then left else right in
+        loop next_element (count + 1)
+    in
+    loop start_node 0
+  ) starts in
+  lcm_list steps
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+  
+let () =
+  let input_data = read_file "input.txt" in
+  print_int (solve input_data);
+  print_newline ()

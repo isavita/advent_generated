@@ -1,0 +1,52 @@
+
+open Printf
+
+let rec solve springs groups =
+  match springs, groups with
+  | "", [] -> 1
+  | "", _ -> 0
+  | s, [] when String.contains s '#' -> 0
+  | _, [] -> 1
+  | s, g::rest ->
+    let n = String.length s in
+    let rec aux i =
+      if i > n - g then 0
+      else if (0 < i && s.[i-1] = '#') then 0
+      else
+        let fits =
+          try
+            for k = 0 to g - 1 do
+              if s.[i+k] = '.' then raise Exit
+            done;
+            if i+g < n && s.[i+g] = '#' then raise Exit;
+            true
+          with Exit -> false
+        in
+        if fits then (
+          let next_start = i + g + 1 in
+          let next_springs = if next_start > n then "" else String.sub s next_start (n - next_start) in
+          let next_ways = solve next_springs rest in
+          (if s.[i] = '#' then 0 else aux (i+1)) + next_ways
+        ) else (
+          if s.[i] = '#' then 0 else aux (i+1)
+        )
+    in
+    aux 0
+
+let parse_line line =
+  match String.split_on_char ' ' line with
+  | [springs; groups_str] ->
+    let groups = List.map int_of_string (String.split_on_char ',' groups_str) in
+    (springs, groups)
+  | _ -> failwith "Invalid input line"
+
+let main () =
+  let lines = In_channel.input_lines (In_channel.open_text "input.txt") in
+  let arrangements = List.map (fun line ->
+    let (springs, groups) = parse_line line in
+    solve springs groups
+  ) lines in
+  let total_arrangements = List.fold_left (+) 0 arrangements in
+  printf "%d\n" total_arrangements
+
+let () = main ()

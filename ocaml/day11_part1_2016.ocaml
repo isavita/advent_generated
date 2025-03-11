@@ -1,0 +1,140 @@
+
+module IntSet = Set.Make (struct
+  type t = int
+
+  let compare = compare
+end)
+
+module StateSet = Set.Make (struct
+  type t = int * int list
+
+  let compare = compare
+end)
+
+(* Function to check if a floor configuration is valid (no fried microchips) *)
+let is_valid (floor : IntSet.t) : bool =
+  if IntSet.is_empty floor then true
+  else
+    let generators = IntSet.filter (fun x -> x > 0) floor in
+    let microchips = IntSet.filter (fun x -> x < 0) floor in
+    if IntSet.is_empty generators then true
+    else
+      IntSet.for_all (fun m -> IntSet.mem (-m) generators) microchips
+
+
+(* Function to generate possible next states from a current state *)
+let next_states ((elevator, floors) : int * IntSet.t list) : (int * IntSet.t list) list =
+  let current_floor_items = List.nth floors elevator in
+  let possible_moves = ref [] in
+  (* All possible combinations of 1 or 2 items to move *)
+  let items_list = IntSet.elements current_floor_items in
+  let rec combinations k lst =
+    match k, lst with
+    | 0, _ -> [ [] ]
+    | _, [] -> []
+    | k, x :: xs ->
+        List.map (fun l -> x :: l) (combinations (k - 1) xs) @ combinations k xs
+  in
+  let move_combinations =
+    (List.map (fun x -> [ x ]) items_list) @ combinations 2 items_list
+  in
+
+  (* Iterate through possible move directions (up or down) *)
+  List.iter
+    (fun next_elevator ->
+      if next_elevator >= 0 && next_elevator < 4 then
+        List.iter
+          (fun move ->
+            let items_to_move = IntSet.of_list move in
+            let next_current_floor =
+              IntSet.diff current_floor_items items_to_move
+            in
+            if is_valid next_current_floor then
+              let next_target_floor =
+                IntSet.union (List.nth floors next_elevator) items_to_move
+              in
+              if is_valid next_target_floor then
+                let new_floors =
+                  List.mapi
+                    (fun i floor ->
+                      if i = elevator then next_current_floor
+                      else if i = next_elevator then next_target_floor
+                      else floor)
+                    floors
+                in
+                possible_moves := (next_elevator, new_floors) :: !possible_moves)
+          move_combinations)
+    [ elevator - 1; elevator + 1 ] ;
+  !possible_moves
+
+
+(* Function to check if the goal state is reached *)
+let is_goal_state ((_, floors) : int * IntSet.t list) : bool =
+  List.for_all IntSet.is_empty (List.rev (List.tl (List.rev floors)))
+
+let solve (initial_state : int * IntSet.t list) : int =
+    let rec bfs queue visited steps =
+      match queue with
+      | [] -> -1  (* No solution found *)
+      | (state, current_steps) :: rest ->
+          if is_goal_state state then current_steps
+          else if StateSet.mem state visited then bfs rest visited steps
+          else
+            let next_st = next_states state in
+            let new_queue =
+              rest
+              @ List.map (fun s -> (s, current_steps + 1)) next_st
+            in
+            let new_visited = StateSet.add state visited in
+            bfs new_queue new_visited steps
+    in
+    bfs [ (initial_state, 0) ] StateSet.empty 0
+
+    
+let parse_line (line : string) : IntSet.t =
+  let components = ref IntSet.empty in
+  let words = String.split_on_char ' ' line in
+  let rec process_words words element_id =
+    match words with
+    | [] -> element_id
+    | "a" :: element :: "generator." :: rest ->
+        let element_hash = Hashtbl.hash (String.sub element 0 (String.length element)) in
+        components := IntSet.add element_hash !components ;
+        process_words rest (element_id + 1)
+
+     | "a" :: element :: "generator," :: rest ->
+        let element_hash = Hashtbl.hash (String.sub element 0 (String.length element))  in
+        components := IntSet.add element_hash !components ;
+        process_words rest (element_id + 1)
+    | element :: "-compatible" :: "microchip." :: rest ->
+        let element_hash = -(Hashtbl.hash (String.sub element 0 (String.length element))) in
+        components := IntSet.add element_hash !components;
+        process_words rest (element_id + 1)
+      
+      | element :: "-compatible" :: "microchip," :: rest ->
+        let element_hash = -(Hashtbl.hash (String.sub element 0 (String.length element))) in
+        components := IntSet.add element_hash !components;
+        process_words rest (element_id + 1)
+    | _ :: rest -> process_words rest (element_id )
+  in
+  let _ = process_words words 1 in
+  !components
+
+let () =
+  let lines = ref [] in
+  let in_channel = open_in "input.txt" in
+  try
+    while true do
+      lines := input_line in_channel :: !lines
+    done
+  with
+  | End_of_file ->
+      close_in in_channel ;
+      let floors = List.rev_map parse_line !lines in
+      let initial_state = (0, floors) in
+      let result = solve initial_state in
+      print_int result ;
+      print_newline ()
+  | exn ->
+      close_in_noerr in_channel ;
+      raise exn

@@ -1,0 +1,58 @@
+
+let grid_size = 71
+
+module IntPair = struct
+  type t = int * int
+  let compare = compare
+end
+
+module PairSet = Set.Make(IntPair)
+
+let solve () =
+  let corrupted =
+    let ic = open_in "input.txt" in
+    let rec read_lines i acc =
+      try
+        if i >= 1024 then acc
+        else
+          let line = input_line ic in
+          let x, y = Scanf.sscanf line "%d,%d" (fun x y -> (x, y)) in
+          read_lines (i + 1) (PairSet.add (x, y) acc)
+      with End_of_file -> close_in ic; acc
+    in
+    read_lines 0 PairSet.empty
+  in
+
+  let queue = Queue.create () in
+  Queue.add (0, 0, 0) queue;
+  let visited = ref PairSet.empty in
+  visited := PairSet.add (0, 0) !visited;
+
+  let rec bfs () =
+    if Queue.is_empty queue then
+      failwith "No path found"
+    else
+      let x, y, steps = Queue.pop queue in
+      if x = grid_size - 1 && y = grid_size - 1 then
+        steps
+      else
+        let neighbors = [(0, 1); (0, -1); (1, 0); (-1, 0)] in
+        let rec process_neighbors = function
+          | [] -> bfs ()
+          | (dx, dy) :: rest ->
+            let nx, ny = x + dx, y + dy in
+            if 0 <= nx && nx < grid_size && 0 <= ny && ny < grid_size &&
+               not (PairSet.mem (nx, ny) corrupted) &&
+               not (PairSet.mem (nx, ny) !visited) then (
+              Queue.add (nx, ny, steps + 1) queue;
+              visited := PairSet.add (nx, ny) !visited;
+            );
+            process_neighbors rest
+        in
+        process_neighbors neighbors
+  in
+  bfs ()
+
+let () =
+  print_int (solve ());
+  print_newline ()

@@ -1,0 +1,49 @@
+
+let required_fields = ["byr"; "iyr"; "eyr"; "hgt"; "hcl"; "ecl"; "pid"]
+
+let is_valid passport =
+  List.for_all (fun field -> List.mem field passport) required_fields
+
+let process_passport passport_string =
+  let fields = String.split_on_char ' ' passport_string in
+  let fields = List.map (String.split_on_char ':') fields in
+  let fields = List.map (fun field -> List.hd field) fields in
+  fields
+
+let read_input filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let solve filename =
+  let lines = read_input filename in
+  let passports = ref [] in
+  let current_passport = ref "" in
+  List.iter (fun line ->
+    if line = "" then (
+      passports := !current_passport :: !passports;
+      current_passport := ""
+    ) else (
+      current_passport := !current_passport ^ " " ^ line
+    )
+  ) lines;
+  if !current_passport <> "" then
+    passports := !current_passport :: !passports;
+
+  let passport_list = List.map (String.trim) !passports in
+
+  let passports_processed = List.map process_passport passport_list in
+  let valid_count = List.fold_left (fun acc passport ->
+    if is_valid passport then acc + 1 else acc
+  ) 0 passports_processed
+  in
+  Printf.printf "%d\n" valid_count
+
+let () = solve "input.txt"

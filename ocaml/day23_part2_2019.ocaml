@@ -1,0 +1,163 @@
+
+let read_program file =
+  let chan = open_in file in
+  let line = input_line chan in
+  close_in chan;
+  List.map int_of_string (String.split_on_char ',' (String.trim line))
+
+type mode = Position | Immediate | Relative
+type state = {
+  memory : (int, int) Hashtbl.t;
+  mutable ip : int;
+  mutable relative_base : int;
+  mutable inputs : int Queue.t;
+  mutable outputs : int list;
+  mutable halted : bool;
+  mutable idle : bool;
+}
+
+let get_param state mode offset =
+  let memory = state.memory in
+  let ip = state.ip in
+  match mode with
+  | Position -> Hashtbl.find memory (Hashtbl.find memory (ip + offset))
+  | Immediate -> Hashtbl.find memory (ip + offset)
+  | Relative -> Hashtbl.find memory (state.relative_base + Hashtbl.find memory (ip + offset))
+
+let set_param state mode offset value =
+  let memory = state.memory in
+  let ip = state.ip in
+  match mode with
+  | Position -> Hashtbl.replace memory (Hashtbl.find memory (ip + offset)) value
+  | Relative -> Hashtbl.replace memory (state.relative_base + Hashtbl.find memory (ip + offset)) value
+  | Immediate -> failwith "Invalid set mode"
+
+let run_computer state =
+  let rec loop () =
+    let memory = state.memory in
+    let opcode = Hashtbl.find memory state.ip mod 100 in
+    let modes = [
+      (Hashtbl.find memory state.ip / 100) mod 10;
+      (Hashtbl.find memory state.ip / 1000) mod 10;
+      (Hashtbl.find memory state.ip / 10000) mod 10;
+    ] |> List.map (function
+      | 0 -> Position
+      | 1 -> Immediate
+      | 2 -> Relative
+      | _ -> failwith "Unknown mode"
+    ) in
+    match opcode with
+    | 99 -> state.halted <- true
+    | 1 | 2 | 7 | 8 ->
+        let param1 = get_param state (List.nth modes 0) 1 in
+        let param2 = get_param state (List.nth modes 1) 2 in
+        let result =
+          match opcode with
+          | 1 -> param1 + param2
+          | 2 -> param1 * param2
+          | 7 -> if param1 < param2 then 1 else 0
+          | 8 -> if param1 = param2 then 1 else 0
+          | _ -> failwith "Invalid opcode"
+        in
+        set_param state (List.nth modes 2) 3 result;
+        state.ip <- state.ip + 4;
+        loop ()
+    | 3 ->
+      if Queue.is_empty state.inputs then (
+          set_param state (List.nth modes 0) 1 (-1);
+          state.ip <- state.ip + 2;
+          state.idle <- true
+        )
+      else (
+          let value = Queue.pop state.inputs in
+          set_param state (List.nth modes 0) 1 value;
+          state.ip <- state.ip + 2;
+          state.idle <- false;
+          loop()
+      )
+       
+    | 4 ->
+        let param1 = get_param state (List.nth modes 0) 1 in
+        state.outputs <- state.outputs @ [param1];
+        state.ip <- state.ip + 2;
+        state.idle <- false;
+        if List.length state.outputs = 3 then () else loop ()
+    | 5 | 6 ->
+        let param1 = get_param state (List.nth modes 0) 1 in
+        let param2 = get_param state (List.nth modes 1) 2 in
+        if (opcode = 5 && param1 <> 0) || (opcode = 6 && param1 = 0) then
+          state.ip <- param2
+        else
+          state.ip <- state.ip + 3;
+        loop ()
+    | 9 ->
+        let param1 = get_param state (List.nth modes 0) 1 in
+        state.relative_base <- state.relative_base + param1;
+        state.ip <- state.ip + 2;
+        loop ()
+    | _ -> failwith "Unknown opcode"
+  in
+  loop ()
+  
+
+let () =
+  let program = read_program "input.txt" in
+  let computers = Array.init 50 (fun address ->
+    let memory = Hashtbl.create (List.length program) in
+    List.iteri (fun i x -> Hashtbl.add memory i x) program;
+    let inputs = Queue.create () in
+    Queue.add address inputs;
+    { memory; ip = 0; relative_base = 0; inputs; outputs = []; halted = false; idle = false }
+  ) in
+  let packet_queues = Array.init 50 (fun _ -> Queue.create ()) in
+  let nat_packet = ref None in
+  let prev_nat_y = ref None in
+
+  let rec network_loop () =
+    let network_idle = ref true in
+    Array.iteri (fun i computer ->
+      if not (Queue.is_empty packet_queues.(i)) then (
+        let x, y = Queue.pop packet_queues.(i) in
+        Queue.add x computer.inputs;
+        Queue.add y computer.inputs;
+        computer.idle <- false
+      ) else (
+        Queue.add (-1) computer.inputs
+      );
+
+      run_computer computer;
+
+      while List.length computer.outputs >= 3 do
+        network_idle := false;
+        let dest = List.nth computer.outputs 0 in
+        let x = List.nth computer.outputs 1 in
+        let y = List.nth computer.outputs 2 in
+        computer.outputs <- List.tl (List.tl (List.tl computer.outputs));
+
+        if dest = 255 then
+          nat_packet := Some (x, y)
+        else if dest >= 0 && dest < 50 then
+          Queue.add (x, y) packet_queues.(dest)
+        else
+          ()
+      done;
+    ) computers;
+
+    if !network_idle && Array.for_all (fun q -> Queue.is_empty q) packet_queues
+       && Array.for_all (fun c -> c.idle) computers
+    then (
+      match !nat_packet with
+      | Some (x, y) ->
+          Queue.add (x, y) packet_queues.(0);
+          if Some y = !prev_nat_y then (
+            print_int y;
+            print_newline ();
+            exit 0
+          );
+          prev_nat_y := Some y;
+          network_loop ()
+      | None -> network_loop ()
+    )
+     else network_loop()
+  in
+  network_loop ()

@@ -1,0 +1,81 @@
+
+open Printf
+
+type range = {
+  dst_start : int;
+  src_start : int;
+  length : int;
+}
+
+let parse_map lines =
+  let ranges =
+    List.map
+      (fun line ->
+        match String.split_on_char ' ' line with
+        | [ dst_start; src_start; length ] ->
+            {
+              dst_start = int_of_string dst_start;
+              src_start = int_of_string src_start;
+              length = int_of_string length;
+            }
+        | _ -> failwith "Invalid map line")
+      lines
+  in
+  ranges
+
+let apply_map ranges source =
+  let rec find_mapping ranges source =
+    match ranges with
+    | [] -> source
+    | { dst_start; src_start; length } :: rest ->
+        if source >= src_start && source < src_start + length then
+          dst_start + (source - src_start)
+        else find_mapping rest source
+  in
+  find_mapping ranges source
+
+let solve input_file =
+  let lines = In_channel.input_lines (In_channel.open_text input_file) in
+  let seeds_line = List.hd lines in
+  let seeds =
+    match String.split_on_char ':' seeds_line with
+    | [ _; seed_numbers ] ->
+        List.map int_of_string (String.split_on_char ' ' (String.trim seed_numbers))
+    | _ -> failwith "Invalid seeds line"
+  in
+
+  let rec parse_maps remaining_lines maps current_map =
+    match remaining_lines with
+    | [] -> List.rev (current_map :: maps)
+    | line :: rest ->
+        if String.contains line ':' then
+          if current_map = [] then
+            parse_maps rest maps current_map
+          else
+            parse_maps rest (List.rev current_map :: maps) []
+        else if String.trim line = "" then
+          parse_maps rest maps current_map
+        else
+          parse_maps rest maps ((String.trim line) :: current_map)
+  in
+
+  let maps =
+    match lines with
+    | _ :: remaining_lines ->
+        let maps_rev = parse_maps remaining_lines [] [] in
+        List.map (fun map -> parse_map (List.rev map)) maps_rev
+    | _ -> failwith "No input lines"
+  in
+
+  let locations =
+    List.map
+      (fun seed ->
+        List.fold_left (fun source map -> apply_map map source) seed maps)
+      seeds
+  in
+
+  List.fold_left min (List.hd locations) locations
+
+let () =
+  let result = solve "input.txt" in
+  printf "%d\n" result

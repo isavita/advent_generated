@@ -1,0 +1,87 @@
+
+let read_lines filename =
+  let chan = open_in filename in
+  let rec read_all acc =
+    try
+      let line = input_line chan in
+      if String.trim line = "" then
+        read_all acc
+      else
+        read_all (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_all []
+
+let parse_rules lines =
+  let rec aux acc lines =
+    match lines with
+    | hd :: tl ->
+      if String.contains hd '|' then
+        let parts = String.split_on_char '|' hd in
+        let x = int_of_string (List.nth parts 0) in
+        let y = int_of_string (List.nth parts 1) in
+        aux ((x, y) :: acc) tl
+      else
+        (List.rev acc, lines)
+    | [] -> (List.rev acc, [])
+  in
+  aux [] lines
+
+let parse_updates lines =
+  List.map (fun line ->
+    List.map int_of_string (String.split_on_char ',' line)
+  ) lines
+
+let is_correct update rules =
+  let pos = Hashtbl.create (List.length update) in
+  List.iteri (fun i p -> Hashtbl.add pos p i) update;
+  List.for_all (fun (x, y) ->
+    match Hashtbl.find_opt pos x, Hashtbl.find_opt pos y with
+    | Some px, Some py -> px <= py
+    | _, _ -> true
+  ) rules
+
+let correct_order update rules =
+    let pages = Hashtbl.create (List.length update) in
+    List.iter (fun p -> Hashtbl.add pages p ()) update;
+    let adj = Hashtbl.create (List.length update) in
+    List.iter (fun p -> Hashtbl.add adj p []) update;
+    let indeg = Hashtbl.create (List.length update) in
+    List.iter (fun p -> Hashtbl.add indeg p 0) update;
+    List.iter (fun (x,y) ->
+      if Hashtbl.mem pages x && Hashtbl.mem pages y then (
+          Hashtbl.replace adj x (y :: (Hashtbl.find adj x));
+          Hashtbl.replace indeg y ((Hashtbl.find indeg y) + 1)
+    )) rules;
+
+  let q = Queue.create () in
+    List.iter (fun p -> if Hashtbl.find indeg p = 0 then Queue.add p q) update;
+  let out = ref [] in
+    while not (Queue.is_empty q) do
+      let n = Queue.take q in
+        out := n :: !out;
+      List.iter (fun nxt ->
+          Hashtbl.replace indeg nxt ((Hashtbl.find indeg nxt) -1);
+          if Hashtbl.find indeg nxt = 0 then
+            Queue.add nxt q;
+      ) (Hashtbl.find adj n)
+    done;
+    List.rev !out
+
+let () =
+  let lines = read_lines "input.txt" in
+  let rules, remaining_lines = parse_rules lines in
+  let updates = parse_updates remaining_lines in
+  let incorrect =
+    List.fold_left (fun acc u ->
+      if not (is_correct u rules) then
+        let fixed = correct_order u rules in
+        (List.nth fixed (List.length fixed / 2)) :: acc
+      else
+        acc
+    ) [] updates
+  in
+  print_int (List.fold_left ( + ) 0 incorrect);
+  print_newline ()

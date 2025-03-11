@@ -1,0 +1,103 @@
+
+(* Function to read the Intcode program from a file *)
+let read_program filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  List.map int_of_string (String.split_on_char ',' line)
+
+(* Intcode computer implementation *)
+let run_intcode program input =
+  let memory = Array.of_list program in
+  let input_ref = ref input in
+  let output = ref 0 in
+  let get_input () =
+    match !input_ref with
+    | [] -> failwith "No more input"
+    | h :: t -> input_ref := t; h
+  in
+  
+  let rec run pc =
+    let opcode = memory.(pc) mod 100 in
+    let get_param mode pos =
+        let value = memory.(pc + pos) in
+        match mode with
+          | 0 -> memory.(value)  (* Position mode *)
+          | 1 -> value           (* Immediate mode *)
+          | _ -> failwith "Invalid parameter mode"
+    in      
+    let mode1 = (memory.(pc) / 100) mod 10 in
+    let mode2 = (memory.(pc) / 1000) mod 10 in
+
+    match opcode with
+    | 1 -> (* Add *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        memory.(memory.(pc + 3)) <- p1 + p2;
+        run (pc + 4)
+    | 2 -> (* Multiply *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        memory.(memory.(pc + 3)) <- p1 * p2;
+        run (pc + 4)
+    | 3 -> (* Input *)
+        memory.(memory.(pc + 1)) <- get_input ();
+        run (pc + 2)
+    | 4 -> (* Output *)
+        output := get_param mode1 1;
+        run (pc + 2)
+    | 5 -> (* Jump-if-true *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        if p1 <> 0 then run p2 else run (pc + 3)
+    | 6 -> (* Jump-if-false *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        if p1 = 0 then run p2 else run (pc + 3)
+    | 7 -> (* Less than *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        memory.(memory.(pc + 3)) <- (if p1 < p2 then 1 else 0);
+        run (pc + 4)
+    | 8 -> (* Equals *)
+        let p1 = get_param mode1 1 in
+        let p2 = get_param mode2 2 in
+        memory.(memory.(pc + 3)) <- (if p1 = p2 then 1 else 0);
+        run (pc + 4)
+    | 99 -> !output (* Halt *)
+    | _ -> failwith ("Invalid opcode: " ^ string_of_int opcode)
+  in
+  run 0
+
+(* Function to generate permutations of a list *)
+let rec permutations = function
+  | [] -> [[]]
+  | x :: xs ->
+      let rec insert acc x = function
+        | [] -> [x :: acc]
+        | y :: ys as l -> (x :: l) :: List.map (fun z -> y :: z) (insert acc x ys)
+      in
+      List.fold_left (fun acc p -> acc @ insert [] x p) [] (permutations xs)
+
+(* Function to run the amplifier chain *)
+let run_amplifiers program phase_settings =
+  let rec loop settings input =
+    match settings with
+    | [] -> input
+    | phase :: rest ->
+        let output = run_intcode program [phase; input] in
+        loop rest output
+  in
+  loop phase_settings 0
+
+(* Main function *)
+let () =
+  let program = read_program "input.txt" in
+  let phase_settings_list = permutations [0; 1; 2; 3; 4] in
+  let max_output = ref 0 in
+  List.iter (fun phase_settings ->
+    let output = run_amplifiers program phase_settings in
+    max_output := max !max_output output
+  ) phase_settings_list;
+  print_int !max_output;
+  print_newline ()

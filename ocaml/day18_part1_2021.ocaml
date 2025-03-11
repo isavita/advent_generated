@@ -1,0 +1,102 @@
+
+type snail_number =
+  | Regular of int
+  | Pair of snail_number * snail_number
+
+let rec parse_snail_number str =
+  let len = String.length str in
+  if str.[0] <> '[' then
+    Regular (int_of_string str)
+  else
+    let rec find_comma idx balance =
+      match str.[idx] with
+      | '[' -> find_comma (idx + 1) (balance + 1)
+      | ']' -> find_comma (idx + 1) (balance - 1)
+      | ',' when balance = 0 -> idx
+      | _ -> find_comma (idx + 1) balance
+    in
+    let comma_idx = find_comma 1 0 in
+    let left = parse_snail_number (String.sub str 1 (comma_idx - 1)) in
+    let right =
+      parse_snail_number
+        (String.sub str (comma_idx + 1) (len - comma_idx - 2))
+    in
+    Pair (left, right)
+
+let rec add_left num v =
+  match num with
+  | Regular x -> Regular (x + v)
+  | Pair (l, r) -> Pair (add_left l v, r)
+
+let rec add_right num v =
+  match num with
+  | Regular x -> Regular (x + v)
+  | Pair (l, r) -> Pair (l, add_right r v)
+
+let rec explode_rec num depth =
+  match num with
+  | Regular _ -> (false, num, 0, 0)
+  | Pair (Regular l, Regular r) when depth = 4 -> (true, Regular 0, l, r)
+  | Pair (l, r) ->
+      let exploded, new_l, lv, rv = explode_rec l (depth + 1) in
+      if exploded then
+        (true, Pair (new_l, add_left r rv), lv, 0)
+      else
+        let exploded, new_r, lv, rv = explode_rec r (depth + 1) in
+        if exploded then
+          (true, Pair (add_right l lv, new_r), 0, rv)
+        else
+          (false, num, 0, 0)
+
+let explode num =
+  let exploded, num, _, _ = explode_rec num 0 in
+  (exploded, num)
+
+let rec split num =
+  match num with
+  | Regular x when x >= 10 ->
+      ( true,
+        Pair (Regular (x / 2), Regular ((x + 1) / 2)) )
+  | Regular _ -> (false, num)
+  | Pair (l, r) ->
+      let splitted, new_l = split l in
+      if splitted then
+        (true, Pair (new_l, r))
+      else
+        let splitted, new_r = split r in
+        (splitted, Pair (l, new_r))
+
+let rec reduce num =
+  let exploded, num = explode num in
+  if exploded then
+    reduce num
+  else
+    let splitted, num = split num in
+    if splitted then
+      reduce num
+    else
+      num
+
+let add l r = reduce (Pair (l, r))
+
+let rec magnitude = function
+  | Regular x -> x
+  | Pair (l, r) -> (3 * magnitude l) + (2 * magnitude r)
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (parse_snail_number line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let snail_numbers = read_lines [] in
+  match snail_numbers with
+  | [] -> print_endline "No snailfish numbers found in the file."
+  | h :: t ->
+      let result = List.fold_left add h t in
+      print_int (magnitude result);
+      print_newline ()

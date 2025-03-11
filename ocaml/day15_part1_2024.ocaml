@@ -1,0 +1,115 @@
+
+let solve () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let grid, moves =
+    let rec parse_input lines grid moves reading_map =
+      match lines with
+      | [] -> (List.rev grid, moves)
+      | line :: rest ->
+          if reading_map then
+            if String.contains line '#' then
+              parse_input rest ((String.to_seq line |> List.of_seq) :: grid) moves true
+            else
+              parse_input rest grid (moves ^ line) false
+          else
+            parse_input rest grid (moves ^ line) false
+    in
+    parse_input lines [] "" true
+  in
+
+  let rows = List.length grid in
+  let cols = List.length (List.hd grid) in
+
+  let robot_r, robot_c =
+    let rec find_robot r c grid =
+      match grid with
+      | [] -> (0, 0)
+      | row :: rest ->
+          let rec find_in_row c row =
+            match row with
+            | [] -> find_robot (r + 1) 0 rest
+            | cell :: rest_row ->
+                if cell = '@' then (r, c)
+                else find_in_row (c + 1) rest_row
+          in
+          find_in_row 0 row
+    in
+    find_robot 0 0 grid
+  in
+
+  let dirs = [ ('^', (-1, 0)); ('v', (1, 0)); ('<', (0, -1)); ('>', (0, 1)) ] in
+
+  let rec push_boxes grid r c dr dc =
+    let nr, nc = (r + dr, c + dc) in
+    match List.nth (List.nth grid nr) nc with
+    | '#' -> (false, grid)
+    | 'O' ->
+      let pushed, new_grid = push_boxes grid nr nc dr dc in
+      if not pushed then (false, grid)
+      else
+        (match List.nth (List.nth new_grid nr) nc with
+        
+        | '.' ->  
+            let grid_nr = List.mapi (fun i row -> if i = nr then List.mapi (fun j cell -> if j = nc then 'O' else cell) row else row) new_grid in
+            let grid_r = List.mapi (fun i row -> if i = r  then List.mapi (fun j cell -> if j = c then '.' else cell) row else row) grid_nr in
+            (true,grid_r)
+        | _ -> (false, grid)
+        )          
+    | '.' -> 
+        let grid_nr = List.mapi (fun i row -> if i = nr then List.mapi (fun j cell -> if j = nc then 'O' else cell) row else row) grid in
+            let grid_r = List.mapi (fun i row -> if i = r  then List.mapi (fun j cell -> if j = c then '.' else cell) row else row) grid_nr in
+        (true,grid_r)          
+    | _ -> (false, grid)
+  in
+
+  let rec process_moves grid robot_r robot_c moves =
+    match moves with
+    | [] -> grid
+    | move :: rest_moves ->
+        let dr, dc = List.assoc move dirs in
+        let nr, nc = (robot_r + dr, robot_c + dc) in
+        match List.nth (List.nth grid nr) nc with
+        | '#' -> process_moves grid robot_r robot_c rest_moves
+        | 'O' ->
+          let pushed, new_grid = push_boxes grid nr nc dr dc in
+            if not pushed then process_moves grid robot_r robot_c rest_moves
+            else
+                (match List.nth (List.nth new_grid nr) nc with
+                | '.' | 'O' -> 
+                    let new_grid_rr =  List.mapi (fun i row -> if i = robot_r then List.mapi (fun j cell -> if j = robot_c then '.' else cell) row else row) new_grid in
+                    let new_grid_nr = List.mapi (fun i row -> if i = nr      then List.mapi (fun j cell -> if j = nc      then '@' else cell) row else row) new_grid_rr in
+                    process_moves new_grid_nr nr nc rest_moves
+                | _ -> process_moves grid robot_r robot_c rest_moves
+                )
+
+        | '.' | _-> 
+            let new_grid_rr =  List.mapi (fun i row -> if i = robot_r then List.mapi (fun j cell -> if j = robot_c then '.' else cell) row else row) grid in
+            let new_grid_nr = List.mapi (fun i row -> if i = nr      then List.mapi (fun j cell -> if j = nc      then '@' else cell) row else row) new_grid_rr in
+            process_moves new_grid_nr nr nc rest_moves
+  in
+
+  let final_grid = process_moves grid robot_r robot_c (String.to_seq moves |> List.of_seq) in
+
+  let total_sum = ref 0 in
+  List.iteri
+    (fun r row ->
+      List.iteri
+        (fun c cell -> if cell = 'O' then total_sum := !total_sum + (r * 100) + c)
+        row)
+    final_grid;
+  print_int !total_sum;
+  print_newline ()
+
+let () = solve ()

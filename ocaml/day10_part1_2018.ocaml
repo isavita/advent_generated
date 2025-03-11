@@ -1,0 +1,92 @@
+
+open Printf
+
+type point = { mutable x : int; mutable y : int; vx : int; vy : int }
+
+let parse_line line =
+  try
+    Scanf.sscanf line "position=< %d, %d> velocity=< %d, %d>" 
+      (fun x y vx vy -> { x; y; vx; vy })
+  with e ->
+    Printf.eprintf "Error parsing line: %s\n%s\n" line (Printexc.to_string e);
+    exit 1
+
+let read_points filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (parse_line line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let update_point p =
+  p.x <- p.x + p.vx;
+  p.y <- p.y + p.vy
+
+let get_bounds points =
+  let min_x = ref max_int and max_x = ref min_int in
+  let min_y = ref max_int and max_y = ref min_int in
+  List.iter (fun p ->
+    min_x := min !min_x p.x;
+    max_x := max !max_x p.x;
+    min_y := min !min_y p.y;
+    max_y := max !max_y p.y;
+  ) points;
+  (!min_x, !max_x, !min_y, !max_y)
+
+let area points =
+  let min_x, max_x, min_y, max_y = get_bounds points in
+  (max_x - min_x + 1) * (max_y - min_y + 1)
+
+let print_grid points =
+  let min_x, max_x, min_y, max_y = get_bounds points in
+  let width = max_x - min_x + 1 in
+  let height = max_y - min_y + 1 in
+  
+  (* Create an empty grid *)
+  let grid = Array.make_matrix height width '.' in
+
+  (* Mark the points on the grid *)
+    List.iter (fun p ->
+    let row = p.y - min_y in
+    let col = p.x - min_x in
+        if row >= 0 && row < height && col >= 0 && col < width then
+          grid.(row).(col) <- '#'
+        else begin 
+            Printf.eprintf "out of range error.  row, col: %d, %d\n" row col;
+            exit 2;
+        end
+  ) points;
+
+  (* Print the grid *)
+  for r = 0 to height - 1 do
+    for c = 0 to width - 1 do
+      print_char grid.(r).(c)
+    done;
+    print_newline ()
+  done
+
+let solve points =
+  let rec loop points seconds prev_area =
+    let current_area = area points in
+     if prev_area <> max_int && current_area > prev_area then 
+      begin
+        (* Undo last step because we passed the minimum *)
+        List.iter (fun p -> p.x <- p.x - p.vx; p.y <- p.y - p.vy) points;
+        print_grid points;  (* Print the configuration at minimum area *)
+        printf "Seconds: %d\n" (seconds -1); (*print elapsed time*)
+      end
+      else begin
+        List.iter update_point points;
+        loop points (seconds + 1) current_area
+      end
+  in
+  loop points 0 max_int
+
+let () =
+  let points = read_points "input.txt" in
+  solve points

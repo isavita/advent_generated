@@ -1,0 +1,60 @@
+
+type point = int * int
+type sensor = { pos : point; beacon : point; dist : int }
+
+let manhattan (p : point) (q : point) : int =
+  let x1, y1 = p in
+  let x2, y2 = q in
+  abs (x1 - x2) + abs (y1 - y2)
+
+let parse_line (line : string) : sensor =
+  let parts = String.split_on_char ':' line in
+  let sensor_part = String.split_on_char ',' (List.hd parts) in
+  let beacon_part = String.split_on_char ',' (List.nth parts 1) in
+  let sensor_x =
+    Scanf.sscanf (List.hd sensor_part) "Sensor at x=%d" (fun x -> x)
+  in
+  let sensor_y =
+    Scanf.sscanf (List.nth sensor_part 1) " y=%d" (fun y -> y)
+  in
+  let beacon_x =
+    Scanf.sscanf (List.hd beacon_part) " closest beacon is at x=%d" (fun x -> x)
+  in
+  let beacon_y =
+    Scanf.sscanf (List.nth beacon_part 1) " y=%d" (fun y -> y)
+  in
+  {
+    pos = (sensor_x, sensor_y);
+    beacon = (beacon_x, beacon_y);
+    dist = manhattan (sensor_x, sensor_y) (beacon_x, beacon_y);
+  }
+
+let impossible (sensors : sensor list) (y : int) : int =
+  let pts = Hashtbl.create 1000 in
+  List.iter
+    (fun s ->
+      let dist = s.dist - abs (snd s.pos - y) in
+      if dist >= 0 then
+        for x = fst s.pos - dist to fst s.pos + dist do
+          Hashtbl.replace pts x ()
+        done)
+    sensors;
+  List.iter
+    (fun s -> if snd s.beacon = y then Hashtbl.remove pts (fst s.beacon))
+    sensors;
+  Hashtbl.length pts
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+  let sensors = List.map parse_line lines in
+  print_int (impossible sensors 2000000);
+  print_newline ()

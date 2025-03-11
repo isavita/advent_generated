@@ -1,0 +1,115 @@
+
+let ( let* ) = Result.bind
+let ( >>= ) = Result.bind
+
+type mode = Position | Immediate | Relative
+type vm = {
+  mutable code : (int, int) Hashtbl.t;
+  mutable ip : int;
+  mutable input : int list;
+  mutable output : int list;
+  mutable relative_base : int;
+}
+
+let parse_mode mode_int =
+  match mode_int with
+  | 0 -> Position
+  | 1 -> Immediate
+  | 2 -> Relative
+  | _ -> failwith "Invalid mode"
+
+let load_program filename =
+  let chan = open_in filename in
+  let line = input_line chan in
+  close_in chan;
+  let code_list = String.split_on_char ',' line |> List.map int_of_string in
+  let code = Hashtbl.create (List.length code_list) in
+  List.iteri (fun i x -> Hashtbl.add code i x) code_list;
+  code
+
+let get_param vm index =
+  let mode = parse_mode ((Hashtbl.find vm.code vm.ip) / (100 * (int_of_float (10. ** float_of_int (index - 1)))) mod 10) in
+  let value = Hashtbl.find_opt vm.code (vm.ip + index) |> Option.value ~default:0 in
+  match mode with
+  | Position -> Hashtbl.find_opt vm.code value |> Option.value ~default:0
+  | Immediate -> value
+  | Relative -> Hashtbl.find_opt vm.code (vm.relative_base + value) |> Option.value ~default:0
+
+let get_address vm index =
+    let mode = parse_mode ((Hashtbl.find vm.code vm.ip) / (100 * (int_of_float (10. ** float_of_int (index - 1)))) mod 10) in
+    let value = Hashtbl.find_opt vm.code (vm.ip + index) |> Option.value ~default:0 in
+    match mode with
+    | Relative -> vm.relative_base + value
+    | _ -> value
+
+let run_vm vm =
+    let rec run () =
+        let opcode = Hashtbl.find vm.code vm.ip mod 100 in
+        match opcode with
+        | 1 ->
+            Hashtbl.replace vm.code (get_address vm 3) ((get_param vm 1) + (get_param vm 2));
+            vm.ip <- vm.ip + 4;
+            run ()
+        | 2 ->
+            Hashtbl.replace vm.code (get_address vm 3) ((get_param vm 1) * (get_param vm 2));
+            vm.ip <- vm.ip + 4;
+            run ()
+        | 3 ->
+            let i = List.hd vm.input in
+            vm.input <- List.tl vm.input;
+            Hashtbl.replace vm.code (get_address vm 1) i;
+            vm.ip <- vm.ip + 2;
+            run ()
+        | 4 ->
+            vm.output <- vm.output @ [get_param vm 1];
+            vm.ip <- vm.ip + 2;
+            run ()
+        | 5 ->
+          if get_param vm 1 <> 0 then vm.ip <- get_param vm 2 else vm.ip <- vm.ip + 3;
+          run ()
+        | 6 ->
+          if get_param vm 1 = 0 then vm.ip <- get_param vm 2 else vm.ip <- vm.ip + 3;
+          run ()
+        | 7 ->
+            Hashtbl.replace vm.code (get_address vm 3) (if (get_param vm 1) < (get_param vm 2) then 1 else 0);
+            vm.ip <- vm.ip + 4;
+            run ()
+        | 8 ->
+            Hashtbl.replace vm.code (get_address vm 3) (if (get_param vm 1) = (get_param vm 2) then 1 else 0);
+            vm.ip <- vm.ip + 4;
+            run ()
+        | 9 ->
+            vm.relative_base <- vm.relative_base + (get_param vm 1);
+            vm.ip <- vm.ip + 2;
+            run ()
+        | 99 -> ()
+        | _ -> failwith ("Unknown opcode " ^ string_of_int opcode)
+    in
+    run ()
+
+let send_string vm s =
+  String.iter (fun c -> vm.input <- vm.input @ [int_of_char c]) s;
+  vm.input <- vm.input @ [10]
+
+let main () =
+  let code = load_program "input.txt" in
+  let vm = { code = code; ip = 0; input = []; output = []; relative_base = 0 } in
+  let instructions = [
+    "NOT A J";
+    "NOT B T";
+    "OR T J";
+    "NOT C T";
+    "OR T J";
+    "AND D J";
+    "NOT A T";
+    "AND A T";
+    "OR E T";
+    "OR H T";
+    "AND T J";
+    "RUN";
+  ] in
+  List.iter (send_string vm) instructions;
+  run_vm vm;
+  List.iter (Printf.printf "%d\n") vm.output
+
+let () = main ()

@@ -1,0 +1,58 @@
+
+let () =
+  let data =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let module StringSet = Set.Make(String) in
+
+  let allergens = Hashtbl.create 16 in
+  let ingredients_count = Hashtbl.create 16 in
+
+  let update_counts food =
+    let parts = String.split_on_char '(' food in
+    let ingredients = String.split_on_char ' ' (List.hd parts) in
+    let allergens_list =
+      let s = List.nth parts 1 in
+      String.sub s 9 (String.length s - 10)
+      |> String.split_on_char ','
+      |> List.map String.trim
+    in
+
+    List.iter (fun ingredient ->
+      match Hashtbl.find_opt ingredients_count ingredient with
+      | None -> Hashtbl.add ingredients_count ingredient 1
+      | Some count -> Hashtbl.replace ingredients_count ingredient (count + 1)
+    ) ingredients;
+
+    List.iter (fun allergen ->
+      let ingredients_set = StringSet.of_list ingredients in
+      match Hashtbl.find_opt allergens allergen with
+      | None -> Hashtbl.add allergens allergen ingredients_set
+      | Some set -> Hashtbl.replace allergens allergen (StringSet.inter set ingredients_set)
+    ) allergens_list
+  in
+
+  List.iter update_counts data;
+
+  let allergen_ingredients =
+    Hashtbl.fold (fun _ ingredients set -> StringSet.union set ingredients) allergens StringSet.empty
+  in
+
+  let safe_ingredients_count =
+    Hashtbl.fold (fun ingredient count acc ->
+      if StringSet.mem ingredient allergen_ingredients then acc else acc + count
+    ) ingredients_count 0
+  in
+
+  print_int safe_ingredients_count;
+  print_newline ()

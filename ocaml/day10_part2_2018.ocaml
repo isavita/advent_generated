@@ -1,0 +1,82 @@
+
+open Printf
+
+type point = {
+  mutable px : int;
+  mutable py : int;
+  vx : int;
+  vy : int;
+}
+
+let parse_line line =
+  Scanf.sscanf line "position=< %d, %d> velocity=< %d, %d>"
+    (fun px py vx vy -> { px; py; vx; vy })
+
+let read_points filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines ((parse_line line) :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let update_point p =
+  p.px <- p.px + p.vx;
+  p.py <- p.py + p.vy
+
+let bounding_box points =
+  let min_x = List.fold_left (fun acc p -> min acc p.px) max_int points in
+  let max_x = List.fold_left (fun acc p -> max acc p.px) min_int points in
+  let min_y = List.fold_left (fun acc p -> min acc p.py) max_int points in
+  let max_y = List.fold_left (fun acc p -> max acc p.py) min_int points in
+  (min_x, max_x, min_y, max_y)
+
+let print_points points seconds =
+  let (min_x, max_x, min_y, max_y) = bounding_box points in
+  let width = max_x - min_x + 1 in
+  let height = max_y - min_y + 1 in
+  
+  (*Optimization: We only check to see that the boundries are reasonably small so we can print the ouput.*)
+  if width > 80 || height > 80 then ()
+  else begin
+  let grid = Array.make_matrix height width '.' in
+
+    List.iter (fun p ->
+      let x = p.px - min_x in
+      let y = p.py - min_y in
+      if x >= 0 && x < width && y >= 0 && y < height then
+        grid.(y).(x) <- '#'
+    ) points;
+    
+  printf "After %d seconds:\n" seconds;
+    Array.iter (fun row ->
+      Array.iter (printf "%c") row;
+      printf "\n"
+    ) grid;
+     printf "\n";
+  end
+
+let solve points =
+   let rec loop points seconds =
+    let (_, _, _, max_y) = bounding_box points in
+    List.iter update_point points;
+    let (_, _, _, new_max_y) = bounding_box points in
+      print_points points seconds;
+      
+    (* Optimization: Stop when the height starts increasing again*)
+    if new_max_y > max_y then seconds
+    else loop points (seconds + 1)
+
+  in
+  loop points 1
+
+
+let () =
+  let points = read_points "input.txt" in
+  let seconds = solve (List.map (fun p -> {p with px = p.px; py = p.py; vx = p.vx; vy=p.vy}) points)  in
+
+  printf "Part 2: Seconds needed: %d\n" seconds

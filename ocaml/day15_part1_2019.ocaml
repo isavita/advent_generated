@@ -1,0 +1,195 @@
+
+(* Intcode Computer *)
+module Intcode = struct
+  type memory = (int, int) Hashtbl.t
+  type state = {
+    mutable ip : int;
+    mutable relative_base : int;
+    memory : memory;
+    mutable inputs : int list;
+    mutable outputs : int list;
+    mutable halted: bool;
+  }
+
+    let make_state memory inputs = 
+     { ip = 0; relative_base = 0; memory; inputs; outputs = []; halted = false}
+
+
+  let read_memory (st : state) addr =
+    match Hashtbl.find_opt st.memory addr with
+    | Some value -> value
+    | None -> 0
+
+  let write_memory (st : state) addr value =
+    Hashtbl.replace st.memory addr value
+  
+  let get_param (st : state) mode offset =
+    let immediate_val = read_memory st (st.ip + offset) in
+    match mode with
+    | 0 -> read_memory st immediate_val  (* Position mode *)
+    | 1 -> immediate_val              (* Immediate mode *)
+    | 2 -> read_memory st (st.relative_base + immediate_val) (* Relative mode *)
+    | _ -> failwith "Invalid parameter mode"
+
+    let get_address (st : state) mode offset =
+      let immediate_val = read_memory st (st.ip + offset) in
+      match mode with
+      | 0 -> immediate_val  (* Position mode *)
+      | 2 -> st.relative_base + immediate_val (* Relative mode *)
+      | _ -> failwith "Invalid parameter mode for write"
+
+
+  let rec run_program (st : state) : state =
+    if st.halted then st else
+    let opcode_full = read_memory st st.ip in
+    let opcode = opcode_full mod 100 in
+    let mode1 = (opcode_full / 100) mod 10 in
+    let mode2 = (opcode_full / 1000) mod 10 in
+    let mode3 = (opcode_full / 10000) mod 10 in
+
+    match opcode with
+    | 1 ->  (* Add *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        let addr = get_address st mode3 3 in
+        write_memory st addr (val1 + val2);
+        st.ip <- st.ip + 4;
+        run_program st
+    | 2 ->  (* Multiply *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        let addr = get_address st mode3 3 in
+        write_memory st addr (val1 * val2);
+        st.ip <- st.ip + 4;
+        run_program st
+    | 3 ->  (* Input *)
+       (match st.inputs with
+        | [] -> st  (* Wait for input *)
+        | hd :: tl ->
+            let addr = get_address st mode1 1 in
+            write_memory st addr hd;
+            st.inputs <- tl;
+            st.ip <- st.ip + 2;
+            run_program st)
+    | 4 ->  (* Output *)
+        let val1 = get_param st mode1 1 in
+        st.outputs <- st.outputs @ [val1];
+        st.ip <- st.ip + 2;
+        run_program st
+    | 5 ->  (* Jump-if-true *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        st.ip <- (if val1 <> 0 then val2 else st.ip + 3);
+        run_program st
+    | 6 ->  (* Jump-if-false *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        st.ip <- (if val1 = 0 then val2 else st.ip + 3);
+        run_program st
+    | 7 ->  (* Less than *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        let addr = get_address st mode3 3 in
+        write_memory st addr (if val1 < val2 then 1 else 0);
+        st.ip <- st.ip + 4;
+        run_program st
+    | 8 ->  (* Equals *)
+        let val1 = get_param st mode1 1 in
+        let val2 = get_param st mode2 2 in
+        let addr = get_address st mode3 3 in
+        write_memory st addr (if val1 = val2 then 1 else 0);
+        st.ip <- st.ip + 4;
+        run_program st
+    | 9 ->  (* Adjust relative base *)
+        let val1 = get_param st mode1 1 in
+        st.relative_base <- st.relative_base + val1;
+        st.ip <- st.ip + 2;
+        run_program st
+    | 99 -> (* Halt *)
+        st.halted <- true;
+        st
+    | _ -> failwith ("Invalid opcode: " ^ string_of_int opcode)
+
+    let load_program (filename : string) : memory =
+      let ic = open_in filename in
+      let line = input_line ic in
+      close_in ic;
+      let code_strs = String.split_on_char ',' line in
+      let code = List.map int_of_string code_strs in
+      let memory : memory = Hashtbl.create (List.length code) in
+      List.iteri (fun i x -> Hashtbl.add memory i x) code;
+      memory
+end
+
+(* --- End Intcode Computer --- *)
+
+
+(* --- Oxygen System Solver --- *)
+module Solver = struct
+  type point = int * int
+  type direction = North | South | West | East
+  type status = Wall | Moved | Oxygen
+
+  let direction_to_int = function
+    | North -> 1
+    | South -> 2
+    | West -> 3
+    | East -> 4
+
+  let int_to_status = function
+    | 0 -> Wall
+    | 1 -> Moved
+    | 2 -> Oxygen
+    | _ -> failwith "Invalid status code"
+
+  let move (x, y) = function
+    | North -> (x, y - 1)
+    | South -> (x, y + 1)
+    | West -> (x - 1, y)
+    | East -> (x + 1, y)
+
+  let opposite_direction = function
+    | North -> South
+    | South -> North
+    | West -> East
+    | East -> West
+
+  let explore (memory : Intcode.memory) : (int * (point, int) Hashtbl.t) =
+    let visited : (point, int) Hashtbl.t = Hashtbl.create 100 in
+    let rec aux (st : Intcode.state) (current_pos : point) (path_length : int) : (int * (point, int) Hashtbl.t) =
+      Hashtbl.replace visited current_pos path_length;
+      let directions = [North; South; West; East] in
+      
+      List.fold_left (fun (oxygen_dist, visited') dir ->
+        let next_pos = move current_pos dir in
+        if Hashtbl.mem visited' next_pos then (oxygen_dist, visited')
+        else
+          let input_int = direction_to_int dir in
+          let new_st = Intcode.run_program { st with inputs = [input_int]; outputs = [] } in
+          let status_code = List.hd new_st.outputs in
+          let status = int_to_status status_code in
+          match status with
+          | Wall -> (oxygen_dist, visited') 
+          | Moved ->
+            let (new_oxygen_dist, new_visited) = aux new_st next_pos (path_length + 1) in
+            let final_oxygen_dist = if new_oxygen_dist > 0 then new_oxygen_dist else oxygen_dist in
+               
+            let backtrack_st = Intcode.run_program {new_st with inputs = [direction_to_int (opposite_direction dir)]; outputs = []} in
+            (final_oxygen_dist , new_visited)
+
+          | Oxygen -> (path_length + 1, visited')
+            
+      ) (0, visited) directions
+    in
+    let initial_state = Intcode.make_state (Hashtbl.copy memory) []  in
+     aux initial_state (0, 0) 0
+
+end
+(* --- End Oxygen System Solver --- *)
+
+
+
+let () =
+  let memory = Intcode.load_program "input.txt" in
+  let (oxygen_dist, _) = Solver.explore memory in
+  Printf.printf "Fewest number of movement commands: %d\n" oxygen_dist
