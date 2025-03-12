@@ -1,0 +1,108 @@
+
+module StringSet = Set.Make(String)
+module StringMap = Map.Make(String)
+
+(* Function to parse a single line of the input *)
+let parse_line line =
+  let parts = String.split_on_char '(' line in
+  let ingredients = String.trim (List.hd parts) |> String.split_on_char ' ' |> StringSet.of_list in
+  let allergens =
+    if List.length parts > 1 then
+      let allergens_str = List.nth parts 1 in
+      (* Remove "contains " and trailing ')' *)
+      let len = String.length allergens_str in
+      String.sub allergens_str 9 (len - 10)
+      |> String.split_on_char ','
+      |> List.map String.trim
+    else []
+  in
+  (ingredients, allergens)
+
+(* Function to read and parse all lines from the input *)
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (parse_line line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+  
+(* Function to find potential allergen-ingredient mappings *)
+let find_potential_mappings input =
+    let allergen_map = Hashtbl.create 10 in
+    List.iter (fun (ingredients, allergens) ->
+        List.iter (fun allergen ->
+            if Hashtbl.mem allergen_map allergen then
+                Hashtbl.replace allergen_map allergen (StringSet.inter ingredients (Hashtbl.find allergen_map allergen))
+            else
+                Hashtbl.add allergen_map allergen ingredients
+        ) allergens
+    ) input;
+    allergen_map
+
+(* Function to perform part 1 calculation *)    
+let solve_part1 input =
+  let allergen_map = find_potential_mappings input in
+  let all_ingredients =
+    List.fold_left (fun acc (ingredients, _) -> StringSet.union acc ingredients) StringSet.empty input
+  in
+  
+  let possible_allergen_ingredients =
+    Hashtbl.fold (fun _ ingredients acc -> StringSet.union acc ingredients) allergen_map StringSet.empty
+  in
+
+  let inert_ingredients = StringSet.diff all_ingredients possible_allergen_ingredients in
+  
+  let count = ref 0 in
+  List.iter (fun (ingredients, _) ->
+    StringSet.iter (fun ingr -> if StringSet.mem ingr inert_ingredients then incr count) ingredients
+  ) input;
+  !count
+ 
+(* Function to perform part 2 calculation *)    
+let solve_part2 input =
+  let allergen_map = find_potential_mappings input in
+  
+  let rec find_unique_mappings mappings =
+    let unique_ingredients = Hashtbl.fold (fun allergen ingredients acc ->
+        if StringSet.cardinal ingredients = 1 then
+          (allergen, StringSet.choose ingredients) :: acc
+        else acc
+    ) mappings [] in
+
+    if List.length unique_ingredients = Hashtbl.length mappings then
+        List.sort compare unique_ingredients |>  List.map snd |> String.concat ","
+
+    else
+      let identified_ingredients =
+        List.fold_left (fun acc (_, ingr) -> StringSet.add ingr acc) StringSet.empty unique_ingredients
+      in
+
+      let updated_mappings = Hashtbl.create (Hashtbl.length mappings) in
+        Hashtbl.iter (fun allergen ingredients ->
+            if StringSet.cardinal ingredients > 1 then
+                Hashtbl.add updated_mappings allergen (StringSet.diff ingredients identified_ingredients)
+            else
+              Hashtbl.add updated_mappings allergen ingredients
+        ) mappings;
+      
+      find_unique_mappings updated_mappings
+ in
+  find_unique_mappings allergen_map
+
+
+(* Main function *)
+let () =
+  let input = read_input "input.txt" in
+  
+  (* Part 1 *)
+  let part1_result = solve_part1 input in
+  Printf.printf "Part 1: %d\n" part1_result;
+
+  (* Part 2 *)
+  let part2_result = solve_part2 input in
+  Printf.printf "Part 2: %s\n" part2_result

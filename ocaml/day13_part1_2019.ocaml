@@ -1,0 +1,129 @@
+
+(* Intcode Computer Implementation *)
+
+type memory = (int, int) Hashtbl.t
+
+type computer_state = {
+    mutable mem : memory;
+    mutable ip : int;
+    mutable relative_base : int;
+    mutable input : int list;
+    mutable output : int list;
+    mutable halted : bool;
+}
+
+let make_computer_state (program : int list) (input_stream : int list) : computer_state =
+  let mem_tbl = Hashtbl.create (List.length program) in
+  List.iteri (fun i x -> Hashtbl.add mem_tbl i x) program;
+  { mem = mem_tbl; ip = 0; relative_base = 0; input = input_stream; output = []; halted = false}
+
+let get_mem (state : computer_state) (addr : int) : int =
+  match Hashtbl.find_opt state.mem addr with
+  | Some v -> v
+  | None -> 0
+
+let set_mem (state : computer_state) (addr : int) (value : int) : unit =
+  Hashtbl.replace state.mem addr value
+
+let get_param (state : computer_state) (mode : int) (offset : int) : int =
+    let immediate_val = get_mem state (state.ip + offset) in
+    match mode with
+        | 0 -> get_mem state immediate_val  (* Position mode *)
+        | 1 -> immediate_val              (* Immediate mode *)
+        | 2 -> get_mem state (state.relative_base + immediate_val) (* Relative mode *)
+        | _ -> failwith ("Invalid parameter mode: " ^ string_of_int mode)
+
+let set_param (state : computer_state) (mode: int) (offset: int) (value: int) : unit=
+    let immediate_val = get_mem state (state.ip + offset) in
+    match mode with
+        | 0 -> set_mem state immediate_val value  (* Position mode *)
+        | 1 -> failwith "Cannot set value in immediate mode"
+        | 2 -> set_mem state (state.relative_base + immediate_val) value (* Relative mode *)
+        | _ -> failwith ("Invalid parameter mode for set: " ^ string_of_int mode)
+
+let run_program (state : computer_state) : unit =
+  let rec run_step () =
+    if state.halted then ()
+    else
+        let opcode = get_mem state state.ip in
+        let instruction = opcode mod 100 in
+        let mode1 = (opcode / 100) mod 10 in
+        let mode2 = (opcode / 1000) mod 10 in
+        let mode3 = (opcode / 10000) mod 10 in
+        match instruction with
+        | 1 ->  (* Add *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            set_param state mode3 3 (val1 + val2);
+            state.ip <- state.ip + 4;
+            run_step ()
+        | 2 ->  (* Multiply *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            set_param state mode3 3 (val1 * val2);
+            state.ip <- state.ip + 4;
+            run_step ()
+        | 3 ->  (* Input *)
+            (match state.input with
+            | hd :: tl ->
+              set_param state mode1 1 hd;
+              state.input <- tl;
+              state.ip <- state.ip + 2;
+            | [] -> () ); (* Wait for input *)
+            run_step()
+        | 4 ->  (* Output *)
+            let val1 = get_param state mode1 1 in
+            state.output <- state.output @ [val1];
+            state.ip <- state.ip + 2;
+            run_step ()
+        | 5 ->  (* Jump-if-true *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            state.ip <- (if val1 != 0 then val2 else state.ip + 3);
+            run_step ()
+        | 6 ->  (* Jump-if-false *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            state.ip <- (if val1 = 0 then val2 else state.ip + 3);
+            run_step ()
+        | 7 ->  (* Less than *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            set_param state mode3 3 (if val1 < val2 then 1 else 0);
+            state.ip <- state.ip + 4;
+            run_step ()
+        | 8 ->  (* Equals *)
+            let val1 = get_param state mode1 1 in
+            let val2 = get_param state mode2 2 in
+            set_param state mode3 3 (if val1 = val2 then 1 else 0);
+            state.ip <- state.ip + 4;
+            run_step ()
+        | 9 -> (* Adjust relative base *)
+            let val1 = get_param state mode1 1 in
+            state.relative_base <- state.relative_base + val1;
+            state.ip <- state.ip + 2;
+            run_step()
+        | 99 -> state.halted <- true (* Halt *)
+        | _ -> failwith ("Invalid opcode: " ^ string_of_int opcode)
+  in
+  run_step ()
+
+(* Main program *)
+let () =
+  let input_channel = open_in "input.txt" in
+  let line = input_line input_channel in
+  close_in input_channel;
+
+  let program = List.map int_of_string (String.split_on_char ',' line) in
+  let state = make_computer_state program [] in
+  run_program state;
+
+  let rec count_blocks (outputs : int list) (count : int) : int =
+    match outputs with
+      | _ :: _ :: tile_id :: rest ->
+          if tile_id = 2 then count_blocks rest (count + 1)
+          else count_blocks rest count
+      | _ -> count
+    in
+    let block_count = count_blocks state.output 0 in
+    Printf.printf "%d\n" block_count

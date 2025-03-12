@@ -1,0 +1,112 @@
+
+(* Function to check if a line is corrupted and return the first illegal character *)
+let find_corrupted_char line =
+  let rec aux stack chars =
+    match chars with
+    | [] -> None (* Incomplete, not corrupted *)
+    | h :: t ->
+      match h with
+      | '(' | '[' | '{' | '<' -> aux (h :: stack) t
+      | ')' | ']' | '}' | '>' ->
+        (match stack with
+         | [] -> Some h (* Stack empty, unexpected closing character *)
+         | sh :: st ->
+           if (sh = '(' && h = ')') || (sh = '[' && h = ']') ||
+              (sh = '{' && h = '}') || (sh = '<' && h = '>') then
+             aux st t
+           else
+             Some h) (* Mismatched closing character *)
+      | _ -> None  (*Ignore other characters*)
+  in
+  aux [] (String.to_seq line |> List.of_seq)
+
+(* Function to calculate the syntax error score for part 1 *)
+let calculate_syntax_error_score lines =
+  let score_char = function
+    | ')' -> 3
+    | ']' -> 57
+    | '}' -> 1197
+    | '>' -> 25137
+    | _ -> 0
+  in
+  List.fold_left (fun acc line ->
+      match find_corrupted_char line with
+      | Some c -> acc + score_char c
+      | None -> acc
+    ) 0 lines
+
+(* Function to complete an incomplete line and calculate its score for part 2 *)
+let complete_and_score line =
+  let rec aux stack chars =
+    match chars with
+    | [] ->
+        (* Calculate score for remaining stack *)
+      let rec score_completion stack acc =
+        match stack with
+        | [] -> acc
+        | h :: t ->
+            let points = match h with
+              | '(' -> 1
+              | '[' -> 2
+              | '{' -> 3
+              | '<' -> 4
+              | _ -> 0  (* Should never happen *)
+            in
+            score_completion t (acc * 5 + points)
+      in
+      Some (score_completion stack 0)
+    | h :: t ->
+      match h with
+      | '(' | '[' | '{' | '<' -> aux (h :: stack) t
+      | ')' | ']' | '}' | '>' ->
+        (match stack with
+         | [] -> None (* Corrupted - Should not happen after filtering*)
+         | sh :: st ->
+           if (sh = '(' && h = ')') || (sh = '[' && h = ']') ||
+              (sh = '{' && h = '}') || (sh = '<' && h = '>') then
+             aux st t
+           else
+             None)  (* Mismatched - Should not happen after filtering *)
+      | _ -> None (*Ignore other char*)
+
+  in
+  aux [] (String.to_seq line |> List.of_seq)
+
+(* Function to get the middle score from a sorted list of scores *)
+let get_middle_score scores =
+  let sorted_scores = List.sort compare scores in
+  let len = List.length sorted_scores in
+  List.nth sorted_scores (len / 2)
+
+(* Function to calculate the autocomplete score for part 2 *)
+let calculate_autocomplete_score lines =
+    let incomplete_lines = List.filter (fun line -> find_corrupted_char line = None) lines in
+    let scores = List.fold_left (fun acc line ->
+      match complete_and_score line with
+      | Some score -> score :: acc
+      | None -> acc
+    ) [] incomplete_lines in
+      get_middle_score scores
+  
+
+(* Main function *)
+let () =
+  let lines =
+    let rec read_lines ic acc =
+      try
+        let line = input_line ic in
+        read_lines ic (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines (open_in "input.txt") []
+  in
+
+  (* Part 1 *)
+  let syntax_error_score = calculate_syntax_error_score lines in
+  Printf.printf "Part 1 - Total syntax error score: %d\n" syntax_error_score;
+
+   (* Part 2 *)
+   let autocomplete_score = calculate_autocomplete_score lines in
+   Printf.printf "Part 2 - Middle autocomplete score: %d\n" autocomplete_score

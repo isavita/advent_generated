@@ -1,0 +1,96 @@
+
+module IntPair = struct
+  type t = int * int
+  let compare (x1, y1) (x2, y2) =
+    match Int.compare x1 x2 with
+    | 0 -> Int.compare y1 y2
+    | c -> c
+end
+
+module CoordSet = Set.Make(IntPair)
+module CoordMap = Map.Make(IntPair)
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input lines =
+  let grid = Array.make_matrix (List.length lines) (String.length (List.hd lines)) 0 in
+  List.iteri (fun i line ->
+    String.iteri (fun j c ->
+      grid.(i).(j) <- int_of_char c - int_of_char '0'
+    ) line
+  ) lines;
+  grid
+
+let dijkstra grid =
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  let dist = Hashtbl.create (rows * cols) in
+  let q = ref CoordSet.empty in
+
+  Hashtbl.add dist (0, 0) 0;
+  for r = 0 to rows - 1 do
+    for c = 0 to cols - 1 do
+      if (r, c) <> (0, 0) then
+        Hashtbl.add dist (r, c) Int.max_int;
+      q := CoordSet.add (r, c) !q
+    done
+  done;
+  
+  let get_neighbors r c =
+    [(r-1, c); (r+1, c); (r, c-1); (r, c+1)]
+    |> List.filter (fun (nr, nc) -> nr >= 0 && nr < rows && nc >= 0 && nc < cols)
+  in
+
+  while not (CoordSet.is_empty !q) do
+    let u_dist, u = CoordSet.fold (fun coord acc ->
+        let d = Hashtbl.find dist coord in
+        match acc with
+        | None -> Some (d, coord)
+        | Some (min_d, _) when d < min_d -> Some (d, coord)
+        | _ -> acc
+    ) !q None |> Option.get
+    in
+
+    q := CoordSet.remove u !q;
+
+      if u = (rows-1, cols-1) then
+          (
+              Hashtbl.iter (fun k v -> Printf.printf "%d,%d -> %d\n" (fst k) (snd k) v) dist;
+              ();
+          );    
+
+    if u_dist = Int.max_int then
+      failwith "No path found" (* Or handle this however you want *)
+    else (
+
+      let neighbors = get_neighbors (fst u) (snd u) in
+      List.iter (fun v ->
+        if CoordSet.mem v !q then (
+          let alt = u_dist + grid.(fst v).(snd v) in
+          let v_dist = Hashtbl.find dist v in
+          if alt < v_dist then (
+            Hashtbl.replace dist v alt;
+          )
+        )
+      ) neighbors;
+    )
+  done;
+  Hashtbl.find dist (rows - 1, cols - 1)
+
+
+let () =
+  let input_lines = read_input "input.txt" in
+  let grid = parse_input input_lines in
+  let min_risk = dijkstra grid in
+  print_int min_risk;
+  print_newline ()

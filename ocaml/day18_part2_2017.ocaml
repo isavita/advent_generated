@@ -1,0 +1,181 @@
+
+(* Define a type for registers, which are single characters *)
+type register = char
+
+(* Define a type for values, which can be either a register or an integer *)
+type value =
+  | Reg of register
+  | Int of int
+
+(* Define a type for instructions *)
+type instruction =
+  | Snd of value
+  | Set of register * value
+  | Add of register * value
+  | Mul of register * value
+  | Mod of register * value
+  | Rcv of register
+  | Jgz of value * value
+
+(* Function to parse a value (either a register or an integer) *)
+let parse_value s =
+  try Int (int_of_string s)
+  with Failure _ -> Reg s.[0]
+
+(* Function to parse a line into an instruction *)
+let parse_instruction line =
+  let parts = String.split_on_char ' ' line in
+  match parts with
+  | [ "snd"; x ] -> Snd (parse_value x)
+  | [ "set"; x; y ] -> Set (x.[0], parse_value y)
+  | [ "add"; x; y ] -> Add (x.[0], parse_value y)
+  | [ "mul"; x; y ] -> Mul (x.[0], parse_value y)
+  | [ "mod"; x; y ] -> Mod (x.[0], parse_value y)
+  | [ "rcv"; x ] -> Rcv (x.[0])
+  | [ "jgz"; x; y ] -> Jgz (parse_value x, parse_value y)
+  | _ -> failwith ("Invalid instruction: " ^ line)
+
+(* Function to read instructions from a file *)
+let read_instructions filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (parse_instruction line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+(* Function to get the value of a register or integer *)
+let get_value registers value =
+  match value with
+  | Reg r -> Hashtbl.find registers r
+  | Int i -> i
+
+(* Execute instructions for Part 1 *)
+let execute_instructions instructions =
+  let registers = Hashtbl.create 26 in
+  (* Initialize registers to 0 *)
+  List.iter (fun c -> Hashtbl.add registers c 0)
+    [ 'a'; 'b'; 'c'; 'd'; 'e'; 'f'; 'g'; 'h'; 'i'; 'j'; 'k'; 'l'; 'm';
+      'n'; 'o'; 'p'; 'q'; 'r'; 's'; 't'; 'u'; 'v'; 'w'; 'x'; 'y'; 'z' ];
+    
+  let rec run pc last_sound =
+    if pc < 0 || pc >= List.length instructions then
+      last_sound
+    else
+      match List.nth instructions pc with
+      | Snd x -> run (pc + 1) (get_value registers x)
+      | Set (x, y) ->
+          Hashtbl.replace registers x (get_value registers y);
+          run (pc + 1) last_sound
+      | Add (x, y) ->
+          Hashtbl.replace registers x ((Hashtbl.find registers x) + get_value registers y);
+          run (pc + 1) last_sound
+      | Mul (x, y) ->
+          Hashtbl.replace registers x ((Hashtbl.find registers x) * get_value registers y);
+          run (pc + 1) last_sound
+      | Mod (x, y) ->
+          Hashtbl.replace registers x ((Hashtbl.find registers x) mod get_value registers y);
+          run (pc + 1) last_sound
+      | Rcv x ->
+        if Hashtbl.find registers x <> 0 then
+            last_sound
+        else
+            run (pc + 1) last_sound
+      | Jgz (x, y) ->
+          if get_value registers x > 0 then
+            run (pc + get_value registers y) last_sound
+          else
+            run (pc + 1) last_sound
+  in
+  run 0 0
+
+
+(* Part 2 *)
+
+(* State for each program instance. *)
+type program_state = {
+    id : int;
+    registers : (char, int) Hashtbl.t;
+    mutable pc : int;
+    mutable queue : int Queue.t;
+    mutable send_count: int;
+    mutable waiting: bool;
+}
+
+
+(* Function to execute program instances for Part 2 *)
+let execute_instructions2 instructions =
+    let create_state id =
+        let registers = Hashtbl.create 26 in
+        List.iter (fun c -> Hashtbl.add registers c 0)
+            ['a'; 'b'; 'c'; 'd'; 'e'; 'f'; 'g'; 'h'; 'i'; 'j'; 'k'; 'l'; 'm';
+             'n'; 'o'; 'p'; 'q'; 'r'; 's'; 't'; 'u'; 'v'; 'w'; 'x'; 'y'; 'z'];
+        Hashtbl.replace registers 'p' id;
+        { id = id; registers = registers; pc = 0; queue = Queue.create (); send_count = 0; waiting = false}
+    in    
+    let state0 = create_state 0 in
+    let state1 = create_state 1 in
+
+    let states = [| state0; state1 |] in
+
+  let rec run current_state other_state =
+        let pc = current_state.pc in
+        if pc < 0 || pc >= List.length instructions then ()
+        else
+            match List.nth instructions pc with
+            | Snd x ->
+              current_state.send_count <- current_state.send_count + 1;
+              Queue.add (get_value current_state.registers x) other_state.queue;
+              current_state.pc <- current_state.pc + 1;
+              other_state.waiting <- false;
+            | Set (x, y) ->
+                Hashtbl.replace current_state.registers x (get_value current_state.registers y);
+                current_state.pc <- current_state.pc + 1;
+            | Add (x, y) ->
+                Hashtbl.replace current_state.registers x ((Hashtbl.find current_state.registers x) + get_value current_state.registers y);
+                current_state.pc <- current_state.pc + 1;
+            | Mul (x, y) ->
+                Hashtbl.replace current_state.registers x ((Hashtbl.find current_state.registers x) * get_value current_state.registers y);
+                current_state.pc <- current_state.pc + 1;
+            | Mod (x, y) ->
+                Hashtbl.replace current_state.registers x ((Hashtbl.find current_state.registers x) mod get_value current_state.registers y);
+                current_state.pc <- current_state.pc + 1;
+            | Rcv x ->
+                if Queue.is_empty current_state.queue then
+                   current_state.waiting <- true
+                else begin
+                   Hashtbl.replace current_state.registers x (Queue.take current_state.queue);
+                   current_state.pc <- current_state.pc + 1;
+                end;
+
+            | Jgz (x, y) ->
+                if get_value current_state.registers x > 0 then
+                  current_state.pc <- current_state.pc + get_value current_state.registers y
+                else
+                  current_state.pc <- current_state.pc + 1
+  in
+
+  let rec run_until_deadlock () =
+      run states.(0) states.(1);
+      run states.(1) states.(0);
+        if (states.(0).waiting && states.(1).waiting) || (states.(0).pc < 0 || states.(0).pc >= List.length instructions) && (states.(1).pc < 0 || states.(1).pc >= List.length instructions) then
+            ()
+        else
+            run_until_deadlock ()
+    in
+  run_until_deadlock ();
+  states.(1).send_count
+;;
+
+
+(* Main function to read instructions and print the results *)
+let () =
+  let instructions = read_instructions "input.txt" in
+  let recovered_frequency = execute_instructions instructions in
+  Printf.printf "Part 1: %d\n" recovered_frequency;
+    let program1_send_count = execute_instructions2 instructions in
+    Printf.printf "Part 2: %d\n" program1_send_count

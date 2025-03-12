@@ -1,0 +1,68 @@
+
+(* Function to read the decks from the input file *)
+let read_decks filename =
+  let ic = open_in filename in
+  let rec read_player_deck acc =
+    try
+      let line = input_line ic in
+      if line = "" then
+        List.rev acc (* Reverse to maintain original order *)
+      else
+        read_player_deck (int_of_string line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc (* For the last player, if no empty line after *)
+  in
+  let rec read_all_decks acc =
+    try
+      (* Skip player label lines *)
+      let _ = input_line ic in 
+      let deck = read_player_deck [] in
+      if List.length acc = 0 then 
+        read_all_decks (deck::acc) (* first deck *)
+      else
+         List.rev (deck :: acc)  (* second deck, reverse to get correct player order*)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+    read_all_decks []
+
+(* Function to calculate the score of a deck *)
+let calculate_score deck =
+  let rec score_helper deck multiplier acc =
+    match deck with
+    | [] -> acc
+    | h :: t -> score_helper t (multiplier + 1) (acc + (h * multiplier))
+  in
+  score_helper (List.rev deck) 1 0
+
+(* Function to play a single round of Combat *)
+let play_round deck1 deck2 =
+  match deck1, deck2 with
+  | h1 :: t1, h2 :: t2 ->
+      if h1 > h2 then
+        (t1 @ [h1; h2], t2) (* Player 1 wins *)
+      else
+        (t1, t2 @ [h2; h1]) (* Player 2 wins *)
+  | [], _ -> ([], deck2)     (* Player 2 wins if Player 1 is out of cards *)
+  | _, [] -> (deck1, [])     (* Player 1 wins if Player 2 is out of cards *)
+
+(* Function to play the entire game of Combat *)
+let rec play_game deck1 deck2 =
+  match deck1, deck2 with
+  | [], _ -> deck2 (* Player 2 wins *)
+  | _, [] -> deck1 (* Player 1 wins *)
+  | _, _ ->
+      let (new_deck1, new_deck2) = play_round deck1 deck2 in
+      play_game new_deck1 new_deck2
+
+(* Main entry point *)
+let () =
+  let decks = read_decks "input.txt" in
+  match decks with
+  | [deck1; deck2] ->
+    let winning_deck = play_game deck1 deck2 in
+    let score = calculate_score winning_deck in
+    print_endline (string_of_int score)
+  | _ -> failwith "Invalid input format: Expected two decks."

@@ -1,0 +1,84 @@
+
+let swap_position password x y =
+  let password_list = String.to_seq password |> List.of_seq in
+  let x, y = if x > y then (y, x) else (x, y) in
+  let temp = List.nth password_list x in
+  let password_list = List.mapi (fun i c -> if i = x then List.nth password_list y else if i = y then temp else c) password_list in
+  password_list |> List.to_seq |> String.of_seq
+
+let swap_letter password x y =
+  let replace s old_char new_char =
+    String.mapi (fun i c -> if c = old_char then new_char else c) s
+  in
+  let password = replace password x '_' in
+  let password = replace password y x in
+  replace password '_' y
+
+let rotate_left password steps =
+  let len = String.length password in
+  let steps = steps mod len in
+  let sub1 = String.sub password steps (len - steps) in
+  let sub2 = String.sub password 0 steps in
+  sub1 ^ sub2
+
+let rotate_right password steps =
+  let len = String.length password in
+  let steps = steps mod len in
+  let sub1 = String.sub password (len - steps) steps in
+  let sub2 = String.sub password 0 (len - steps) in
+  sub1 ^ sub2
+
+let rotate_based_on_position password x =
+  let index = String.index password x in
+  let steps = 1 + index + (if index >= 4 then 1 else 0) in
+  rotate_right password steps
+
+let reverse_positions password x y =
+  let x, y = if x > y then (y, x) else (x, y) in
+  let len = String.length password in
+  let sub1 = String.sub password 0 x in
+  let sub2 = String.sub password x (y - x + 1) in
+  let sub2_rev = String.to_seq sub2 |> List.of_seq |> List.rev |> List.to_seq |> String.of_seq in
+  let sub3 = String.sub password (y + 1) (len - y - 1) in
+  sub1 ^ sub2_rev ^ sub3
+
+let move_position password x y =
+  let c = String.get password x in
+  let password = String.sub password 0 x ^ String.sub password (x + 1) (String.length password - x - 1) in
+  String.sub password 0 y ^ String.make 1 c ^ String.sub password y (String.length password - y)
+
+let apply_operation op password =
+  let fields = String.split_on_char ' ' op in
+  match List.hd fields with
+  | "swap" ->
+    (match List.nth fields 1 with
+     | "position" -> swap_position password (int_of_string (List.nth fields 2)) (int_of_string (List.nth fields 5))
+     | "letter" -> swap_letter password (String.get (List.nth fields 2) 0) (String.get (List.nth fields 5) 0)
+     | _ -> failwith "Invalid swap type")
+  | "rotate" ->
+    (match List.nth fields 1 with
+     | "left" -> rotate_left password (int_of_string (List.nth fields 2))
+     | "right" -> rotate_right password (int_of_string (List.nth fields 2))
+     | "based" -> rotate_based_on_position password (String.get (List.nth fields 6) 0)
+     | _ -> failwith "Invalid rotate type")
+  | "reverse" -> reverse_positions password (int_of_string (List.nth fields 2)) (int_of_string (List.nth fields 4))
+  | "move" -> move_position password (int_of_string (List.nth fields 2)) (int_of_string (List.nth fields 5))
+  | _ -> failwith "Invalid operation"
+
+let () =
+  let ic = open_in "input.txt" in
+  let operations =
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let password = "abcdefgh" in
+  let final_password = List.fold_left (fun acc op -> apply_operation op acc) password operations in
+  print_endline final_password

@@ -1,0 +1,128 @@
+
+(* Function to parse a rule string into a name and a list of valid ranges *)
+let parse_rule rule_str =
+  let parts = String.split_on_char ':' rule_str in
+  let name = List.hd parts |> String.trim in
+  let ranges_str = List.nth parts 1 |> String.trim in
+  let ranges =
+    String.split_on_char ' ' ranges_str
+    |> List.filter (fun s -> s <> "or")
+    |> List.map (fun range_str ->
+           let range_parts = String.split_on_char '-' range_str in
+           (int_of_string (List.hd range_parts), int_of_string (List.nth range_parts 1)))
+  in
+  (name, ranges)
+
+(* Function to check if a value is within any of the valid ranges *)
+let is_valid_for_rule value (_, ranges) =
+  List.exists (fun (min_val, max_val) -> value >= min_val && value <= max_val) ranges
+
+(* Function to parse a ticket string into a list of integers *)
+let parse_ticket ticket_str =
+  String.split_on_char ',' ticket_str |> List.map int_of_string
+
+(* Function to calculate the ticket scanning error rate (Part 1) *)
+let calculate_error_rate rules tickets =
+  let is_valid_for_any_rule value =
+    List.exists (fun rule -> is_valid_for_rule value rule) rules
+  in
+  List.fold_left (fun acc ticket ->
+      List.fold_left (fun inner_acc value ->
+          if is_valid_for_any_rule value then inner_acc else inner_acc + value
+        ) 0 ticket + acc
+    ) 0 tickets
+
+(* Function to find valid tickets (Part 2) *)
+let find_valid_tickets rules tickets =
+   let is_valid_for_any_rule value =
+    List.exists (fun rule -> is_valid_for_rule value rule) rules
+  in
+  List.filter (fun ticket ->
+      List.for_all is_valid_for_any_rule ticket
+    ) tickets
+
+(* Function to determine field order (Part 2) *)
+let determine_field_order rules valid_tickets =
+  let num_fields = List.length (List.hd valid_tickets) in
+  let rec find_mapping mapping remaining_rules =
+    if remaining_rules = [] then List.rev mapping
+    else
+      let possible_mappings = List.fold_left (fun acc (rule_name, ranges) ->
+          let possible_indices = ref [] in
+          for i = 0 to num_fields - 1 do
+            if not (List.exists (fun (_, index) -> index = i) mapping) then
+              let all_valid = List.for_all (fun ticket ->
+                  is_valid_for_rule (List.nth ticket i) (rule_name, ranges)
+                ) valid_tickets
+              in
+              if all_valid then possible_indices := i :: !possible_indices
+          done;
+          (rule_name, !possible_indices) :: acc
+        ) [] remaining_rules
+      in
+      let definite_mappings = List.filter (fun (_, indices) -> List.length indices = 1) possible_mappings in
+      let new_mappings = List.map (fun (name, indices) -> (name, List.hd indices)) definite_mappings in
+      let new_remaining_rules = List.filter (fun (name, _) ->
+          not (List.exists (fun (mapped_name, _) -> mapped_name = name) new_mappings)
+        ) remaining_rules
+      in
+      find_mapping (new_mappings @ mapping) new_remaining_rules
+  in
+    find_mapping [] rules
+
+(* Function to calculate the product of departure fields (Part 2) *)
+let calculate_departure_product my_ticket field_mapping =
+    let departure_indices =
+        List.fold_left (fun acc (name, index) ->
+          if String.starts_with ~prefix:"departure" name then index :: acc else acc
+        ) [] field_mapping
+    in
+    List.fold_left (fun acc index ->
+      acc * (List.nth my_ticket index)
+    ) 1 departure_indices
+
+(* Main function to read input, process it, and print the results *)
+let () =
+    let input_channel = open_in "input.txt" in
+
+    (* Read rules *)
+    let rec read_rules acc =
+      let line = input_line input_channel in
+      if line = "" then List.rev acc
+      else read_rules ((parse_rule line) :: acc)
+    in
+    let rules = read_rules [] in
+
+    (* Read "your ticket:" line and skip it *)
+    let _ = input_line input_channel in
+
+    (* Read my ticket *)
+    let my_ticket = parse_ticket (input_line input_channel) in
+    
+    (* Read empty line *)
+    let _ = input_line input_channel in
+
+    (* Read "nearby tickets:" line and skip it*)
+    let _ = input_line input_channel in
+
+    (* Read nearby tickets *)
+     let rec read_tickets acc =
+        try
+          let line = input_line input_channel in
+            read_tickets ((parse_ticket line) :: acc)
+        with
+            End_of_file -> List.rev acc
+    in
+    let nearby_tickets = read_tickets [] in
+    close_in input_channel;
+  
+  (* Part 1: Calculate ticket scanning error rate *)
+  let error_rate = calculate_error_rate rules nearby_tickets in
+  Printf.printf "Part 1: Ticket scanning error rate: %d\n" error_rate;
+
+  (* Part 2: Calculate product of departure fields *)
+  let valid_tickets = find_valid_tickets rules nearby_tickets in
+  let field_mapping = determine_field_order rules (my_ticket :: valid_tickets) in
+  let departure_product = calculate_departure_product my_ticket field_mapping in
+  Printf.printf "Part 2: Product of departure fields: %d\n" departure_product
+;;

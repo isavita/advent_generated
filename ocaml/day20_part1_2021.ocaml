@@ -1,0 +1,66 @@
+
+(* Function to convert a 3x3 neighborhood to its binary representation *)
+let neighborhood_to_binary img x y default_val =
+  let bin_str = ref "" in
+  for j = y - 1 to y + 1 do
+    for i = x - 1 to x + 1 do
+      let pixel =
+        if i >= 0 && i < Array.length img.(0) && j >= 0 && j < Array.length img
+        then img.(j).(i)
+        else default_val
+      in
+      bin_str := !bin_str ^ (if pixel = '#' then "1" else "0")
+    done
+  done;
+  int_of_string ("0b" ^ !bin_str)
+
+(* Function to enhance the image *)
+let enhance_image algorithm img default_val =
+  let rows = Array.length img in
+  let cols = Array.length img.(0) in
+  let new_rows = rows + 2 in
+  let new_cols = cols + 2 in
+  let new_img = Array.make_matrix new_rows new_cols '.' in
+    let next_default = if default_val = '.' then algorithm.[0] else algorithm.[511] in
+
+  for j = 0 to new_rows - 1 do
+    for i = 0 to new_cols - 1 do
+      let index = neighborhood_to_binary img (i-1) (j-1) default_val in
+      new_img.(j).(i) <- algorithm.[index]
+    done
+  done;
+  (new_img, next_default)
+
+(* Function to count lit pixels *)
+let count_lit_pixels img =
+  let count = ref 0 in
+  Array.iter (fun row -> Array.iter (fun pixel -> if pixel = '#' then incr count) row) img;
+  !count
+
+(* Main function *)
+let () =
+  (* Read input from file *)
+  let ic = open_in "input.txt" in
+  let algorithm = input_line ic in
+  let _ = input_line ic in (* Consume the blank line*)
+
+  (* Read the rest of the input image into an array *)
+  let rec read_image lines =
+    try
+      let line = input_line ic in
+      read_image (line :: lines)
+    with End_of_file -> List.rev lines
+  in
+  let input_lines = read_image [] in
+  close_in ic;
+
+  let image = Array.of_list (List.map (fun s -> Array.of_seq (String.to_seq s)) input_lines) in
+
+  (* Enhance the image twice *)
+  let (enhanced_img1, default1) = enhance_image algorithm image '.' in
+  let (enhanced_img2, _) = enhance_image algorithm enhanced_img1 default1 in
+    
+
+  (* Count lit pixels in the final enhanced image *)
+  let lit_pixels = count_lit_pixels enhanced_img2 in
+  print_endline (string_of_int lit_pixels)

@@ -1,0 +1,116 @@
+
+let min_x = ref 500
+let max_x = ref 500
+let min_y = ref 10000
+let max_y = ref 0
+
+let grid = Hashtbl.create (2000 * 20) (* Assuming a reasonable size *)
+
+let set_grid x y char =
+  Hashtbl.replace grid (x, y) char
+
+let get_grid x y =
+  match Hashtbl.find_opt grid (x, y) with
+  | Some c -> c
+  | None -> '.'
+
+let parse_input filename =
+  let ic = open_in filename in
+  let rec read_lines () =
+    try
+      let line = input_line ic in
+      let parse_coord s =
+        let parts = String.split_on_char '=' s in
+        let nums_str = List.nth parts 1 in
+        let nums =
+          if String.contains nums_str '.' then
+            let range = String.split_on_char '.' nums_str
+                        |> List.filter (fun s -> s <> "") |> List.map int_of_string
+            in
+            (List.nth range 0, List.nth range 1)
+          else
+            let n = int_of_string nums_str in (n, n)
+        in
+        nums
+      in
+      let coords = String.split_on_char ',' line in
+      let first_coord = String.trim (List.nth coords 0) in
+      let second_coord = String.trim (List.nth coords 1) in
+      let (first_type, first_range) = (String.get first_coord 0, parse_coord first_coord) in
+      let (second_type, second_range) = (String.get second_coord 0, parse_coord second_coord) in
+      
+      let (x_range, y_range) =
+        if first_type = 'x' then (first_range, second_range)
+        else (second_range, first_range)
+      in
+      
+      min_x := min !min_x (fst x_range);
+      max_x := max !max_x (snd x_range);
+      min_y := min !min_y (fst y_range);
+      max_y := max !max_y (snd y_range);
+
+      for x = (fst x_range) to (snd x_range) do
+        for y = (fst y_range) to (snd y_range) do
+          set_grid x y '#'
+        done;
+      done;
+      read_lines ()
+    with End_of_file ->
+      close_in ic
+  in
+  read_lines ()
+
+let rec flow x y =
+  if y > !max_y then ()
+  else if get_grid x y = '.' then (
+      set_grid x y '|';
+      flow x (y + 1);
+      if get_grid x (y + 1) = '#' || get_grid x (y + 1) = '~' then (
+        let rec spread dx =
+          let blocked_left = ref false in
+          let blocked_right = ref false in
+          let left_x = ref x in
+          while get_grid !left_x y <> '#' && get_grid !left_x (y + 1) <> '.' && get_grid !left_x (y+1) <> '|' do
+            set_grid !left_x y '|';
+            left_x := !left_x + dx;
+          done;
+          if get_grid !left_x y = '#' then
+            blocked_left := true;
+
+          let right_x = ref x in
+          while get_grid !right_x y <> '#' && get_grid !right_x (y+1) <> '.' && get_grid !right_x (y+1) <> '|' do
+            set_grid !right_x y '|';
+            right_x := !right_x + (-dx)
+          done;
+          if get_grid !right_x y = '#' then
+             blocked_right := true;
+          
+          if !blocked_left && !blocked_right then (
+              for i = (!left_x + 1) to (!right_x -1) do
+                set_grid i y '~'
+              done;
+          ) else (
+            if not !blocked_left then flow (!left_x) y;
+            if not !blocked_right then flow (!right_x) y;
+          )
+
+        in
+        spread (-1);
+      )
+  )
+
+let count_tiles char =
+  let count = ref 0 in
+  Hashtbl.iter (fun (x, y) c ->
+    if c = char && y >= !min_y && y <= !max_y then
+      incr count
+  ) grid;
+  !count
+
+let () =
+  parse_input "input.txt";
+  flow 500 0;
+  let reachable_tiles = count_tiles '|' + count_tiles '~' in
+  let retained_tiles = count_tiles '~' in
+  Printf.printf "Reachable tiles: %d\n" reachable_tiles;
+  Printf.printf "Retained tiles: %d\n" retained_tiles;

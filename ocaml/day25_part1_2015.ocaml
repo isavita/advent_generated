@@ -1,0 +1,38 @@
+
+(* Function to calculate the code at a given row and column *)
+let calculate_code (target_row : int) (target_col : int) : int =
+  (* Calculate the index of the code in the diagonal sequence *)
+  let index =
+    let n = target_row + target_col - 1 in
+    (n * (n - 1) / 2) + target_col
+  in
+
+  (* Calculate the code using the given formula *)
+  let rec code_loop (current_code : int) (count : int) : int =
+    if count = 1 then current_code
+    else
+      let next_code = Int64.(rem (mul (of_int current_code) 252533L) 33554393L |> to_int) in
+      code_loop next_code (count - 1)
+  in
+  code_loop 20151125 index
+
+(* Main function to read input and print the output *)
+let () =
+  (* Read the input from "input.txt" *)
+  let input_channel = open_in "input.txt" in
+  let target_row, target_col =
+    try
+      Scanf.sscanf (input_line input_channel) "To continue, please consult the code grid in the manual.  Enter the code at row %d, column %d." (fun row col -> (row, col))
+
+    with
+      End_of_file -> failwith "Input file is empty or does not contain the required format."
+     | _ -> failwith "Could not parse row and column from input."
+    in
+    close_in input_channel;
+
+
+  (* Calculate the code *)
+  let result = calculate_code target_row target_col in
+
+  (* Print the result *)
+  Printf.printf "%d\n" result

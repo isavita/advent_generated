@@ -1,0 +1,96 @@
+
+module IntPairSet = Set.Make (struct
+  type t = int * int
+
+  let compare (x1, y1) (x2, y2) =
+    match Int.compare x1 x2 with 0 -> Int.compare y1 y2 | other -> other
+end)
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_input lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let grid = Array.make_matrix height width 0 in
+  List.iteri
+    (fun i line ->
+      String.iteri (fun j char -> grid.(i).(j) <- int_of_char char - int_of_char '0') line)
+    lines;
+  grid
+
+let expand_grid grid times =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let expanded_height = height * times in
+  let expanded_width = width * times in
+  let expanded_grid = Array.make_matrix expanded_height expanded_width 0 in
+  for i = 0 to expanded_height - 1 do
+    for j = 0 to expanded_width - 1 do
+      let original_value = grid.(i mod height).(j mod width) in
+      let increment = i / height + j / width in
+      let new_value = (original_value + increment - 1) mod 9 + 1 in
+      expanded_grid.(i).(j) <- new_value
+    done
+  done;
+  expanded_grid
+
+let dijkstra grid =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let dist = Array.make_matrix height width max_int in
+  dist.(0).(0) <- 0;
+  let rec visit q =
+    if not (IntPairSet.is_empty q) then
+      let u =
+        IntPairSet.min_elt_opt q
+        |> Option.get
+      in
+      let q = IntPairSet.remove u q in
+      let i, j = u in
+      let neighbors = [ (i - 1, j); (i + 1, j); (i, j - 1); (i, j + 1) ] in
+      let valid_neighbors =
+        List.filter
+          (fun (x, y) -> x >= 0 && x < height && y >= 0 && y < width)
+          neighbors
+      in
+      let q =
+        List.fold_left
+          (fun q' (ni, nj) ->
+            let alt = dist.(i).(j) + grid.(ni).(nj) in
+            if alt < dist.(ni).(nj) then (
+              dist.(ni).(nj) <- alt;
+              IntPairSet.add (ni, nj) q'
+            ) else
+              q')
+            q
+          valid_neighbors
+      in
+      visit q
+  in
+
+  visit (IntPairSet.singleton (0, 0));
+  dist.(height - 1).(width - 1)
+
+let () =
+  let input_lines = read_input "input.txt" in
+  let grid = parse_input input_lines in
+
+  (* Part 1 *)
+  let min_risk = dijkstra grid in
+  Printf.printf "Part 1: %d\n" min_risk;
+
+  (* Part 2 *)
+  let expanded_grid = expand_grid grid 5 in
+  let min_risk_expanded = dijkstra expanded_grid in
+  Printf.printf "Part 2: %d\n" min_risk_expanded
+;;

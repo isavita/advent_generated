@@ -1,0 +1,143 @@
+
+type tile = Open | Wall | Empty
+type direction = Right | Down | Left | Up
+type instruction = Move of int | Turn of char
+
+let parse_tile = function
+  | '.' -> Open
+  | '#' -> Wall
+  | ' ' -> Empty
+  | _ -> failwith "Invalid tile"
+
+let parse_map lines =
+  let max_width = List.fold_left (fun acc line -> max acc (String.length line)) 0 lines in
+  List.map (fun line ->
+    let padding = max_width - String.length line in
+    List.init (String.length line) (fun i -> parse_tile line.[i]) @
+    List.init padding (fun _ -> Empty)
+  ) lines
+
+let parse_instructions line =
+  let rec aux acc current_num chars =
+    match chars with
+    | [] ->
+        if current_num <> "" then
+          List.rev (Move (int_of_string current_num) :: acc)
+        else
+          List.rev acc
+    | h :: t ->
+        if h >= '0' && h <= '9' then
+          aux acc (current_num ^ String.make 1 h) t
+        else
+          let num = if current_num <> "" then int_of_string current_num else 0 in
+          let instr = if num > 0 then [Move num; Turn h] else [Turn h] in
+          aux (List.rev_append instr acc) "" t
+  in
+  aux [] "" (String.to_seq line |> List.of_seq)
+
+let turn direction turn_dir =
+    match direction, turn_dir with
+    | Right, 'R' -> Down
+    | Down, 'R' -> Left
+    | Left, 'R' -> Up
+    | Up, 'R' -> Right
+    | Right, 'L' -> Up
+    | Down, 'L' -> Right
+    | Left, 'L' -> Down
+    | Up, 'L' -> Left
+    | _, _ -> failwith "Invalid turn"
+
+let wrap_around map (row, col) direction =
+  match direction with
+  | Right ->
+      let rec find_open c =
+          if c >= List.length (List.nth map row) then find_open 0
+          else match List.nth (List.nth map row) c with
+            | Open -> (row, c)
+            | Wall -> (row,col)
+            | Empty -> find_open (c + 1)
+      in find_open 0
+  | Left ->
+      let rec find_open c =
+        if c < 0 then find_open (List.length (List.nth map row) -1)
+          else match List.nth (List.nth map row) c with
+          | Open -> (row, c)
+          | Wall -> (row,col)
+          | Empty -> find_open (c - 1)
+      in find_open (List.length (List.nth map row) - 1)
+  | Down ->
+    let rec find_open r =
+        if r >= List.length map then find_open 0
+          else match List.nth (List.nth map r) col with
+          | Open -> (r, col)
+          | Wall -> (row, col)
+          | Empty -> find_open (r+1)
+    in find_open 0
+  | Up ->
+    let rec find_open r =
+      if r < 0 then find_open (List.length map -1)
+        else match List.nth (List.nth map r) col with
+        | Open -> (r, col)
+        | Wall -> (row, col)
+        | Empty -> find_open (r-1)
+    in find_open (List.length map -1)
+
+let move map (row, col) direction steps =
+  let rec aux (r, c) steps =
+    if steps = 0 then (r, c)
+    else
+      let nr, nc =
+        match direction with
+        | Right -> (r, c + 1)
+        | Down -> (r + 1, c)
+        | Left -> (r, c - 1)
+        | Up -> (r - 1, c)
+      in
+      let nr, nc =
+        if nr < 0 || nr >= List.length map || nc < 0 || nc >= List.length (List.nth map nr) || (List.nth (List.nth map nr) nc = Empty)
+        then wrap_around map (r,c) direction
+        else (nr, nc)
+      in
+        match List.nth (List.nth map nr) nc with
+        | Open -> aux (nr, nc) (steps - 1)
+        | Wall -> (r,c)
+        | Empty -> failwith "should not happen"
+  in
+  aux (row, col) steps
+
+let solve map instructions =
+    let start_col = List.find_index (fun x -> x = Open) (List.nth map 0) |> Option.get in
+    let rec aux (row, col) direction instructions =
+        match instructions with
+        | [] -> (row, col, direction)
+        | h :: t ->
+            match h with
+            | Move steps ->
+                let nr, nc = move map (row, col) direction steps in
+                aux (nr, nc) direction t
+            | Turn turn_dir ->
+                aux (row, col) (turn direction turn_dir) t
+    in
+    let final_row, final_col, final_dir =  aux (0, start_col) Right instructions in
+    let dir_val = match final_dir with Right -> 0 | Down -> 1 | Left -> 2 | Up -> 3 in
+     1000 * (final_row + 1) + 4 * (final_col + 1) + dir_val
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+  let split_index = List.find_index (fun s -> s = "") lines |> Option.get in
+  let map_lines = List.filteri (fun i _ -> i < split_index) lines in
+  let instruction_line = List.nth lines (split_index + 1) in
+
+  let map = parse_map map_lines in
+  let instructions = parse_instructions instruction_line in
+  let result = solve map instructions in
+  Printf.printf "%d\n" result

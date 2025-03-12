@@ -1,0 +1,109 @@
+
+(* Define a type for the packet data *)
+type packet =
+  | Int of int
+  | List of packet list
+
+(* Function to parse a packet from a string *)
+let rec parse_packet (s : string) : packet * string =
+  match s.[0] with
+  | '[' ->
+    let rec parse_list acc s =
+      match s with
+      | "" -> List (List.rev acc), ""
+      | _ ->
+        (match s.[0] with
+         | ']' -> List (List.rev acc), String.sub s 1 (String.length s - 1)
+         | ',' -> parse_list acc (String.sub s 1 (String.length s - 1))
+         | _ ->
+           let p, rest = parse_packet s in
+           parse_list (p :: acc) rest)
+    in
+    parse_list [] (String.sub s 1 (String.length s - 1))
+  | _ ->
+    let rec read_int acc s =
+      match s with
+      | "" -> Int (int_of_string acc), ""
+      | _ ->
+        (match s.[0] with
+         | '0' .. '9' ->
+           read_int (acc ^ String.make 1 s.[0]) (String.sub s 1 (String.length s - 1))
+         | _ -> Int (int_of_string acc), s)
+    in
+    read_int "" s
+
+(* Function to compare two packets *)
+let rec compare_packets (p1 : packet) (p2 : packet) : int =
+  match p1, p2 with
+  | Int a, Int b -> compare a b
+  | List a, List b ->
+    let rec compare_lists l1 l2 =
+      match l1, l2 with
+      | [], [] -> 0
+      | [], _ -> -1
+      | _, [] -> 1
+      | h1 :: t1, h2 :: t2 ->
+        let comparison = compare_packets h1 h2 in
+        if comparison = 0 then compare_lists t1 t2 else comparison
+    in
+    compare_lists a b
+  | Int a, List b -> compare_packets (List [ Int a ]) (List b)
+  | List a, Int b -> compare_packets (List a) (List [ Int b ])
+
+(* Function to read packets from file and compare them *)
+let solve_part1 (filename : string) : int =
+  let ic = open_in filename in
+  let rec read_pairs index sum =
+    try
+      let line1 = input_line ic in
+      let line2 = input_line ic in
+      let packet1, _ = parse_packet line1 in
+      let packet2, _ = parse_packet line2 in
+      let comparison = compare_packets packet1 packet2 in
+      let new_sum = if comparison < 0 then sum + index else sum in
+      try
+        let _ = input_line ic in
+        (* Read the blank line *)
+        read_pairs (index + 1) new_sum
+      with
+      | End_of_file -> new_sum
+    with
+    | End_of_file -> sum
+  in
+  let result = read_pairs 1 0 in
+  close_in ic;
+  result
+
+(* Function to solve part 2 *)
+let solve_part2 (filename : string) : int =
+  let ic = open_in filename in
+  let rec read_all_packets acc =
+    try
+      let line = input_line ic in
+      if String.length line = 0 then read_all_packets acc
+      else
+        let packet, _ = parse_packet line in
+        read_all_packets (packet :: acc)
+    with
+    | End_of_file -> acc
+  in
+  let packets = read_all_packets [] in
+  close_in ic;
+  let divider1, _ = parse_packet "[[2]]" in
+  let divider2, _ = parse_packet "[[6]]" in
+  let all_packets = List.sort compare_packets (divider1 :: divider2 :: packets) in
+  let index1 = ref 0 in
+  let index2 = ref 0 in
+  List.iteri
+    (fun i p ->
+      if compare_packets p divider1 = 0 then index1 := i + 1
+      else if compare_packets p divider2 = 0 then index2 := i + 1)
+    all_packets;
+  !index1 * !index2
+
+(* Main function *)
+let () =
+  let part1_result = solve_part1 "input.txt" in
+  Printf.printf "Part 1: %d\n" part1_result;
+  let part2_result = solve_part2 "input.txt" in
+  Printf.printf "Part 2: %d\n" part2_result

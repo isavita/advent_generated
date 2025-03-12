@@ -1,0 +1,103 @@
+
+(* Define a type for file system entries *)
+type fs_entry =
+  | File of string * int
+  | Dir of string * fs_entry list
+
+(* Function to calculate the size of a directory *)
+let rec calculate_size entry =
+  match entry with
+  | File (_, size) -> size
+  | Dir (_, entries) -> List.fold_left (fun acc e -> acc + calculate_size e) 0 entries
+
+(* Function to parse the input and build the file system tree *)
+let parse_input lines =
+  let rec parse_entries path lines =
+    match lines with
+    | [] -> ([], [])
+    | line :: rest ->
+      match String.split_on_char ' ' line with
+      | ["$"; "cd"; ".."] -> ([], rest)
+      | ["$"; "cd"; dir_name] ->
+        let (sub_entries, remaining_lines) = parse_entries (path @ [dir_name]) rest in
+        let (other_entries, final_lines) = parse_entries path remaining_lines in
+        (Dir (dir_name, sub_entries) :: other_entries, final_lines)
+      | ["$"; "ls"] -> parse_entries path rest
+      | ["dir"; dir_name] ->
+        let (entries, remaining_lines) = parse_entries path rest in
+        (Dir (dir_name, []) :: entries, remaining_lines)
+      | [size_str; file_name] ->
+        let (entries, remaining_lines) = parse_entries path rest in
+        (File (file_name, int_of_string size_str) :: entries, remaining_lines)
+      | _ -> failwith ("Invalid input line: " ^ line)
+  in
+  let (entries, _) = parse_entries ["/"] lines in
+  Dir ("/", entries)
+
+(* Function to find directories with a total size of at most max_size *)
+let find_directories_within_size root max_size =
+    let rec aux acc entry =
+      match entry with
+      | File _ -> acc
+      | Dir (_, entries) as dir ->
+          let size = calculate_size dir in
+          let acc = if size <= max_size then size :: acc else acc in
+          List.fold_left aux acc entries
+    in
+    aux [] root
+
+  (* Function to solve Part 1 *)
+  let solve_part1 root =
+      let directories = find_directories_within_size root 100000 in
+      List.fold_left (+) 0 directories
+  
+  (* Function to find all directories and their sizes. *)
+let find_all_directories root =
+    let rec aux acc entry =
+      match entry with
+      | File _ -> acc
+      | Dir (_, entries) as dir ->
+        let size = calculate_size dir in
+        let acc = (size, dir) :: acc in
+        List.fold_left aux acc entries
+    in
+    aux [] root
+
+(* Function to solve Part 2 *)
+let solve_part2 root =
+  let total_disk_space = 70000000 in
+  let required_unused_space = 30000000 in
+  let used_space = calculate_size root in
+  let current_unused_space = total_disk_space - used_space in
+  let space_to_free = required_unused_space - current_unused_space in
+
+  let all_directories = find_all_directories root in
+  
+  let suitable_directories = List.filter (fun (size, _) -> size >= space_to_free) all_directories in
+  let sorted_directories = List.sort (fun (size1, _) (size2, _) -> compare size1 size2) suitable_directories in
+
+ match sorted_directories with
+    | (size, _) :: _ -> size  (* Return the size of the smallest suitable directory *)
+    | [] -> failwith "No suitable directory found"
+
+(* Main function to read input and print output *)
+let () =
+  let input_channel = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line input_channel in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in input_channel;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+  let root = parse_input lines in
+  
+  (* Solve part 1 *)
+  let part1_result = solve_part1 root in
+  Printf.printf "Part 1: %d\n" part1_result;
+  
+  (* Solve Part 2 *)
+   let part2_result = solve_part2 root in
+   Printf.printf "Part 2: %d\n" part2_result;

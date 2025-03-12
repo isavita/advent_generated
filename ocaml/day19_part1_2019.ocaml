@@ -1,0 +1,130 @@
+
+(* Intcode Computer *)
+module Intcode = struct
+  type memory = (int, int) Hashtbl.t
+  type state = {
+    mutable ip : int;
+    mutable relative_base : int;
+    memory : memory;
+    mutable input : int list;
+    mutable output : int list;
+  }
+
+  let load_program program =
+    let memory = Hashtbl.create (List.length program) in
+    List.iteri (fun i x -> Hashtbl.add memory i x) program;
+    memory
+
+  let get_param state mode offset =
+    let address =
+      match mode with
+      | 0 -> Hashtbl.find_opt state.memory (state.ip + offset) |> Option.value ~default:0
+      | 1 -> state.ip + offset
+      | 2 -> (Hashtbl.find_opt state.memory (state.ip + offset) |> Option.value ~default:0) + state.relative_base
+      | _ -> failwith "Invalid parameter mode"
+    in
+    Hashtbl.find_opt state.memory address |> Option.value ~default:0
+    
+
+  let set_param state mode offset value =
+    let address =
+      match mode with
+      | 0 -> Hashtbl.find_opt state.memory (state.ip + offset) |> Option.value ~default:0
+      | 1 -> state.ip + offset
+      | 2 -> (Hashtbl.find_opt state.memory (state.ip + offset) |> Option.value ~default:0) + state.relative_base
+      | _ -> failwith "Invalid parameter mode"
+    in
+    Hashtbl.replace state.memory address value
+
+  let rec run_program state =
+      
+    let opcode = Hashtbl.find state.memory state.ip mod 100 in
+    let mode1 = Hashtbl.find state.memory state.ip / 100 mod 10 in
+    let mode2 = Hashtbl.find state.memory state.ip / 1000 mod 10 in
+    let mode3 = Hashtbl.find state.memory state.ip / 10000 mod 10 in
+
+    match opcode with
+    | 1 ->
+        set_param state mode3 3 (get_param state mode1 1 + get_param state mode2 2);
+        state.ip <- state.ip + 4;
+        run_program state
+    | 2 ->
+        set_param state mode3 3 (get_param state mode1 1 * get_param state mode2 2);
+        state.ip <- state.ip + 4;
+        run_program state
+    | 3 -> (
+        match state.input with
+        | hd :: tl ->
+            set_param state mode1 1 hd;
+            state.input <- tl;
+            state.ip <- state.ip + 2;
+            run_program state
+        | [] -> state )
+    | 4 ->
+        state.output <- state.output @ [ get_param state mode1 1 ];
+        state.ip <- state.ip + 2;
+        run_program state
+    | 5 ->
+        if get_param state mode1 1 <> 0 then state.ip <- get_param state mode2 2
+        else state.ip <- state.ip + 3;
+        run_program state
+    | 6 ->
+        if get_param state mode1 1 = 0 then state.ip <- get_param state mode2 2
+        else state.ip <- state.ip + 3;
+        run_program state
+    | 7 ->
+        set_param state mode3 3 (if get_param state mode1 1 < get_param state mode2 2 then 1 else 0);
+        state.ip <- state.ip + 4;
+        run_program state
+    | 8 ->
+        set_param state mode3 3 (if get_param state mode1 1 = get_param state mode2 2 then 1 else 0);
+        state.ip <- state.ip + 4;
+        run_program state
+    | 9 ->
+        state.relative_base <- state.relative_base + get_param state mode1 1;
+        state.ip <- state.ip + 2;
+        run_program state
+    | 99 -> state
+    | _ -> failwith ("Invalid opcode: " ^ string_of_int opcode)
+
+    let run program input =
+        let memory = load_program program in
+        let state = { ip = 0; relative_base = 0; memory; input; output = [] } in
+        run_program state
+end
+
+(* Solution for Day 19 *)
+let read_input filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let parse_program input_str =
+    String.split_on_char ',' input_str |> List.map int_of_string
+  
+
+let solve_part1 program =
+  let count = ref 0 in
+  for y = 0 to 49 do
+    for x = 0 to 49 do
+      let state = Intcode.run program [x; y] in
+      match state.output with
+      | [1] -> incr count
+      | _ -> ()
+    done;
+  done;
+  !count
+
+let () =
+  let input_lines = read_input "input.txt" in
+  let program = parse_program (List.hd input_lines) in
+
+  let part1_result = solve_part1 program in
+  Printf.printf "Part 1: %d\n" part1_result;

@@ -1,0 +1,103 @@
+
+let () =
+  let lines = In_channel.with_open_text "input.txt" In_channel.input_lines in
+  let track = Array.of_list (List.map String.to_seq lines |> List.map (Array.of_seq)) in
+  let directions = [('^', (0, -1)); ('v', (0, 1)); ('<', (-1, 0)); ('>', (1, 0))] in
+  let turns_left = [('^', '<'); ('<', 'v'); ('v', '>'); ('>', '^')] in
+  let turns_right = [('^', '>'); ('<', '^'); ('v', '<'); ('>', 'v')] in
+  let carts = Hashtbl.create 10 in
+  let cart_id = ref 1 in
+  for y = 0 to Array.length track - 1 do
+    for x = 0 to Array.length track.(y) - 1 do
+      let c = track.(y).(x) in
+      if List.mem_assoc c directions then (
+        Hashtbl.add carts !cart_id (x, y, c, "left");
+        incr cart_id
+      )
+    done
+  done;
+  let compare_carts (id1, (x1, y1, _, _)) (id2, (x2, y2, _, _)) =
+    let y_cmp = compare y1 y2 in
+    if y_cmp = 0 then compare x1 x2 else y_cmp
+  in
+  let crash_found = ref false in
+  while not !crash_found do
+    let sorted_carts =
+      Hashtbl.fold (fun id cart acc -> (id, cart) :: acc) carts []
+      |> List.sort compare_carts
+    in
+    List.iter (fun (cart_id, (x, y, direction, next_turn)) ->
+      if Hashtbl.mem carts cart_id then (
+        Hashtbl.remove carts cart_id;
+        let dx, dy = List.assoc direction directions in
+        let x' = x + dx in
+        let y' = y + dy in
+        let collision = ref false in
+        Hashtbl.iter (fun id' (x'', y'', _, _) ->
+          if x' = x'' && y' = y'' then (
+            print_string (Printf.sprintf "%d,%d\n" x' y');
+            collision := true;
+            crash_found := true;
+            Hashtbl.remove carts id'
+          )
+        ) carts;
+        if not !collision then (
+          let direction' =
+            match track.(y').(x') with
+            | '+' ->
+                (match next_turn with
+                | "left" ->
+                    let d = List.assoc direction turns_left in
+                    Hashtbl.replace carts cart_id (x', y', d, "straight");
+                    d
+                | "straight" ->
+                    Hashtbl.replace carts cart_id (x', y', direction, "right");
+                    direction
+                | "right" ->
+                    let d = List.assoc direction turns_right in
+                    Hashtbl.replace carts cart_id (x', y', d, "left");
+                    d
+                | _ -> failwith "invalid turn")
+            | '/' ->
+                let d =
+                  match direction with
+                  | '>' -> '^'
+                  | 'v' -> '<'
+                  | '<' -> 'v'
+                  | '^' -> '>'
+                  | _ -> failwith "invalid direction"
+                in
+                Hashtbl.replace carts cart_id (x', y', d, next_turn);
+                d
+            | '\\' ->
+                let d =
+                  match direction with
+                  | '>' -> 'v'
+                  | 'v' -> '>'
+                  | '<' -> '^'
+                  | '^' -> '<'
+                  | _ -> failwith "invalid direction"
+                in
+                Hashtbl.replace carts cart_id (x', y', d, next_turn);
+                d
+            | _ ->
+                Hashtbl.replace carts cart_id (x', y', direction, next_turn);
+                direction
+          in
+          if not (Hashtbl.mem carts cart_id) then
+            let next_turn' = match track.(y').(x') with
+                | '+' -> (match next_turn with
+                             | "left" -> "straight"
+                             | "straight" -> "right"
+                             | "right" -> "left"
+                             | _ -> failwith "invalid turn")
+                | _ -> next_turn
+            in
+              Hashtbl.add carts cart_id (x', y', direction', next_turn')
+
+
+          )
+      )
+    ) sorted_carts;
+    if !crash_found then exit 0;
+  done
