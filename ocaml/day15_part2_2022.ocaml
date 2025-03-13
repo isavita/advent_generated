@@ -1,0 +1,98 @@
+
+module IntPair = struct
+  type t = int * int
+  let compare (x1, y1) (x2, y2) =
+    match compare x1 x2 with
+    | 0 -> compare y1 y2
+    | other -> other
+end
+
+module IntPairSet = Set.Make(IntPair)
+
+let manhattan_distance (x1, y1) (x2, y2) =
+  abs (x1 - x2) + abs (y1 - y2)
+
+let parse_line line =
+  Scanf.sscanf line "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d"
+    (fun sx sy bx by -> ((sx, sy), (bx, by)))
+
+let solve_part1 sensors_and_beacons target_y =
+  let covered = ref IntPairSet.empty in
+  let beacons_on_target = ref IntPairSet.empty in
+
+  List.iter (fun ((sx, sy), (bx, by)) ->
+    if by = target_y then beacons_on_target := IntPairSet.add (bx, by) !beacons_on_target;
+
+    let dist = manhattan_distance (sx, sy) (bx, by) in
+    let dy = abs (target_y - sy) in
+    if dy <= dist then
+      let dx = dist - dy in
+      for x = sx - dx to sx + dx do
+        covered := IntPairSet.add (x, target_y) !covered
+      done
+  ) sensors_and_beacons;
+  IntPairSet.cardinal (IntPairSet.diff !covered !beacons_on_target)
+
+let solve_part2 sensors_and_beacons max_coord =
+  let find_uncovered sensors_and_beacons max_coord =
+     let rec find_row y =
+        if y > max_coord then None
+        else
+           let rec find_col x ranges =
+              if x > max_coord then find_row (y + 1)
+              else 
+                 match ranges with
+                    | [] -> if x >= 0 && x <= max_coord then Some (x, y) else find_col (max_coord+1) []
+                    | (start_range, end_range)::tl -> 
+                       if x < start_range then 
+                          if x>=0 then Some (x,y) else find_col start_range ranges
+                       else 
+                          find_col (max (x) (end_range + 1)) tl
+           in
+             let ranges = 
+                List.fold_left (fun acc ((sx,sy),(bx,by)) ->
+                 let dist = manhattan_distance (sx, sy) (bx, by) in
+                 let dy = abs (y-sy) in
+                 if dy <= dist then 
+                   let dx = dist-dy in
+                   let start_x = sx-dx in
+                   let end_x = sx + dx in
+                   (start_x,end_x)::acc
+                 else
+                   acc
+                 ) [] sensors_and_beacons in
+               let sorted_ranges = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) ranges in
+               let merged_ranges = 
+                  List.fold_left (
+                      fun acc (s,e) -> 
+                          match acc with
+                          | [] -> [(s,e)]
+                          | (prev_s, prev_e)::tail -> 
+                              if s <= prev_e + 1 then
+                                 (prev_s, max e prev_e)::tail
+                              else (s,e)::(prev_s, prev_e)::tail
+                    ) [] sorted_ranges in
+            
+             find_col 0 (List.rev merged_ranges)
+     in 
+     find_row 0
+
+   in
+  match find_uncovered sensors_and_beacons max_coord with
+  | Some (x, y) -> x * 4000000 + y
+  | None -> failwith "No uncovered position found"
+
+let () =
+  let lines = ref [] in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let sensors_and_beacons = List.map parse_line (List.rev !lines) in
+    let part1_result = solve_part1 sensors_and_beacons 2000000 in
+    Printf.printf "Part 1: %d\n" part1_result;
+    let part2_result = solve_part2 sensors_and_beacons 4000000 in
+    Printf.printf "Part 2: %d\n" part2_result

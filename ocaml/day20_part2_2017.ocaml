@@ -1,0 +1,109 @@
+
+(* Define a type for 3D vectors *)
+type vec3 = { x : int; y : int; z : int }
+
+(* Define a type for a particle *)
+type particle = {
+  p : vec3;
+  v : vec3;
+  a : vec3;
+  id : int;
+}
+
+(* Function to parse a vec3 from a string *)
+let parse_vec3 s =
+  Scanf.sscanf s "<%d,%d,%d>" (fun x y z -> { x; y; z })
+
+(* Function to parse a particle from a string *)
+let parse_particle line id =
+  Scanf.sscanf line "p=<%d,%d,%d>, v=<%d,%d,%d>, a=<%d,%d,%d>"
+    (fun px py pz vx vy vz ax ay az ->
+      { p = { x = px; y = py; z = pz };
+        v = { x = vx; y = vy; z = vz };
+        a = { x = ax; y = ay; z = az };
+        id })
+
+(* Function to calculate Manhattan distance *)
+let manhattan_distance v =
+  abs v.x + abs v.y + abs v.z
+
+(* Function to update velocity *)
+let update_velocity v a =
+  { x = v.x + a.x; y = v.y + a.y; z = v.z + a.z }
+
+(* Function to update position *)
+let update_position p v =
+  { x = p.x + v.x; y = p.y + v.y; z = p.z + v.z }
+
+(* Function to update a particle *)
+let update_particle particle =
+  let v = update_velocity particle.v particle.a in
+  let p = update_position particle.p v in
+  { particle with p; v }
+
+(* Function to simulate particle movement and find the closest in the long term (Part 1) *)
+let closest_particle particles =
+    let rec simulate particles closest_id min_dist n =
+    if n > 500 then (* Simulate for a sufficient number of ticks *)
+      closest_id
+    else
+      let updated_particles = List.map update_particle particles in
+      let new_closest =
+        List.fold_left
+          (fun (min_id, min_dist) p ->
+            let dist = manhattan_distance p.p in
+            if dist < min_dist then (p.id, dist) else (min_id, min_dist))
+          (max_int, max_int) (* Initialize with largest possible values *)
+          updated_particles
+      in
+        simulate updated_particles (fst new_closest) (snd new_closest) (n+1)
+
+  in
+  simulate particles 0 max_int 0
+  
+
+(* Function to remove collisions (Part 2) *)
+let remove_collisions particles =
+  let rec find_collisions acc remaining =
+    match remaining with
+    | [] -> List.rev acc
+    | p1 :: rest ->
+        let (collided, others) = List.partition (fun p2 -> p1.p = p2.p) rest in
+        if List.length collided > 0 then
+          find_collisions acc others (* Remove collided particles *)
+        else
+          find_collisions (p1 :: acc) others (* Keep p1 if no collision *)
+  in
+  find_collisions [] particles
+
+(* Function to simulate and count remaining particles after collisions (Part 2) *)
+ let rec simulate_collisions particles n =
+  if n > 500 then
+    List.length particles
+  else
+    let updated_particles = List.map update_particle particles in
+    let remaining_particles = remove_collisions updated_particles in
+    simulate_collisions remaining_particles (n + 1)
+ 
+
+(* Main function *)
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines ic acc id =
+    try
+      let line = input_line ic in
+      read_lines ic ((parse_particle line id) :: acc) (id + 1)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let particles = read_lines ic [] 0 in
+
+  (* Part 1 *)
+  let closest = closest_particle particles in
+  Printf.printf "Part 1: Closest particle: %d\n" closest;
+
+  (* Part 2 *)
+    let particles = read_lines (open_in "input.txt") [] 0 in (*re-read the input*)
+  let remaining = simulate_collisions particles 0 in
+  Printf.printf "Part 2: Remaining particles: %d\n" remaining

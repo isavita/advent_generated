@@ -1,0 +1,65 @@
+
+open Printf
+
+module StringMap = Map.Make(String)
+
+(* Function to parse a single line of the node definitions *)
+let parse_line line =
+  let name = String.sub line 0 3 in
+  let left = String.sub line 7 3 in
+  let right = String.sub line 12 3 in
+  (name, (left, right))
+
+(* Function to read the input and build the network map *)
+let build_network lines =
+  let rec aux network = function
+    | [] -> network
+    | line :: rest ->
+        let (name, (left, right)) = parse_line line in
+        aux (StringMap.add name (left, right) network) rest
+  in
+  aux StringMap.empty lines
+
+(* Greatest Common Divisor *)
+let rec gcd a b =
+  if b = 0 then a else gcd b (a mod b)
+
+(* Least Common Multiple *)
+let lcm a b =
+  if a = 0 || b = 0 then 0 else (a * b) / (gcd a b)
+
+
+let solve network instructions start_node =
+  let rec aux node instructions steps current_instruction_index =
+    if current_instruction_index >= String.length instructions then aux node instructions steps 0
+    else
+    if node = "ZZZ" then
+      steps
+    else
+      let (left, right) = StringMap.find node network in
+      let next_node =
+        match instructions.[current_instruction_index] with
+        | 'L' -> left
+        | 'R' -> right
+        | _ -> failwith "Invalid instruction"
+      in
+      aux next_node instructions (steps + 1) (current_instruction_index + 1)
+  in
+  aux start_node instructions 0 0
+let () =
+  let ic = open_in "input.txt" in
+  let instructions = input_line ic in
+  let _ = input_line ic in (* Consume the empty line *)
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+  let network = build_network lines in
+    
+  let steps = solve network instructions "AAA" in
+  printf "%d\n" steps

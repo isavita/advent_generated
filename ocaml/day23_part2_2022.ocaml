@@ -1,0 +1,146 @@
+
+module Coord = struct
+  type t = int * int
+
+  let compare (x1, y1) (x2, y2) =
+    match compare y1 y2 with 0 -> compare x1 x2 | other -> other
+
+  let add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+end
+
+module CoordSet = Set.Make (Coord)
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_lines y acc =
+    try
+      let line = input_line ic in
+      let elves =
+        String.fold_left
+          (fun (i, set) c ->
+            if c = '#' then (i + 1, CoordSet.add (i, y) set)
+            else (i + 1, set))
+          (0, CoordSet.empty) line
+        |> snd
+      in
+      read_lines (y + 1) (CoordSet.union acc elves)
+    with End_of_file ->
+      close_in ic;
+      acc
+  in
+  read_lines 0 CoordSet.empty
+
+let all_directions =
+  [ (-1, -1); (0, -1); (1, -1); (-1, 0); (1, 0); (-1, 1); (0, 1); (1, 1) ]
+
+let directions =
+  [
+    [ (0, -1); (-1, -1); (1, -1) ]; (* North *)
+    [ (0, 1); (-1, 1); (1, 1) ]; (* South *)
+    [ (-1, 0); (-1, -1); (-1, 1) ]; (* West *)
+    [ (1, 0); (1, -1); (1, 1) ]; (* East *)
+  ]
+
+let move_elf elves directions_order elf =
+  let neighbors =
+    List.map (fun (dx, dy) -> Coord.add elf (dx, dy)) all_directions
+  in
+  if List.for_all (fun pos -> not (CoordSet.mem pos elves)) neighbors then
+    None (* No neighbors, don't move *)
+  else
+    let rec check_dirs = function
+      | [] -> None
+      | dir :: rest ->
+          let check_dir =
+            List.map (fun (dx, dy) -> Coord.add elf (dx, dy)) dir
+          in
+          if
+            List.for_all (fun pos -> not (CoordSet.mem pos elves)) check_dir
+          then Some (List.hd dir) (* First direction without elves *)
+          else check_dirs rest
+    in
+    match check_dirs directions_order with
+    | None -> None
+    | Some (dx, dy) -> Some (Coord.add elf (dx, dy))
+
+let simulate_round elves directions_order =
+  (* Proposed moves *)
+  let proposals =
+    CoordSet.fold
+      (fun elf acc ->
+        match move_elf elves directions_order elf with
+        | None -> (elf, None) :: acc
+        | Some new_pos -> (elf, Some new_pos) :: acc)
+      elves []
+  in
+
+  (* Count proposals for each destination *)
+  let counts = Hashtbl.create (List.length proposals) in
+  List.iter
+    (fun (_, proposal) ->
+      match proposal with
+      | None -> ()
+      | Some p -> Hashtbl.replace counts p (1 + (Hashtbl.find_opt counts p |> Option.value ~default:0)))
+    proposals;
+
+  (* Filter only accepted moves*)
+  let moved_elves =
+    List.fold_left
+      (fun acc (elf, proposal) ->
+        match proposal with
+        | None -> CoordSet.add elf acc (* Elf stay*)
+        | Some new_pos ->
+            if Hashtbl.find counts new_pos = 1 then CoordSet.add new_pos acc
+            else CoordSet.add elf acc)
+      CoordSet.empty proposals
+  in
+
+  (moved_elves, List.tl directions_order @ [ List.hd directions_order ])
+
+let rec simulate_n_rounds elves directions_order n =
+  if n = 0 then elves
+  else
+    let moved_elves, new_directions_order =
+      simulate_round elves directions_order
+    in
+    simulate_n_rounds moved_elves new_directions_order (n - 1)
+
+let rec simulate_until_stable elves directions_order round_num =
+    let moved_elves, new_directions_order =
+      simulate_round elves directions_order
+    in
+  if CoordSet.equal elves moved_elves then round_num
+  else simulate_until_stable moved_elves new_directions_order (round_num + 1)
+
+let bounding_box elves =
+  let min_x =
+    CoordSet.fold (fun (x, _) acc -> min x acc) elves max_int
+  in
+  let max_x =
+    CoordSet.fold (fun (x, _) acc -> max x acc) elves min_int
+  in
+  let min_y =
+    CoordSet.fold (fun (_, y) acc -> min y acc) elves max_int
+  in
+  let max_y =
+    CoordSet.fold (fun (_, y) acc -> max y acc) elves min_int
+  in
+  ((min_x, min_y), (max_x, max_y))
+
+let count_empty_tiles elves =
+  let (min_x, min_y), (max_x, max_y) = bounding_box elves in
+  let width = max_x - min_x + 1 in
+  let height = max_y - min_y + 1 in
+  width * height - CoordSet.cardinal elves
+
+let () =
+  let initial_elves = read_input "input.txt" in
+
+  (* Part 1 *)
+  let elves_after_10 = simulate_n_rounds initial_elves directions 10 in
+  let empty_tiles = count_empty_tiles elves_after_10 in
+  Printf.printf "Part 1: Empty tiles after 10 rounds: %d\n" empty_tiles;
+
+  (* Part 2 *)
+  let stable_round = simulate_until_stable initial_elves directions 1 in
+  Printf.printf "Part 2: First round where no Elf moves: %d\n" stable_round

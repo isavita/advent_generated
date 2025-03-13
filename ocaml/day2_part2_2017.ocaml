@@ -1,0 +1,63 @@
+
+(* Function to find the difference between the largest and smallest values in a list *)
+let diff_max_min (numbers : int list) : int =
+  match List.sort compare numbers with
+  | [] -> 0  (* Handle empty list case *)
+  | h :: t -> (List.hd (List.rev (h::t))) - h
+;;
+
+(* Function to find the evenly divisible numbers and divide them *)
+let find_divisible (numbers : int list) : int =
+  let rec aux (nums : int list) (acc : int) : int =
+    match nums with
+    | [] -> acc
+    | h :: t ->
+      let rec inner_aux (inner_nums : int list) (current : int) : int =
+        match inner_nums with
+        | [] -> 0
+        | ih :: it ->
+          if h <> ih && h mod ih = 0 then h / ih
+          else if h <> ih && ih mod h = 0 then ih / h
+          else inner_aux it current
+      in
+      let result = inner_aux t h in
+      if result > 0 then result else aux t acc
+  in
+  aux numbers 0
+;;
+(* Function to process a single line of the input *)
+let process_line (line : string) (part : int) : int =
+  let numbers = List.map int_of_string (String.split_on_char '\t' line) in
+   match part with
+    | 1 -> diff_max_min numbers
+    | 2 -> find_divisible numbers
+    | _ -> failwith "Invalid part number"
+
+;;
+
+(* Function to read the file and calculate the checksum *)
+let calculate_checksum (filename : string) (part: int) : int =
+  let in_channel = open_in filename in
+  let rec read_lines (sum : int) : int =
+    try
+      let line = input_line in_channel in
+      let line_result = process_line line part in
+      read_lines (sum + line_result)
+    with
+    | End_of_file ->
+      close_in in_channel;
+      sum
+  in
+  read_lines 0
+;;
+
+(* Main function to execute the program *)
+let () =
+  (* Part 1 *)
+  let checksum_part1 = calculate_checksum "input.txt" 1 in
+  Printf.printf "Checksum (Part 1): %d\n" checksum_part1;
+
+    (* Part 2 *)
+    let checksum_part2 = calculate_checksum "input.txt" 2 in
+    Printf.printf "Checksum (Part 2): %d\n" checksum_part2;
+;;

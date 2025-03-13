@@ -1,0 +1,75 @@
+
+module Coord = struct
+  type t = int * int
+  let compare (x1, y1) (x2, y2) =
+    match Int.compare x1 x2 with
+    | 0 -> Int.compare y1 y2
+    | c -> c
+end
+
+module CoordMap = Map.Make(Coord)
+
+let parse_input lines =
+  let heightmap = ref CoordMap.empty in
+  let start = ref (0, 0) in
+  let goal = ref (0, 0) in
+  List.iteri (fun row line ->
+    String.iteri (fun col char ->
+      let elevation =
+        match char with
+        | 'S' -> start := (row, col); 0
+        | 'E' -> goal := (row, col); 25
+        | c -> Char.code c - Char.code 'a'
+      in
+      heightmap := CoordMap.add (row, col) elevation !heightmap
+    ) line
+  ) lines;
+  (!heightmap, !start, !goal)
+
+let solve heightmap start goal =
+  let queue = Queue.create () in
+  Queue.add (start, 0) queue;
+  let visited = ref CoordMap.empty in
+  visited := CoordMap.add start 0 !visited;
+
+  let rec bfs () =
+    if Queue.is_empty queue then None
+    else
+      let (row, col), steps = Queue.take queue in
+      if (row, col) = goal then Some steps
+      else
+        let current_elevation = CoordMap.find (row, col) heightmap in
+        let neighbors = [
+          (row - 1, col); (* Up *)
+          (row + 1, col); (* Down *)
+          (row, col - 1); (* Left *)
+          (row, col + 1); (* Right *)
+        ] in
+        List.iter (fun (next_row, next_col) ->
+          match CoordMap.find_opt (next_row, next_col) heightmap with
+          | Some next_elevation when next_elevation <= current_elevation + 1 ->
+              if not (CoordMap.mem (next_row, next_col) !visited) then (
+                visited := CoordMap.add (next_row, next_col) (steps + 1) !visited;
+                Queue.add ((next_row, next_col), steps + 1) queue
+              )
+          | _ -> ()
+        ) neighbors;
+        bfs ()
+  in
+  bfs ()
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+  let heightmap, start, goal = parse_input lines in
+  match solve heightmap start goal with
+  | Some steps -> Printf.printf "%d\n" steps
+  | None -> Printf.printf "No path found\n"

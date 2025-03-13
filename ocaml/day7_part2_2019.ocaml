@@ -1,0 +1,206 @@
+
+(* Function to read a file and return a list of integers *)
+let read_program filename =
+  let ic = open_in filename in
+  let rec read_values acc =
+    try
+      let line = input_line ic in
+      let values = String.split_on_char ',' line |> List.map int_of_string in
+      read_values (List.rev_append values acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_values []
+
+(* Intcode computer implementation *)
+let run_intcode program inputs =
+  let memory = Array.of_list program in
+  let inputs = ref inputs in
+  let output = ref [] in
+  let ip = ref 0 in
+  let get_operand mode addr =
+    match mode with
+    | 0 -> memory.(memory.(addr))  (* Position mode *)
+    | 1 -> memory.(addr)          (* Immediate mode *)
+    | _ -> failwith "Invalid parameter mode"
+  in
+
+  let rec execute () =
+    let opcode = memory.(!ip) mod 100 in
+    let mode1 = (memory.(!ip) / 100) mod 10 in
+    let mode2 = (memory.(!ip) / 1000) mod 10 in
+    (* let mode3 = (memory.(!ip) / 10000) mod 10 in *)
+    match opcode with
+    | 1 ->  (* Add *)
+        memory.(memory.(!ip + 3)) <- (get_operand mode1 (!ip + 1)) + (get_operand mode2 (!ip + 2));
+        ip := !ip + 4;
+        execute ()
+    | 2 ->  (* Multiply *)
+        memory.(memory.(!ip + 3)) <- (get_operand mode1 (!ip + 1)) * (get_operand mode2 (!ip + 2));
+        ip := !ip + 4;
+        execute ()
+    | 3 ->  (* Input *)
+        (match !inputs with
+         | [] -> failwith "No more inputs"
+         | h :: t ->
+             memory.(memory.(!ip + 1)) <- h;
+             inputs := t;
+             ip := !ip + 2;
+             execute ())
+    | 4 ->  (* Output *)
+        output := (get_operand mode1 (!ip + 1)) :: !output;
+        ip := !ip + 2;
+        execute ()
+    | 5 ->  (* Jump-if-true *)
+        if get_operand mode1 (!ip + 1) <> 0 then ip := get_operand mode2 (!ip + 2) else ip := !ip + 3;
+        execute ()
+    | 6 ->  (* Jump-if-false *)
+        if get_operand mode1 (!ip + 1) = 0 then ip := get_operand mode2 (!ip + 2) else ip := !ip + 3;
+        execute ()
+    | 7 ->  (* Less than *)
+        memory.(memory.(!ip + 3)) <- (if get_operand mode1 (!ip + 1) < get_operand mode2 (!ip + 2) then 1 else 0);
+        ip := !ip + 4;
+        execute ()
+    | 8 ->  (* Equals *)
+        memory.(memory.(!ip + 3)) <- (if get_operand mode1 (!ip + 1) = get_operand mode2 (!ip + 2) then 1 else 0);
+        ip := !ip + 4;
+        execute ()
+    | 99 -> ()  (* Halt *)
+    | _ -> failwith ("Unknown opcode: " ^ string_of_int opcode)
+  in
+  execute ();
+  List.rev !output
+
+(* Function to generate permutations of a list *)
+let rec permutations = function
+  | [] -> [[]]
+  | x :: xs ->
+      let rec insert acc x = function
+        | [] -> [x :: acc]
+        | y :: ys as l -> (x :: l) :: (List.map (fun z -> y :: z) (insert acc x ys))
+      in
+      List.fold_left (fun acc p -> acc @ insert [] x p) [] (permutations xs)
+
+(* Run amplifiers in sequence (Part 1) *)
+let run_amplifiers program phase_settings =
+  let rec run_sequence input phases =
+    match phases with
+    | [] -> input
+    | phase :: rest ->
+        let output = run_intcode program [phase; input] in
+        match output with
+        | [value] -> run_sequence value rest
+        | _ -> failwith "Unexpected output from amplifier"
+  in
+  run_sequence 0 phase_settings
+
+
+(* Run amplifiers with feedback loop (Part 2) *)
+let run_amplifiers_feedback program phase_settings =
+  let num_amplifiers = List.length phase_settings in
+  let memories = Array.init num_amplifiers (fun _ -> Array.of_list program) in
+  let ips = Array.make num_amplifiers 0 in
+  let inputs = Array.init num_amplifiers (fun i -> ref [List.nth phase_settings i]) in
+  inputs.(0) := [List.nth phase_settings 0; 0]; (* Initial input for amplifier A *)
+  let halted = ref false in
+  let last_output_e = ref 0 in
+
+  let get_operand memory ip mode =
+    match mode with
+    | 0 -> memory.(memory.(ip))
+    | 1 -> memory.(ip)
+    | _ -> failwith "Invalid parameter mode"
+  in
+
+    let rec execute amp_index =
+    let memory = memories.(amp_index) in
+    let ip = ref ips.(amp_index) in
+        let opcode = memory.(!ip) mod 100 in
+        let mode1 = (memory.(!ip) / 100) mod 10 in
+        let mode2 = (memory.(!ip) / 1000) mod 10 in
+
+    match opcode with
+    | 1 ->  (* Add *)
+        memory.(memory.(!ip + 3)) <- (get_operand memory (!ip + 1) mode1) + (get_operand memory (!ip + 2) mode2);
+        ip := !ip + 4;
+        ips.(amp_index) <- !ip;
+        true
+    | 2 ->  (* Multiply *)
+        memory.(memory.(!ip + 3)) <- (get_operand memory (!ip + 1) mode1) * (get_operand memory (!ip + 2) mode2);
+        ip := !ip + 4;
+         ips.(amp_index) <- !ip;
+        true
+    | 3 ->  (* Input *)
+        (match !(inputs.(amp_index)) with
+         | [] -> false (* Wait for input *)
+         | h :: t ->
+             memory.(memory.(!ip + 1)) <- h;
+             inputs.(amp_index) := t;
+             ip := !ip + 2;
+             ips.(amp_index) <- !ip;
+             true)
+    | 4 ->  (* Output *)
+        let output_value = get_operand memory (!ip + 1) mode1 in
+        let next_amp = (amp_index + 1) mod num_amplifiers in
+            if next_amp = 0 then last_output_e := output_value;
+        inputs.(next_amp) := !(inputs.(next_amp)) @ [output_value];
+        ip := !ip + 2;
+         ips.(amp_index) <- !ip;
+        true
+    | 5 ->  (* Jump-if-true *)
+        if get_operand memory (!ip + 1) mode1 <> 0 then ip := get_operand memory (!ip + 2) mode2 else ip := !ip + 3;
+         ips.(amp_index) <- !ip;
+        true
+    | 6 ->  (* Jump-if-false *)
+        if get_operand memory (!ip + 1) mode1 = 0 then ip := get_operand memory (!ip + 2) mode2 else ip := !ip + 3;
+         ips.(amp_index) <- !ip;
+        true
+    | 7 ->  (* Less than *)
+        memory.(memory.(!ip + 3)) <- (if get_operand memory (!ip + 1) mode1 < get_operand memory (!ip + 2) mode2 then 1 else 0);
+        ip := !ip + 4;
+         ips.(amp_index) <- !ip;
+        true
+    | 8 ->  (* Equals *)
+        memory.(memory.(!ip + 3)) <- (if get_operand memory (!ip + 1) mode1 = get_operand memory (!ip + 2) mode2 then 1 else 0);
+        ip := !ip + 4;
+         ips.(amp_index) <- !ip;
+        true
+    | 99 ->  (* Halt *)
+          if amp_index = 4 then halted := true;
+        false
+    | _ -> failwith ("Unknown opcode: " ^ string_of_int opcode)
+  in
+
+
+  let rec amplifier_loop () =
+      let any_running = ref false in
+    for i = 0 to num_amplifiers -1 do
+        if execute i then any_running := true;
+    done;
+      if !any_running then amplifier_loop ()
+  in
+    amplifier_loop();
+  !last_output_e
+
+(* Main function *)
+let () =
+  let program = read_program "input.txt" in
+
+  (* Part 1 *)
+  let phase_settings_part1 = permutations [0; 1; 2; 3; 4] in
+  let max_output_part1 =
+    List.fold_left (fun max_output phases ->
+      max max_output (run_amplifiers program phases)
+    ) 0 phase_settings_part1
+  in
+  Printf.printf "Part 1: Max thruster signal: %d\n" max_output_part1;
+
+  (* Part 2 *)
+  let phase_settings_part2 = permutations [5; 6; 7; 8; 9] in
+  let max_output_part2 =
+    List.fold_left (fun max_output phases ->
+      max max_output (run_amplifiers_feedback program phases)
+    ) 0 phase_settings_part2
+  in
+  Printf.printf "Part 2: Max thruster signal: %d\n" max_output_part2

@@ -1,0 +1,146 @@
+
+module StringMap = Map.Make (String)
+
+type pulse = Low | High
+type module_type = FlipFlop | Conjunction | Broadcaster
+
+type module_info = {
+  typ : module_type;
+  dest : string list;
+  mutable flipflop_state : bool; (* Only for FlipFlop *)
+  conj_memory : pulse StringMap.t; (* Only for Conjunction *)
+}
+
+let parse_input filename =
+  let ic = open_in filename in
+  let rec read_lines modules =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char ' ' line in
+      let (name, typ, dest_str) =
+        match parts with
+        | name :: "->" :: rest ->
+            if name = "broadcaster" then
+              (name, Broadcaster, String.concat " " rest)
+            else
+              let typ =
+                match name.[0] with
+                | '%' -> FlipFlop
+                | '&' -> Conjunction
+                | _ -> failwith ("Invalid module type: " ^ name)
+              in
+              (String.sub name 1 (String.length name - 1), typ,
+               String.concat " " rest)
+        | _ -> failwith ("Invalid input line: " ^ line)
+      in
+      let dest =
+        String.split_on_char ',' (String.map (fun c -> if c = ' ' then ' ' else c) dest_str) |>
+          List.map String.trim
+       in
+      let module_info = {
+        typ;
+        dest;
+        flipflop_state = false; (* Initial state for FlipFlop *)
+        conj_memory = StringMap.empty; (* Initial state for Conjunction *)
+      } in
+      read_lines (StringMap.add name module_info modules)
+    with End_of_file ->
+      close_in ic;
+      modules
+  in
+  let modules = read_lines StringMap.empty in
+  (* Initialize conjunction memory *)
+  StringMap.iter (fun name mi ->
+      List.iter (fun dest_name ->
+          match StringMap.find_opt dest_name modules with
+          | Some dest_module when dest_module.typ = Conjunction ->
+              let updated_dest_module = {
+                dest_module with
+                conj_memory = StringMap.add name Low dest_module.conj_memory
+              } in
+              Hashtbl.replace (Hashtbl.create 0) dest_name updated_dest_module; (*dummy replacement*)
+          | _ -> ()
+        ) mi.dest
+    ) modules;
+    (*Real replacement using a hashtable to modify in place*)
+      let modules_ht = Hashtbl.create (StringMap.cardinal modules) in
+      StringMap.iter (fun k v -> Hashtbl.add modules_ht k v) modules;
+    
+      Hashtbl.iter (fun name mi ->
+      List.iter (fun dest_name ->
+          match Hashtbl.find_opt modules_ht dest_name with
+          | Some dest_module when dest_module.typ = Conjunction ->
+              let updated_dest_module = {
+                dest_module with
+                conj_memory = StringMap.add name Low dest_module.conj_memory
+              } in
+                Hashtbl.replace modules_ht dest_name updated_dest_module
+          | _ -> ()
+        ) mi.dest
+    ) modules_ht;
+    modules_ht
+
+
+let process_pulse modules (low_pulses, high_pulses) button_presses =
+  let rec process q (low_pulses, high_pulses) =
+    match q with
+    | [] -> (low_pulses, high_pulses)
+    | (sender, receiver, pulse) :: rest ->
+        let (new_low, new_high) =
+          match pulse with
+          | Low -> (low_pulses + 1, high_pulses)
+          | High -> (low_pulses, high_pulses + 1)
+        in
+        match Hashtbl.find_opt modules receiver with
+        | None -> process rest (new_low, new_high)
+        | Some module_info ->
+            let (next_pulse_opt, updated_module) =
+              match module_info.typ with
+              | Broadcaster -> (Some pulse, module_info)
+              | FlipFlop ->
+                  if pulse = High then
+                    (None, module_info)
+                  else
+                    let new_state = not module_info.flipflop_state in
+                    let next_pulse = if new_state then High else Low in
+                    (Some next_pulse,
+                     { module_info with flipflop_state = new_state })
+              | Conjunction ->
+                  let updated_memory =
+                    StringMap.add sender pulse module_info.conj_memory
+                  in
+                  let all_high =
+                    StringMap.for_all (fun _ p -> p = High) updated_memory
+                  in
+                  let next_pulse = if all_high then Low else High in
+                  (Some next_pulse,
+                   { module_info with conj_memory = updated_memory })
+            in
+            Hashtbl.replace modules receiver updated_module;  (* Update module in hashtable *)
+            match next_pulse_opt with
+            | None -> process rest (new_low, new_high)
+            | Some next_pulse ->
+                let new_q =
+                  rest @
+                    List.map (fun dest -> (receiver, dest, next_pulse))
+                      updated_module.dest
+                in
+                process new_q (new_low, new_high)
+  in
+    process [("button", "broadcaster", Low)] (low_pulses,high_pulses)
+
+
+let solve filename num_presses =
+   let modules = parse_input filename in
+   let rec loop n (low_pulses, high_pulses) =
+    if n = 0 then (low_pulses, high_pulses)
+    else
+      let (new_low, new_high) = process_pulse modules (low_pulses, high_pulses) n in
+        loop (n-1) (new_low, new_high)
+  in
+  let (low, high) = loop num_presses (0,0) in
+    low * high
+
+let () =
+  let result = solve "input.txt" 1000 in
+  Printf.printf "Result: %d\n" result

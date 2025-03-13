@@ -1,0 +1,35 @@
+
+let read_numbers filename =
+  let chan = open_in filename in
+  let rec read_lines acc =
+    try
+      let line = input_line chan in
+      read_lines (int_of_string line :: acc)
+    with End_of_file ->
+      close_in chan;
+      List.rev acc
+  in
+  read_lines []
+
+let find_weakness numbers invalid_num =
+  let rec find_set i total j =
+    if total = invalid_num then
+      let contiguous_set = List.sort compare (List.filteri (fun index _ -> index >= i && index < j) numbers) in
+      List.hd contiguous_set + List.nth contiguous_set (List.length contiguous_set -1)
+    
+    else if total < invalid_num && j < List.length numbers then
+        find_set i (total + List.nth numbers j) (j + 1)
+    else
+       if (i+1) < List.length numbers then 
+        find_set (i + 1) (List.nth numbers (i+1)) (i + 2)
+        else -1
+      
+  in
+  find_set 0  (List.nth numbers 0) 1
+
+let () =
+  let numbers = read_numbers "input.txt" in
+  let invalid_num = 14360655 in
+  let weakness = find_weakness numbers invalid_num in
+  print_int weakness;
+  print_newline ()

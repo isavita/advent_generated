@@ -1,0 +1,111 @@
+
+let card_strength_part1 c =
+  match c with
+  | 'A' -> 14
+  | 'K' -> 13
+  | 'Q' -> 12
+  | 'J' -> 11
+  | 'T' -> 10
+  | '9' -> 9
+  | '8' -> 8
+  | '7' -> 7
+  | '6' -> 6
+  | '5' -> 5
+  | '4' -> 4
+  | '3' -> 3
+  | '2' -> 2
+  | _ -> failwith "Invalid card"
+
+let card_strength_part2 c =
+  match c with
+  | 'A' -> 14
+  | 'K' -> 13
+  | 'Q' -> 12
+  | 'J' -> 1
+  | 'T' -> 10
+  | '9' -> 9
+  | '8' -> 8
+  | '7' -> 7
+  | '6' -> 6
+  | '5' -> 5
+  | '4' -> 4
+  | '3' -> 3
+  | '2' -> 2
+  | _ -> failwith "Invalid card"
+
+let hand_type hand =
+  let counts = Hashtbl.create 13 in
+  String.iter (fun c -> Hashtbl.replace counts c (1 + (try Hashtbl.find counts c with Not_found -> 0))) hand;
+  let jokers = try Hashtbl.find counts 'J' with Not_found -> 0 in
+  Hashtbl.remove counts 'J';
+  let counts = Hashtbl.fold (fun _ count acc -> count :: acc) counts [] |> List.sort compare |> List.rev in
+  let counts =
+      match counts, jokers with
+      | [], _ -> [jokers]
+      | h::t, _ -> (h+jokers)::t
+  in
+  match counts with
+  | 5 :: _ -> 6 (* Five of a kind *)
+  | 4 :: _ -> 5 (* Four of a kind *)
+  | 3 :: 2 :: _ -> 4 (* Full house *)
+  | 3 :: _ -> 3 (* Three of a kind *)
+  | 2 :: 2 :: _ -> 2 (* Two pair *)
+  | 2 :: _ -> 1 (* One pair *)
+  | _ -> 0 (* High card *)
+
+let compare_hands_part1 (hand1, _) (hand2, _) =
+    let type1 = hand_type (String.map (fun c -> if c = 'J' then 'X' else c) hand1) in
+    let type2 = hand_type (String.map (fun c -> if c = 'J' then 'X' else c) hand2) in
+    if type1 <> type2 then compare type1 type2
+    else
+        let rec compare_cards h1 h2 =
+            match h1, h2 with
+            | [], [] -> 0
+            | c1 :: t1, c2 :: t2 ->
+                let s1 = card_strength_part1 c1 in
+                let s2 = card_strength_part1 c2 in
+                if s1 <> s2 then compare s1 s2
+                else compare_cards t1 t2
+            | _ -> failwith "Invalid hands"
+        in
+        compare_cards (String.to_seq hand1 |> List.of_seq) (String.to_seq hand2 |> List.of_seq)
+
+let compare_hands_part2 (hand1, _) (hand2, _) =
+  let type1 = hand_type hand1 in
+  let type2 = hand_type hand2 in
+  if type1 <> type2 then compare type1 type2
+  else
+    let rec compare_cards h1 h2 =
+      match h1, h2 with
+      | [], [] -> 0
+      | c1 :: t1, c2 :: t2 ->
+        let s1 = card_strength_part2 c1 in
+        let s2 = card_strength_part2 c2 in
+        if s1 <> s2 then compare s1 s2
+        else compare_cards t1 t2
+      | _ -> failwith "Invalid hands"
+    in
+    compare_cards (String.to_seq hand1 |> List.of_seq) (String.to_seq hand2 |> List.of_seq)
+
+let solve_part1 hands =
+  let sorted_hands = List.sort compare_hands_part1 hands in
+  List.mapi (fun i (_, bid) -> (i + 1) * bid) sorted_hands |> List.fold_left ( + ) 0
+
+let solve_part2 hands =
+    let sorted_hands = List.sort compare_hands_part2 hands in
+    List.mapi (fun i (_, bid) -> (i+1) * bid) sorted_hands |> List.fold_left (+) 0
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let hand, bid_str = Scanf.sscanf line "%s %s" (fun h b -> (h, b)) in
+      read_lines ((hand, int_of_string bid_str) :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let hands = read_lines [] in
+  Printf.printf "Part 1: %d\n" (solve_part1 hands);
+  Printf.printf "Part 2: %d\n" (solve_part2 hands)

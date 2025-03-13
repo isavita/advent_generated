@@ -1,0 +1,68 @@
+
+(* Doubly-linked list node *)
+type 'a node = {
+  mutable prev : 'a node;
+  mutable next : 'a node;
+  value : 'a;
+}
+
+(* Create a new node with circular references *)
+let create_node value =
+  let rec node = { prev = node; next = node; value } in
+  node
+
+(* Insert a new node after the given node *)
+let insert_after node value =
+  let new_node = { prev = node; next = node.next; value } in
+  node.next.prev <- new_node;
+  node.next <- new_node;
+  new_node
+
+(* Remove a node from the list *)
+let remove node =
+  node.prev.next <- node.next;
+  node.next.prev <- node.prev;
+  node.value
+
+(* Simulate the marble game and return the high score *)
+let play_game players last_marble =
+  let scores = Array.make players 0 in
+  let current = ref (create_node 0) in
+  for marble = 1 to last_marble do
+    let player = (marble - 1) mod players in
+    if marble mod 23 = 0 then
+      let removed_node = ref !current in
+      for _ = 1 to 7 do
+        removed_node := !removed_node.prev
+      done;
+      scores.(player) <- scores.(player) + marble + remove !removed_node;
+      current := !removed_node.next
+    else
+      current := insert_after !current.next marble
+  done;
+  Array.fold_left max 0 scores
+
+(* Main function *)
+let main () =
+  (* Read input from file *)
+  let ic = open_in "input.txt" in
+  let line = input_line ic in
+  close_in ic;
+
+  (* Parse input *)
+  let players, last_marble =
+    Scanf.sscanf line "%d players; last marble is worth %d points"
+      (fun p m -> (p, m))
+  in
+
+    (* Part 1 *)
+  let high_score = play_game players last_marble in
+  Printf.printf "Part 1 - High score: %d\n" high_score;
+
+  (* Part 2: Last marble is 100 times larger *)
+  let high_score2 = play_game players (last_marble * 100) in
+  Printf.printf "Part 2 - High score: %d\n" high_score2
+;;
+
+(* Run the main function *)
+let () = main ()

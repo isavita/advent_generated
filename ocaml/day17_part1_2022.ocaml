@@ -1,0 +1,86 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let get_rock_shapes () =
+  [
+    (* Horizontal Line (-) *)
+    [ (0, 0); (1, 0); (2, 0); (3, 0) ];
+    (* Plus (+) *)
+    [ (1, 0); (0, 1); (1, 1); (2, 1); (1, 2) ];
+    (* Inverted L (⌝) *)
+    [ (0, 0); (1, 0); (2, 0); (2, 1); (2, 2) ];
+    (* Vertical Line (|) *)
+    [ (0, 0); (0, 1); (0, 2); (0, 3) ];
+    (* Square (■) *)
+    [ (0, 0); (1, 0); (0, 1); (1, 1) ];
+  ]
+
+let can_move rock direction chamber =
+  let new_rock =
+    List.map
+      (fun (x, y) ->
+        match direction with
+        | 'l' -> (x - 1, y)
+        | 'r' -> (x + 1, y)
+        | 'd' -> (x, y - 1)
+        | _ -> failwith "Invalid direction")
+      rock
+  in
+  List.for_all
+    (fun (x, y) ->
+      x >= 0 && x <= 6 && y >= 1 && not (Hashtbl.mem chamber (x, y)))
+    new_rock
+  && List.length new_rock = List.length rock
+
+let simulate jet_pattern total_rocks =
+  let rock_shapes = get_rock_shapes () in
+  let chamber = Hashtbl.create 1000 in
+  for x = 0 to 6 do
+    Hashtbl.add chamber (x, 0) ()
+  done;
+  let jet_len = String.length jet_pattern in
+  let jet_index = ref 0 in
+  let highest_y = ref 0 in
+  for rock_number = 0 to total_rocks - 1 do
+    let shape = List.nth rock_shapes (rock_number mod List.length rock_shapes) in
+    let rock_x = 2 in
+    let rock_y = !highest_y + 4 in
+    let rec drop rock =
+      let jet_dir =
+        jet_pattern.[!jet_index mod jet_len]
+      in
+      jet_index := !jet_index + 1;
+      let moved_rock =
+        match jet_dir with
+        | '>' -> if can_move rock 'r' chamber then List.map (fun (x, y) -> (x + 1, y)) rock else rock
+        | '<' -> if can_move rock 'l' chamber then List.map (fun (x, y) -> (x - 1, y)) rock else rock
+        | _ -> failwith "Invalid jet direction"
+      in
+      let moved_down =
+        if can_move moved_rock 'd' chamber then
+          List.map (fun (x, y) -> (x, y - 1)) moved_rock
+        else (
+          List.iter (fun pos -> Hashtbl.add chamber pos ()) moved_rock;
+          highest_y :=
+            List.fold_left
+              (fun acc (x, y) -> max acc y)
+              !highest_y moved_rock;
+          []
+        )
+      in
+      if List.length moved_down > 0 then drop moved_down
+    in
+    drop (List.map (fun (dx, dy) -> (rock_x + dx, rock_y + dy)) shape)
+  done;
+  !highest_y
+
+let () =
+  let jet_pattern = read_input "input.txt" in
+  let total_rocks = 2022 in
+  let final_height = simulate jet_pattern total_rocks in
+  print_int final_height;
+  print_newline ()

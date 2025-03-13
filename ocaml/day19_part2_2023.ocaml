@@ -1,0 +1,119 @@
+
+let () =
+  let workflows = Hashtbl.create 10 in
+  let variable_indices = [('x', 0); ('m', 1); ('a', 2); ('s', 3)] |> List.to_seq |> Hashtbl.of_seq in
+
+  let lines =
+    let file = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line file in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in file;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let rec parse_workflows lines =
+    match lines with
+    | [] -> []
+    | "" :: rest -> rest
+    | line :: rest ->
+        let name, rules_str =
+          match String.split_on_char '{' line with
+          | [name; rules_str] -> (name, String.sub rules_str 0 (String.length rules_str - 1))
+          | _ -> failwith ("Invalid workflow line: " ^ line)
+        in
+        let rules_parts = String.split_on_char ',' rules_str in
+        let rules =
+          List.map (fun rule_str ->
+            match String.split_on_char ':' rule_str with
+            | [condition; destination] -> `Conditional (condition, destination)
+            | [destination] -> `Unconditional destination
+            | _ -> failwith ("Invalid rule string: " ^ rule_str)
+          ) rules_parts
+        in
+        Hashtbl.add workflows name rules;
+        parse_workflows rest
+  in
+
+  let remaining_lines = parse_workflows lines in
+
+    let memo = Hashtbl.create 100 in
+
+  let rec process workflow_name (constraints : (int * int) array) =
+      
+    let key = (workflow_name, Array.copy constraints) in
+    
+    match Hashtbl.find_opt memo key with
+    |Some result -> result
+    |None ->
+    let (x_range, m_range, a_range, s_range) = (constraints.(0), constraints.(1), constraints.(2), constraints.(3)) in
+
+    if fst x_range > snd x_range || fst m_range > snd m_range || fst a_range > snd a_range || fst s_range > snd s_range then 0
+    else
+      let rules = Hashtbl.find workflows workflow_name in
+
+      let rec count_constraints (x_range, m_range, a_range, s_range) =
+        let x_count = snd x_range - fst x_range + 1 in
+        let m_count = snd m_range - fst m_range + 1 in
+        let a_count = snd a_range - fst a_range + 1 in
+        let s_count = snd s_range - fst s_range + 1 in
+        let total = x_count * m_count * a_count * s_count in
+        if total < 0 then 0 else total
+      in
+
+      let rec process_rules rules constraints result =
+        match rules with
+        | [] -> result
+        | rule :: rest ->
+            match rule with
+            | `Conditional (condition, destination) ->
+                let var, op, value =
+                  Scanf.sscanf condition "%c%c%d" (fun var op value -> (var, op, value))
+                in
+                let var_idx = Hashtbl.find variable_indices var in
+                let var_range = constraints.(var_idx) in
+                let true_range, false_range =
+                  if op = '>' then
+                    ((max (fst var_range) (value + 1), snd var_range), (fst var_range, min (snd var_range) value))
+                  else
+                    ((fst var_range, min (snd var_range) (value - 1)), (max (fst var_range) value, snd var_range))
+                in
+
+                let new_result =
+                  if fst true_range <= snd true_range then
+                    let new_constraints = Array.copy constraints in
+                    new_constraints.(var_idx) <- true_range;
+                    match destination with
+                    | "A" -> result + count_constraints (new_constraints.(0), new_constraints.(1), new_constraints.(2), new_constraints.(3))
+                    | "R" -> result
+                    | _ -> result + process destination new_constraints
+                  else result
+                in
+
+                if fst false_range <= snd false_range then
+                  let new_constraints = Array.copy constraints in
+                  new_constraints.(var_idx) <- false_range;
+                  process_rules rest new_constraints new_result
+                else
+                    new_result
+
+            | `Unconditional destination ->
+                match destination with
+                | "A" -> result + count_constraints (constraints.(0),constraints.(1),constraints.(2),constraints.(3))
+                | "R" -> result
+                | _ -> result + process destination constraints
+      in
+        let result = process_rules rules constraints 0 in
+        Hashtbl.add memo key result;
+        result
+          
+  in
+
+  let initial_constraints = [|(1, 4000); (1, 4000); (1, 4000); (1, 4000)|] in
+  let total = process "in" initial_constraints in
+  print_int total;
+  print_newline ()

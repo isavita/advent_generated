@@ -1,0 +1,67 @@
+
+module CSet = Set.Make(struct
+  type t = int * int
+  let compare (x1, y1) (x2, y2) =
+    let cmp_x = Int.compare x1 x2 in
+    if cmp_x <> 0 then cmp_x else Int.compare y1 y2
+end)
+
+let parse_data data =
+  let garden = ref CSet.empty in
+  let start = ref None in
+  List.iteri (fun y line ->
+    String.iteri (fun x c ->
+      if c <> '#' then garden := CSet.add (x, y) !garden;
+      if c = 'S' then start := Some (x, y)
+    ) line
+  ) data;
+  match !start with
+  | None -> failwith "No start found!"
+  | Some s -> (!garden, s)
+
+let complex_mod (x, y) modu =
+  ((x + 10 * modu) mod modu, (y + 10 * modu) mod modu)
+
+let calculate_num_ends garden start num_iterations max_size =
+  let queue = ref (CSet.singleton start) in
+  let done_ = ref [] in
+  let rec loop i =
+    if i < 3 * max_size then begin
+      if (i mod max_size) = (max_size - 1) / 2 then
+        done_ := CSet.cardinal !queue :: !done_;
+      if List.length !done_ = 3 then ()
+      else begin
+        let new_queue = ref CSet.empty in
+        CSet.iter (fun (x, y) ->
+          List.iter (fun (dx, dy) ->
+            let next_point = (x + dx, y + dy) in
+            if CSet.mem (complex_mod next_point max_size) garden then
+              new_queue := CSet.add next_point !new_queue
+          ) [(1, 0); (-1, 0); (0, 1); (0, -1)]
+        ) !queue;
+        queue := !new_queue;
+        loop (i + 1)
+      end
+    end
+  in
+  loop 0;
+    let a,b,c = match List.rev !done_ with
+        | [a;b;c] -> float_of_int a, float_of_int b, float_of_int c
+        | _ -> failwith "error" in
+    let n = float_of_int (num_iterations / max_size) in
+    let r = int_of_float (a +. n *. (b -. a +. ((n -. 1.0) *. (c -. 2.0 *. b +. a) /. 2.0))) in
+  r
+
+let () =
+  let ic = open_in "input.txt" in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let garden_input = List.rev !lines in
+    let garden, start = parse_data garden_input in
+    let max_size = List.length garden_input in
+    Printf.printf "%d\n" (calculate_num_ends garden start 26501365 max_size)

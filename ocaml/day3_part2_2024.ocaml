@@ -1,0 +1,88 @@
+
+let is_digit c =
+  match c with
+  | '0' .. '9' -> true
+  | _ -> false
+
+let parse_number chars start =
+  let rec aux i acc =
+    if i < Array.length chars && is_digit chars.(i) then
+      aux (i + 1) (acc * 10 + (int_of_char chars.(i) - int_of_char '0'))
+    else
+      (acc, i)
+  in
+  aux start 0
+
+let calculate_part1 input =
+  let chars = Array.of_list (String.to_seq input |> List.of_seq) in
+  let len = Array.length chars in
+  let rec aux i acc =
+    if i >= len then acc
+    else if i + 2 < len && chars.(i) = 'm' && chars.(i+1) = 'u' && chars.(i+2) = 'l' then
+      if i + 3 < len && chars.(i+3) = '(' then
+        let num1_start = i + 4 in
+        let (num1, num1_end) = parse_number chars num1_start in
+        if num1_end < len && chars.(num1_end) = ',' then
+          let num2_start = num1_end + 1 in
+          let (num2, num2_end) = parse_number chars num2_start in
+          if num2_end < len && chars.(num2_end) = ')' then
+            aux (num2_end + 1) (acc + (num1 * num2))
+          else
+            aux (num2_end + 1) acc
+        else
+          aux (num1_end + 1) acc
+      else
+        aux (i + 3) acc
+    else
+      aux (i + 1) acc
+  in
+  aux 0 0
+
+
+let calculate_part2 input =
+  let chars = Array.of_list (String.to_seq input |> List.of_seq) in
+  let len = Array.length chars in
+  let rec aux i acc enabled =
+    if i >= len then acc
+    else if i + 2 < len && chars.(i) = 'm' && chars.(i+1) = 'u' && chars.(i+2) = 'l' then
+      if i + 3 < len && chars.(i+3) = '(' then
+        let num1_start = i + 4 in
+        let (num1, num1_end) = parse_number chars num1_start in
+        if num1_end < len && chars.(num1_end) = ',' then
+          let num2_start = num1_end + 1 in
+          let (num2, num2_end) = parse_number chars num2_start in
+          if num2_end < len && chars.(num2_end) = ')' then
+            let new_acc = if enabled then acc + (num1 * num2) else acc in
+            aux (num2_end + 1) new_acc enabled
+          else
+            aux (num2_end + 1) acc enabled
+        else
+          aux (num1_end + 1) acc enabled
+      else
+        aux (i + 3) acc enabled
+    else if i + 3 < len && chars.(i) = 'd' && chars.(i+1) = 'o' && chars.(i+2) = '(' && chars.(i+3) = ')' then
+        aux (i+4) acc true
+    else if i + 5 < len && chars.(i) = 'd' && chars.(i+1) = 'o' && chars.(i+2) = 'n' && chars.(i+3) = '\'' && chars.(i+4) = 't' && chars.(i+5) = '(' && chars.(i+6) = ')' then
+        aux (i+7) acc false
+    else
+      aux (i + 1) acc enabled
+  in
+  aux 0 0 true
+
+let () =
+  let input =
+      let ic = open_in "input.txt" in
+      let rec read_lines acc =
+          try
+              let line = input_line ic in
+              read_lines (line :: acc)
+          with End_of_file ->
+              close_in ic;
+              List.rev acc
+      in
+    String.concat "" (read_lines [])
+  in
+  let part1_result = calculate_part1 input in
+  let part2_result = calculate_part2 input in
+  Printf.printf "Part 1: %d\n" part1_result;
+  Printf.printf "Part 2: %d\n" part2_result;

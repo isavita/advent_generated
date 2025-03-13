@@ -1,0 +1,144 @@
+
+module Coord = struct
+  type t = { x : int; y : int }
+
+  let equal a b = a.x = b.x && a.y = b.y
+  let add a b = { x = a.x + b.x; y = a.y + b.y }
+  let rotate90 a = { x = a.y; y = -a.x }
+  let rotate_neg90 a = { x = -a.y; y = a.x }
+  let is_in_bounds a width height = a.x >= 0 && a.x < width && a.y >= 0 && a.y < height
+  let hash a = Hashtbl.hash (a.x, a.y)
+end
+
+module Beam = struct
+  type t = { origin : Coord.t; dir : Coord.t }
+
+  let equal a b = Coord.equal a.origin b.origin && Coord.equal a.dir b.dir
+  let hash a = Hashtbl.hash (Coord.hash a.origin, Coord.hash a.dir)
+end
+
+module CoordHash = Hashtbl.Make (struct
+  type t = Coord.t
+
+  let equal = Coord.equal
+  let hash = Coord.hash
+end)
+
+module BeamHash = Hashtbl.Make (struct
+  type t = Beam.t
+
+  let equal = Beam.equal
+  let hash = Beam.hash
+end)
+
+let empty = '.'
+let ascending_mirror = '/'
+let descending_mirror = '\\'
+let vertical_splitter = '|'
+let horizontal_splitter = '-'
+let north = Coord.{ x = 0; y = -1 }
+let west = Coord.{ x = -1; y = 0 }
+let south = Coord.{ x = 0; y = 1 }
+let east = Coord.{ x = 1; y = 0 }
+
+let build_grid lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let data = CoordHash.create (height * width) in
+  List.iteri
+    (fun y line ->
+      String.iteri
+        (fun x char ->
+          if char <> empty then CoordHash.add data { Coord.x; y } char)
+        line)
+    lines;
+  (width, height, data)
+
+let next_beam (width, height, data) beam =
+  let char =
+    match CoordHash.find_opt data beam.Beam.origin with
+    | Some c -> c
+    | None -> empty
+  in
+  if char = empty then
+    [ { Beam.origin = Coord.add beam.Beam.origin beam.Beam.dir; dir = beam.Beam.dir } ]
+  else
+    match char with
+    | c when c = ascending_mirror ->
+        let new_dir =
+          if Coord.equal beam.Beam.dir north || Coord.equal beam.Beam.dir south then
+            Coord.rotate_neg90 beam.Beam.dir
+          else Coord.rotate90 beam.Beam.dir
+        in
+        [ { Beam.origin = Coord.add beam.Beam.origin new_dir; dir = new_dir } ]
+    | c when c = descending_mirror ->
+        let new_dir =
+          if Coord.equal beam.Beam.dir north || Coord.equal beam.Beam.dir south then
+            Coord.rotate90 beam.Beam.dir
+          else Coord.rotate_neg90 beam.Beam.dir
+        in
+        [ { Beam.origin = Coord.add beam.Beam.origin new_dir; dir = new_dir } ]
+    | c when c = vertical_splitter && (Coord.equal beam.Beam.dir east || Coord.equal beam.Beam.dir west)
+      ->
+        let new_dir1 = Coord.rotate90 beam.Beam.dir in
+        let new_dir2 = Coord.rotate_neg90 beam.Beam.dir in
+        [
+          { Beam.origin = Coord.add beam.Beam.origin new_dir1; dir = new_dir1 };
+          { Beam.origin = Coord.add beam.Beam.origin new_dir2; dir = new_dir2 };
+        ]
+    | c when c = horizontal_splitter && (Coord.equal beam.Beam.dir north || Coord.equal beam.Beam.dir south)
+      ->
+        let new_dir1 = Coord.rotate90 beam.Beam.dir in
+        let new_dir2 = Coord.rotate_neg90 beam.Beam.dir in
+        [
+          { Beam.origin = Coord.add beam.Beam.origin new_dir1; dir = new_dir1 };
+          { Beam.origin = Coord.add beam.Beam.origin new_dir2; dir = new_dir2 };
+        ]
+    | _ -> [ { Beam.origin = Coord.add beam.Beam.origin beam.Beam.dir; dir = beam.Beam.dir } ]
+
+let calculate_propagation (width, height, data) start =
+  let already_seen = BeamHash.create 100 in
+  let rec loop to_explore =
+    match to_explore with
+    | [] -> ()
+    | beam :: rest ->
+        if
+          Coord.is_in_bounds beam.Beam.origin width height
+          && not (BeamHash.mem already_seen beam)
+        then (
+          BeamHash.add already_seen beam ();
+          loop (List.rev_append (next_beam (width, height, data) beam) rest))
+        else loop rest
+  in
+  loop [ start ];
+  already_seen
+
+let calculate_energization already_seen =
+  let already_energized = CoordHash.create (BeamHash.length already_seen) in
+  BeamHash.iter (fun beam () -> CoordHash.replace already_energized beam.Beam.origin ()) already_seen;
+  already_energized
+
+let solve lines =
+  let grid = build_grid lines in
+  let start = Beam.{ origin = Coord.{ x = 0; y = 0 }; dir = east } in
+  let already_seen = calculate_propagation grid start in
+  let already_energized = calculate_energization already_seen in
+  CoordHash.length already_energized
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try
+      let line = input_line ic in
+      aux (line :: acc)
+    with
+    | End_of_file ->
+        close_in ic;
+        List.rev acc
+  in
+  aux []
+
+let () =
+  let input_lines = read_file "input.txt" in
+  print_int (solve input_lines);
+  print_newline ()
