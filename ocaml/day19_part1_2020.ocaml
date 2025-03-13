@@ -1,0 +1,76 @@
+
+(* Define a type for the rules *)
+type rule =
+  | Char of char
+  | Seq of int list
+  | Or of int list list
+
+(* Parse the rules and messages from the input file *)
+let parse_input filename =
+  let ic = open_in filename in
+  let rec parse_rules rules =
+    try
+      let line = input_line ic in
+      if line = "" then
+        rules (* Empty line separates rules and messages *)
+      else
+        let parts = String.split_on_char ':' line in
+        let rule_num = int_of_string (List.hd parts) in
+        let rule_def = String.trim (List.nth parts 1) in
+        let rule =
+          if String.contains rule_def '"' then
+            Char (String.get rule_def 1)
+          else if String.contains rule_def '|' then
+            let options = String.split_on_char '|' rule_def in
+            Or (List.map (fun s -> List.map int_of_string (String.split_on_char ' ' (String.trim s))) options)
+          else
+            Seq (List.map int_of_string (String.split_on_char ' ' rule_def))
+        in
+        parse_rules ((rule_num, rule) :: rules)
+    with
+    | End_of_file -> rules
+  in
+  let rules = parse_rules [] in
+    
+  let rec parse_messages messages =
+      try
+        let line = input_line ic in
+        parse_messages (line :: messages)
+      with
+      | End_of_file -> messages
+    in
+
+  let messages = parse_messages [] in
+  close_in ic;
+  (rules, List.rev messages)
+
+(* Check if a message matches a rule *)
+let rec matches rules rule_num message pos =
+  let rule = List.assoc rule_num rules in
+  match rule with
+  | Char c ->
+      if pos < String.length message && message.[pos] = c then
+        [pos + 1]
+      else
+        []
+  | Seq seq ->
+      List.fold_left (fun acc rule_num ->
+          List.concat_map (fun p -> matches rules rule_num message p) acc
+        ) [pos] seq
+  | Or ors ->
+      List.concat_map (fun seq ->
+          List.fold_left (fun acc rule_num ->
+              List.concat_map (fun p -> matches rules rule_num message p) acc
+            ) [pos] seq
+        ) ors
+
+(* Main function *)
+let () =
+  let rules, messages = parse_input "input.txt" in
+  let valid_messages =
+    List.filter (fun message ->
+      List.exists (fun end_pos -> end_pos = String.length message) (matches rules 0 message 0)
+    ) messages
+  in
+  print_int (List.length valid_messages);
+  print_newline ()

@@ -1,0 +1,80 @@
+
+module StringMap = Map.Make(String)
+
+(* Function to build the orbit map from input lines *)
+let build_orbit_map lines =
+  let rec aux map = function
+    | [] -> map
+    | line :: rest ->
+      match String.split_on_char ')' line with
+      | [orbited; orbiter] -> aux (StringMap.add orbiter orbited map) rest
+      | _ -> failwith ("Invalid input line: " ^ line)
+  in
+  aux StringMap.empty lines
+
+(* Function to calculate the total number of orbits (Part 1) *)
+let count_orbits orbit_map =
+  let rec count_orbits_for_object obj depth =
+    let direct_orbits = depth in
+    let indirect_orbits =
+      StringMap.fold (fun orbiter orbited acc ->
+        if orbited = obj then acc + count_orbits_for_object orbiter (depth + 1)
+        else acc
+      ) orbit_map 0
+    in
+    direct_orbits + indirect_orbits
+  in
+  StringMap.fold (fun _ orbited total ->
+    total + count_orbits_for_object orbited 0
+  ) orbit_map 0
+
+(* Function to find the path from an object to COM (Part 2) *)
+let find_path_to_com orbit_map start =
+    let rec find_path current_object path =
+      match StringMap.find_opt current_object orbit_map with
+      | Some orbited -> find_path orbited (orbited :: path)
+      | None -> path  (* Reached COM *)
+    in
+    find_path start []
+
+(* Function to calculate orbital transfers (Part 2) *)
+  let calculate_orbital_transfers orbit_map =
+    let you_path = find_path_to_com orbit_map "YOU" in
+    let san_path = find_path_to_com orbit_map "SAN" in
+
+    let rec find_common_ancestor you_path san_path =
+      match you_path, san_path with
+      | you_head :: you_tail, san_head :: san_tail when you_head = san_head ->
+        find_common_ancestor you_tail san_tail
+      | _ -> (you_path, san_path)
+    in
+
+    let (you_unique_path, san_unique_path) = find_common_ancestor you_path san_path in
+     List.length you_unique_path + List.length san_unique_path
+
+
+(* Main function *)
+let () =
+  let input_lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+
+  let orbit_map = build_orbit_map input_lines in
+
+  (* Part 1 *)
+  let total_orbits = count_orbits orbit_map in
+  Printf.printf "Total orbits: %d\n" total_orbits;
+
+  (* Part 2 *)
+    let orbital_transfers = calculate_orbital_transfers orbit_map in
+    Printf.printf "Orbital transfers: %d\n" orbital_transfers
+;;

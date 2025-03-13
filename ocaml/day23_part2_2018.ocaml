@@ -1,0 +1,112 @@
+
+(* Define a type for nanobots *)
+type nanobot = { x : int; y : int; z : int; r : int }
+
+(* Function to calculate Manhattan distance *)
+let manhattan_distance (x1, y1, z1) (x2, y2, z2) =
+  abs (x1 - x2) + abs (y1 - y2) + abs (z1 - z2)
+
+(* Function to parse a nanobot from a string *)
+let parse_nanobot line =
+  Scanf.sscanf line "pos=<%d,%d,%d>, r=%d" (fun x y z r -> { x; y; z; r })
+
+(* Function to read nanobots from a file *)
+let read_nanobots filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      let nanobot = parse_nanobot line in
+      loop (nanobot :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+(* Part 1: Find the strongest nanobot and count nanobots in range *)
+let solve_part1 nanobots =
+  let strongest =
+    List.fold_left
+      (fun acc bot -> if bot.r > acc.r then bot else acc)
+      (List.hd nanobots) nanobots
+  in
+  let in_range_count =
+    List.fold_left
+      (fun count bot ->
+        if manhattan_distance (strongest.x, strongest.y, strongest.z) (bot.x, bot.y, bot.z)
+           <= strongest.r
+        then count + 1
+        else count)
+      0 nanobots
+  in
+  in_range_count
+
+(* Part 2: Find the best position within range of most nanobots *)
+(* Function to check if a point is in range of a nanobot *)
+let in_range (x, y, z) bot =
+  manhattan_distance (x, y, z) (bot.x, bot.y, bot.z) <= bot.r
+
+(* Function to calculate the number of nanobots a point is in range of *)
+let count_in_range (x, y, z) nanobots =
+    List.fold_left (fun acc bot -> if in_range (x, y, z) bot then acc + 1 else acc) 0 nanobots
+
+(* Helper function to get all coordinates and their in-range counts *)
+let get_all_coordinates_with_counts nanobots =
+  let min_x = List.fold_left (fun acc bot -> min acc bot.x) max_int nanobots in
+  let max_x = List.fold_left (fun acc bot -> max acc bot.x) min_int nanobots in
+  let min_y = List.fold_left (fun acc bot -> min acc bot.y) max_int nanobots in
+  let max_y = List.fold_left (fun acc bot -> max acc bot.y) min_int nanobots in
+  let min_z = List.fold_left (fun acc bot -> min acc bot.z) max_int nanobots in
+  let max_z = List.fold_left (fun acc bot -> max acc bot.z) min_int nanobots in
+
+  let rec loop x y z acc =
+      if z > max_z then acc
+      else if y > max_y then loop x (min_y) (z + 1) acc
+      else if x > max_x then loop (min_x) (y + 1) z acc
+      else
+          let count = count_in_range (x, y, z) nanobots in
+          loop (x + 1) y z ((x, y, z, count) :: acc)
+  in
+  loop min_x min_y min_z []
+
+(* Efficient optimization for part2 *)
+let solve_part2 nanobots =
+  (* Create a list of (distance_to_bot, 1 or -1) for each bot.
+     1 indicates the start of a bot's range, -1 indicates the end. *)
+  let ranges =
+    List.map
+      (fun bot ->
+        let dist = manhattan_distance (0, 0, 0) (bot.x, bot.y, bot.z) in
+        [ dist - bot.r, 1; dist + bot.r + 1, -1 ])
+      nanobots
+    |> List.flatten |> List.sort compare
+  in
+
+  (* Iterate through the ranges, keeping track of the number of bots in range. *)
+  let rec find_best_dist count best_count best_dist ranges =
+    match ranges with
+    | [] -> best_dist
+    | (dist, delta) :: rest ->
+        let new_count = count + delta in
+        let new_best_count, new_best_dist =
+          if new_count > best_count then (new_count, dist)
+          else (best_count, best_dist)
+        in
+        find_best_dist new_count new_best_count new_best_dist rest
+  in
+
+  find_best_dist 0 0 0 ranges
+
+
+(* Main function *)
+let () =
+  let nanobots = read_nanobots "input.txt" in
+
+  (* Part 1 *)
+  let part1_result = solve_part1 nanobots in
+  Printf.printf "Part 1: %d\n" part1_result;
+
+  (* Part 2 *)
+   let part2_result = solve_part2 nanobots in
+   Printf.printf "Part 2: %d\n" part2_result

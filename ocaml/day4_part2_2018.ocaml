@@ -1,0 +1,150 @@
+
+open Printf
+
+(* Define a type for the log entries *)
+type log_entry = {
+  year : int;
+  month : int;
+  day : int;
+  hour : int;
+  minute : int;
+  action : string;
+  guard_id : int option;
+}
+
+(* Parse a log entry from a string *)
+let parse_log_entry line =
+  try
+    let year = int_of_string (String.sub line 1 4) in
+    let month = int_of_string (String.sub line 6 2) in
+    let day = int_of_string (String.sub line 9 2) in
+    let hour = int_of_string (String.sub line 12 2) in
+    let minute = int_of_string (String.sub line 15 2) in
+    let action_start = 19 in
+    let action = String.sub line action_start (String.length line - action_start) in
+    let guard_id =
+      if String.starts_with ~prefix:"Guard" action then
+        Some (int_of_string (List.nth (String.split_on_char '#' action) 1 |> String.split_on_char ' ' |> List.hd))
+      else
+        None
+    in
+    { year; month; day; hour; minute; action; guard_id }
+  with _ ->
+    failwith ("Invalid log entry: " ^ line)
+
+(* Compare two log entries for sorting *)
+let compare_log_entries a b =
+  let date_compare = compare (a.year, a.month, a.day, a.hour, a.minute) (b.year, b.month, b.day, b.hour, b.minute) in
+    date_compare
+
+(* Create a hash table to store guard sleep data (guard_id -> minute array) *)
+let create_guard_sleep_data () = Hashtbl.create 10
+
+(* Process the log entries and populate the sleep data *)
+let process_logs logs guard_sleep_data =
+  let sorted_logs = List.sort compare_log_entries logs in
+  let current_guard = ref None in
+  let sleep_start = ref 0 in
+
+  List.iter (fun entry ->
+    match entry.guard_id with
+    | Some id -> current_guard := Some id
+    | None ->
+      match !current_guard with
+      | Some guard_id ->
+          if String.starts_with ~prefix:"falls asleep" entry.action then
+            sleep_start := entry.minute
+          else if String.starts_with ~prefix:"wakes up" entry.action then
+            let sleep_end = entry.minute in
+            let minutes =
+              match Hashtbl.find_opt guard_sleep_data guard_id with
+              | Some arr -> arr
+              | None ->
+                let arr = Array.make 60 0 in
+                Hashtbl.add guard_sleep_data guard_id arr;
+                arr
+            in
+            for i = !sleep_start to sleep_end - 1 do
+              minutes.(i) <- minutes.(i) + 1
+            done
+          else ()
+      | None -> failwith "No guard on duty"
+  ) sorted_logs
+
+
+(* Find the guard with the most minutes asleep (Strategy 1) *)
+let find_sleepiest_guard guard_sleep_data =
+  let max_sleep = ref 0 in
+  let sleepiest_guard = ref 0 in
+  Hashtbl.iter (fun guard_id minutes ->
+    let total_sleep = Array.fold_left ( + ) 0 minutes in
+    if total_sleep > !max_sleep then (
+      max_sleep := total_sleep;
+      sleepiest_guard := guard_id
+    )
+  ) guard_sleep_data;
+  !sleepiest_guard
+
+(* Find the minute the guard spends asleep the most (Strategy 1) *)
+let find_sleepiest_minute guard_id guard_sleep_data =
+    let minutes = Hashtbl.find guard_sleep_data guard_id in
+    let max_count = ref 0 in
+    let sleepiest_minute = ref 0 in
+
+    Array.iteri (fun i count ->
+        if count > !max_count then (
+            max_count := count;
+            sleepiest_minute := i;
+        )
+    ) minutes;
+
+  !sleepiest_minute
+
+(* Strategy 2:  Find guard most frequently asleep on the same minute. *)
+let find_most_frequent_sleep_minute guard_sleep_data =
+    let max_count = ref 0 in
+    let best_guard = ref 0 in
+    let best_minute = ref 0 in
+
+    Hashtbl.iter (fun guard_id minutes ->
+      Array.iteri (fun minute count ->
+        if count > !max_count then (
+          max_count := count;
+          best_guard := guard_id;
+          best_minute := minute;
+        )
+      ) minutes
+    ) guard_sleep_data;
+    (!best_guard, !best_minute)
+
+
+(* Main function *)
+let () =
+  (* Read the input file *)
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let lines = read_lines [] in
+
+  (* Parse log entries *)
+  let logs = List.map parse_log_entry lines in
+
+  (* Create and populate the guard sleep data *)
+  let guard_sleep_data = create_guard_sleep_data () in
+  process_logs logs guard_sleep_data;
+
+  (* Strategy 1 *)
+  let sleepiest_guard = find_sleepiest_guard guard_sleep_data in
+  let sleepiest_minute = find_sleepiest_minute sleepiest_guard guard_sleep_data in
+  printf "Strategy 1: %d\n" (sleepiest_guard * sleepiest_minute);
+
+    (* Strategy 2 *)
+  let (best_guard, best_minute) = find_most_frequent_sleep_minute guard_sleep_data in
+  printf "Strategy 2: %d\n" (best_guard * best_minute);
+

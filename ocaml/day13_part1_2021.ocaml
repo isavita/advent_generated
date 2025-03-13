@@ -1,0 +1,73 @@
+
+(* Define a type for coordinates *)
+type point = int * int
+
+(* Function to parse a point from a string "x,y" *)
+let parse_point (s : string) : point =
+  match String.split_on_char ',' s with
+  | [x; y] -> (int_of_string x, int_of_string y)
+  | _ -> failwith ("Invalid point format: " ^ s)
+
+(* Define a type for fold instructions *)
+type fold = X of int | Y of int
+
+(* Function to parse a fold instruction from a string "fold along x=n" or "fold along y=n" *)
+let parse_fold (s : string) : fold =
+  let parts = String.split_on_char '=' s in
+  match parts with
+  | [pre; value_str] ->
+    let value = int_of_string value_str in
+    if String.ends_with ~suffix:"x" pre then X value
+    else if String.ends_with ~suffix:"y" pre then Y value
+    else failwith ("Invalid fold instruction format: " ^ s)
+
+  | _ -> failwith ("Invalid fold instruction format (split problem): " ^ s)
+
+(* Function to perform a single fold operation *)
+let fold_point (p : point) (f : fold) : point =
+  match f with
+  | X fold_x ->
+    let x, y = p in
+    if x < fold_x then p else (2 * fold_x - x, y)
+  | Y fold_y ->
+    let x, y = p in
+    if y < fold_y then p else (x, 2 * fold_y - y)
+
+(* Function to perform folding and remove duplicates *)
+let apply_fold (points : point list) (f : fold) : point list =
+  let folded_points = List.map (fun p -> fold_point p f) points in
+  (* Remove duplicates using a set *)
+    List.sort_uniq compare folded_points
+
+(* Main function to read input, process, and print output *)
+let () =
+  (* Read all lines from the input file *)
+  let ic = open_in "input.txt" in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    lines := List.rev !lines;  (* Reverse to maintain original order *)
+
+    (* Separate points and fold instructions *)
+    let rec split_input (lines : string list) (points_acc : string list) : (string list * string list) =
+        match lines with
+        | "" :: rest -> (List.rev points_acc, rest)  (* Empty line separates points and folds *)
+        | line :: rest -> split_input rest (line :: points_acc)
+        | [] -> (List.rev points_acc, [])
+    in
+    let (point_lines, fold_lines) = split_input !lines [] in
+    
+    let points = List.map parse_point point_lines in
+    let folds = List.map parse_fold fold_lines in
+
+    (* Perform only the *first* fold, as requested by the problem *)
+    match folds with
+    | first_fold :: _ ->
+        let folded_points = apply_fold points first_fold in
+        let visible_dots = List.length folded_points in
+        Printf.printf "%d\n" visible_dots
+    | [] -> Printf.printf "No fold instructions found.\n"

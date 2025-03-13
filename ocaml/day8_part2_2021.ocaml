@@ -1,0 +1,123 @@
+
+(* Function to count occurrences of digits 1, 4, 7, and 8 in the output values *)
+let count_unique_digits (input : string list list) : int =
+  List.fold_left
+    (fun acc digits ->
+      List.fold_left
+        (fun inner_acc digit ->
+          match String.length digit with
+          | 2 | 3 | 4 | 7 -> inner_acc + 1
+          | _ -> inner_acc)
+        0 digits
+      + acc)
+    0 input
+
+(* Function to sort a string alphabetically *)
+let sort_string (s : string) : string =
+  String.to_bytes s |> Bytes.to_seq |> List.of_seq |> List.sort Char.compare
+  |> List.to_seq |> Bytes.of_seq |> Bytes.to_string
+
+(* Function to check if a string contains all characters of another string *)
+let contains_all_chars (s1 : string) (s2 : string) : bool =
+  String.fold_left (fun acc c -> acc && String.contains s1 c) true s2
+
+(* Function to deduce the mapping and decode the output *)
+let deduce_and_decode (patterns : string list) (output : string list) : int =
+  let sorted_patterns = List.map sort_string patterns in
+  let sorted_output = List.map sort_string output in
+
+  (* Find 1, 4, 7, and 8 based on length *)
+  let one = List.find (fun s -> String.length s = 2) sorted_patterns in
+  let four = List.find (fun s -> String.length s = 4) sorted_patterns in
+  let seven = List.find (fun s -> String.length s = 3) sorted_patterns in
+  let eight = List.find (fun s -> String.length s = 7) sorted_patterns in
+
+  (* Deduce the remaining digits *)
+  let six =
+    List.find
+      (fun s -> String.length s = 6 && not (contains_all_chars s one))
+      sorted_patterns
+  in
+  let nine =
+    List.find
+      (fun s -> String.length s = 6 && contains_all_chars s four)
+      sorted_patterns
+  in
+  let zero =
+    List.find
+      (fun s -> String.length s = 6 && s <> six && s <> nine)
+      sorted_patterns
+  in
+  let three =
+    List.find
+      (fun s -> String.length s = 5 && contains_all_chars s one)
+      sorted_patterns
+  in
+  let five =
+    List.find
+      (fun s -> String.length s = 5 && contains_all_chars six s)
+      sorted_patterns
+  in
+  let two =
+    List.find
+      (fun s -> String.length s = 5 && s <> three && s <> five)
+      sorted_patterns
+  in
+
+  (* Create a mapping from sorted string to digit *)
+  let mapping =
+    [
+      (zero, 0);
+      (one, 1);
+      (two, 2);
+      (three, 3);
+      (four, 4);
+      (five, 5);
+      (six, 6);
+      (seven, 7);
+      (eight, 8);
+      (nine, 9);
+    ]
+  in
+
+  (* Decode the output digits *)
+  List.fold_left
+    (fun acc digit_str ->
+      let digit =
+        List.assoc digit_str mapping
+      in
+      (acc * 10) + digit)
+    0 sorted_output
+
+(* Main function to read input and process data *)
+let main () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char '|' line in
+      let patterns = String.split_on_char ' ' (List.hd parts) |> List.filter (fun s -> s <> "")  in
+      let output_values = String.split_on_char ' ' (List.nth parts 1) |> List.filter (fun s -> s <> "") in
+      read_lines ((patterns, output_values) :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  let entries = read_lines [] in
+
+  (* Part 1: Count unique digits *)
+  let unique_count =
+    entries |> List.map snd |> count_unique_digits
+  in
+  Printf.printf "Part 1: %d\n" unique_count;
+
+  (* Part 2: Decode and sum output values *)
+  let total_sum =
+    List.fold_left
+      (fun acc (patterns, output) -> acc + deduce_and_decode patterns output)
+      0 entries
+  in
+  Printf.printf "Part 2: %d\n" total_sum
+
+(* Entry point *)
+let () = main ()

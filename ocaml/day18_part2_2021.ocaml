@@ -1,0 +1,128 @@
+
+type snailfish_number =
+  | Regular of int
+  | Pair of snailfish_number * snailfish_number
+
+let rec string_of_snailfish_number = function
+  | Regular n -> string_of_int n
+  | Pair (a, b) -> "[" ^ string_of_snailfish_number a ^ "," ^ string_of_snailfish_number b ^ "]"
+
+let parse_snailfish_number str =
+  let rec parse_helper chars =
+    match chars with
+    | '[' :: rest ->
+      let left, rest = parse_helper rest in
+      let right, rest = parse_helper (List.tl rest) in  (* Skip the ',' *)
+      Pair (left, right), List.tl rest          (* Skip the ']' *)
+    | d :: rest when '0' <= d && d <= '9' ->
+      Regular (int_of_char d - int_of_char '0'), rest
+    | _ -> failwith "Invalid snailfish number format"
+  in
+  let num, _ = parse_helper (List.init (String.length str) (String.get str)) in
+  num
+
+let rec explode_snailfish_number num depth =
+  match num, depth with
+  | Pair (Regular a, Regular b), d when d >= 4 ->
+    Some (Regular 0, a, b)
+  | Pair (left, right), d ->
+    begin match explode_snailfish_number left (d + 1) with
+      | Some (new_left, add_left, add_right) ->
+        let new_right =
+          let rec add_to_leftmost n v =
+            match n with
+            | Regular x -> Regular (x + v)
+            | Pair (a, b) -> Pair (add_to_leftmost a v, b)
+          in
+          if add_right > 0 then add_to_leftmost right add_right else right
+        in
+        Some (Pair (new_left, new_right), add_left, 0)
+      | None ->
+        begin match explode_snailfish_number right (d + 1) with
+          | Some (new_right, add_left, add_right) ->
+            let new_left =
+              let rec add_to_rightmost n v =
+                match n with
+                | Regular x -> Regular (x + v)
+                | Pair (a, b) -> Pair (a, add_to_rightmost b v)
+              in
+              if add_left > 0 then add_to_rightmost left add_left else left
+            in
+            Some (Pair (new_left, new_right), 0, add_right)
+          | None -> None
+        end
+    end
+  | _ -> None
+
+let rec split_snailfish_number num =
+  match num with
+  | Regular n when n >= 10 ->
+    Some (Pair (Regular (n / 2), Regular ((n + 1) / 2)))
+  | Regular _ -> None
+  | Pair (left, right) ->
+    begin match split_snailfish_number left with
+      | Some new_left -> Some (Pair (new_left, right))
+      | None ->
+        begin match split_snailfish_number right with
+          | Some new_right -> Some (Pair (left, new_right))
+          | None -> None
+        end
+    end
+
+let reduce_snailfish_number num =
+  let rec reduce_helper num =
+    match explode_snailfish_number num 0 with
+    | Some (new_num, _, _) -> reduce_helper new_num
+    | None ->
+      match split_snailfish_number num with
+      | Some new_num -> reduce_helper new_num
+      | None -> num
+  in
+  reduce_helper num
+
+let add_snailfish_numbers a b =
+  reduce_snailfish_number (Pair (a, b))
+
+let rec magnitude = function
+  | Regular n -> n
+  | Pair (left, right) -> 3 * magnitude left + 2 * magnitude right
+
+let solve_part1 numbers =
+  let rec aux acc = function
+    | [] -> acc
+    | h :: t -> aux (add_snailfish_numbers acc h) t
+  in
+    match numbers with
+      | [] -> 0
+      | h :: t ->  magnitude (aux h t)
+
+let solve_part2 numbers =
+    let rec combinations = function
+        | [] -> []
+        | h :: t -> (List.map (fun x -> (h, x)) t) @ (List.map (fun x -> (x,h)) t) @ combinations t
+    in
+    let all_combinations = combinations numbers in
+
+    List.fold_left (fun max_mag (a,b) ->
+        let sum = add_snailfish_numbers a b;
+        in
+          max max_mag (magnitude sum)
+    ) 0 all_combinations
+
+
+
+let () =
+  let input_lines = ref [] in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      input_lines := input_line ic :: !input_lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let numbers = List.rev_map parse_snailfish_number !input_lines in
+    let part1_result = solve_part1 numbers in
+      Printf.printf "Part 1: %d\n" part1_result;
+    let part2_result = solve_part2 numbers in
+      Printf.printf "Part 2: %d\n" part2_result
+

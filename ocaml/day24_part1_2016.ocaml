@@ -1,0 +1,144 @@
+
+module Coord = struct
+  type t = int * int
+
+  let compare (x1, y1) (x2, y2) =
+    match Int.compare x1 x2 with 0 -> Int.compare y1 y2 | other -> other
+end
+
+module CoordMap = Map.Make (Coord)
+module CoordSet = Set.Make (Coord)
+
+(* Function to read the map from a file *)
+let read_map filename =
+  let ic = open_in filename in
+  let rec read_lines row acc =
+    try
+      let line = input_line ic in
+      let line_list =
+        List.init (String.length line) (fun col -> ((row, col), line.[col]))
+      in
+      read_lines (row + 1) (line_list @ acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_lines 0 [] |> List.to_seq |> CoordMap.of_seq
+
+(* Breadth-first search to find shortest distance between two points *)
+let bfs start_coord target_coord map =
+  let rec search q visited steps =
+    if Queue.is_empty q then None (* Target not reachable *)
+    else
+      let (curr_x, curr_y), curr_steps = Queue.take q in
+      if (curr_x, curr_y) = target_coord then Some curr_steps
+      else
+        let neighbors =
+          [ curr_x - 1, curr_y; curr_x + 1, curr_y; curr_x, curr_y - 1; curr_x, curr_y + 1 ]
+        in
+        let valid_neighbors =
+          List.filter
+            (fun (nx, ny) ->
+              match CoordMap.find_opt (nx, ny) map with
+              | Some '#' -> false
+              | Some _ -> not (CoordSet.mem (nx, ny) visited)
+              | None -> false)
+            neighbors
+        in
+        let visited' =
+          List.fold_left
+            (fun acc neighbor -> CoordSet.add neighbor acc)
+            visited valid_neighbors
+        in
+        List.iter (fun neighbor -> Queue.add (neighbor, curr_steps + 1) q) valid_neighbors;
+        search q visited' steps
+  in
+  let q = Queue.create () in
+  Queue.add (start_coord, 0) q;
+  search q (CoordSet.singleton start_coord) 0
+
+(* Find all locations of digits *)
+let find_digit_locations map =
+  CoordMap.fold
+    (fun coord cell acc ->
+      if cell >= '0' && cell <= '9' then (cell, coord) :: acc else acc)
+    map []
+
+(* Calculate distances between all pairs of digits *)
+let calculate_distances digit_locations map =
+  let rec aux distances rem_locations =
+    match rem_locations with
+    | [] -> distances
+    | (digit, coord) :: tl ->
+        let new_distances =
+          List.fold_left
+            (fun acc (other_digit, other_coord) ->
+              if digit = other_digit then acc
+              else
+                match bfs coord other_coord map with
+                | Some dist ->
+                    ((digit, other_digit), dist) :: ((other_digit, digit), dist) :: acc
+                | None -> failwith "Unreachable digits")
+            distances tl
+        in
+        aux new_distances tl
+  in
+  aux [] digit_locations |> List.to_seq |> Hashtbl.of_seq
+
+(* Permutations of a list (using Heap's algorithm) *)
+let rec permutations lst =
+    let rec swap arr i j =
+      let temp = arr.(i) in
+      arr.(i) <- arr.(j);
+      arr.(j) <- temp
+    in
+    let n = List.length lst in
+    let arr = Array.of_list lst in
+    let rec generate k arr acc =
+        if k = 1 then (Array.to_list arr)::acc
+        else
+          let acc = generate (k-1) arr acc in
+          let rec loop i acc =
+            if i < k-1 then
+                (swap arr (if k mod 2 = 0 then i else 0) (k-1);
+                let acc = generate (k-1) arr acc in
+                loop (i+1) acc)
+            else
+              acc
+          in
+          loop 0 acc
+    in
+    generate n arr []
+
+(* Solve the problem *)
+let solve map =
+  let digit_locations = find_digit_locations map in
+  let distances = calculate_distances digit_locations map in
+  let start_digit = '0' in
+  let other_digits =
+    List.filter_map
+      (fun (d, _) -> if d <> start_digit then Some d else None)
+      digit_locations
+  in
+  let perms = permutations other_digits in
+  List.fold_left
+    (fun min_dist perm ->
+      let path = start_digit :: perm in
+      let total_dist =
+        let rec calculate_path_dist p acc =
+          match p with
+          | [] | [_] -> acc
+          | d1 :: d2 :: tl ->
+              calculate_path_dist (d2 :: tl) (acc + Hashtbl.find distances (d1, d2))
+        in
+        calculate_path_dist path 0
+      in
+      Int.min min_dist total_dist)
+    Int.max_int perms
+
+(* Main function *)
+let () =
+  let map = read_map "input.txt" in
+  let result = solve map in
+  print_endline (string_of_int result)
+

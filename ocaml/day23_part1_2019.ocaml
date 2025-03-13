@@ -1,0 +1,158 @@
+
+(* Intcode Computer Implementation (from previous days, adapted) *)
+module Intcode = struct
+  type memory = (int, int) Hashtbl.t
+  type state = {
+    memory: memory;
+    mutable ip: int;
+    mutable relative_base: int;
+    mutable input_queue: int list;
+    mutable output_queue: int list;
+    mutable halted: bool;
+  }
+
+  let load_program program_string =
+    let memory = Hashtbl.create 512 in
+    String.split_on_char ',' program_string
+    |> List.iteri (fun i s -> Hashtbl.add memory i (int_of_string s));
+    memory
+
+  let create_state memory =
+    { memory; ip = 0; relative_base = 0; input_queue = [];
+      output_queue = []; halted = false }
+  
+  let get_value state mode address =
+    match mode with
+    | 0 -> Hashtbl.find_opt state.memory (Hashtbl.find state.memory address) |> Option.value ~default:0
+    | 1 -> Hashtbl.find_opt state.memory address |> Option.value ~default:0
+    | 2 -> Hashtbl.find_opt state.memory (state.relative_base + (Hashtbl.find state.memory address)) |> Option.value ~default:0
+    | _ -> failwith "Invalid parameter mode"
+
+  let set_value state mode address value =
+      let target_address = 
+        match mode with
+          | 0 -> Hashtbl.find state.memory address
+          | 1 -> failwith "Immediate mode not allowed for writing"
+          | 2 -> state.relative_base + (Hashtbl.find state.memory address)
+          | _ -> failwith "Invalid parameter mode"
+      in
+        Hashtbl.replace state.memory target_address value
+
+  let rec run_until_input_or_halt (state : state) =
+    if state.halted then ()
+    else
+      let opcode = Hashtbl.find state.memory state.ip mod 100 in
+      let mode1 = (Hashtbl.find state.memory state.ip / 100) mod 10 in
+      let mode2 = (Hashtbl.find state.memory state.ip / 1000) mod 10 in
+      let mode3 = (Hashtbl.find state.memory state.ip / 10000) mod 10 in
+
+      match opcode with
+      | 1 ->  (* Addition *)
+          set_value state mode3 (state.ip + 3) (get_value state mode1 (state.ip + 1) + get_value state mode2 (state.ip + 2));
+          state.ip <- state.ip + 4;
+          run_until_input_or_halt state
+      | 2 ->  (* Multiplication *)
+          set_value state mode3 (state.ip + 3) (get_value state mode1 (state.ip + 1) * get_value state mode2 (state.ip + 2));
+          state.ip <- state.ip + 4;
+          run_until_input_or_halt state
+      | 3 ->  (* Input *)
+              (match state.input_queue with
+              | [] -> ()  (* Do not advance IP if no input is available *)
+              | hd :: tl ->
+                  set_value state mode1 (state.ip + 1) hd;
+                  state.input_queue <- tl;
+                  state.ip <- state.ip + 2;
+                  run_until_input_or_halt state
+              )
+      | 4 ->  (* Output *)
+          state.output_queue <- state.output_queue @ [get_value state mode1 (state.ip + 1)];
+          state.ip <- state.ip + 2;
+          run_until_input_or_halt state
+      | 5 ->  (* Jump-if-true *)
+          if get_value state mode1 (state.ip + 1) <> 0 then
+            state.ip <- get_value state mode2 (state.ip + 2)
+          else
+            state.ip <- state.ip + 3;
+            run_until_input_or_halt state
+      | 6 ->  (* Jump-if-false *)
+          if get_value state mode1 (state.ip + 1) = 0 then
+            state.ip <- get_value state mode2 (state.ip + 2)
+          else
+            state.ip <- state.ip + 3;
+            run_until_input_or_halt state
+      | 7 ->  (* Less than *)
+          set_value state mode3 (state.ip + 3) (if get_value state mode1 (state.ip + 1) < get_value state mode2 (state.ip + 2) then 1 else 0);
+          state.ip <- state.ip + 4;
+          run_until_input_or_halt state
+      | 8 ->  (* Equals *)
+          set_value state mode3 (state.ip + 3) (if get_value state mode1 (state.ip + 1) = get_value state mode2 (state.ip + 2) then 1 else 0);
+          state.ip <- state.ip + 4;
+          run_until_input_or_halt state
+      | 9 ->  (* Adjust relative base *)
+          state.relative_base <- state.relative_base + get_value state mode1 (state.ip + 1);
+          state.ip <- state.ip + 2;
+          run_until_input_or_halt state
+      | 99 -> (* Halt *)
+          state.halted <- true
+      | _ -> failwith ("Invalid opcode: " ^ string_of_int opcode)
+end
+
+
+let solve program_string =
+  let num_computers = 50 in
+  let computers = Array.init num_computers (fun i ->
+    let memory = Intcode.load_program program_string in
+    let state = Intcode.create_state memory in
+    state.input_queue <- [i]; (* Initialize with network address *)
+    state
+  ) in
+
+  let rec loop () =
+    let packet_queues = Array.make num_computers [] in
+
+    (* Run each computer until it needs input or halts *)
+    Array.iter (fun computer -> 
+      Intcode.run_until_input_or_halt computer;
+
+      (* Process output if any *)
+      while List.length computer.Intcode.output_queue >= 3 do
+        let dest = List.hd computer.Intcode.output_queue in
+        let x = List.nth computer.Intcode.output_queue 1 in
+        let y = List.nth computer.Intcode.output_queue 2 in
+        computer.Intcode.output_queue <- List.tl (List.tl (List.tl computer.Intcode.output_queue));
+        
+        if dest = 255 then (
+          Printf.printf "%d\n" y;
+          exit 0;  (* Exit after finding the first packet to 255 *)
+        ) else if dest >= 0 && dest < num_computers then (
+            packet_queues.(dest) <- packet_queues.(dest) @ [x; y];
+        ) else (
+          failwith ("Invalid destination address " ^ string_of_int dest)
+        )
+        
+      done;
+    ) computers;
+
+    (* Deliver packets *)
+    Array.iteri (fun i packets ->
+        if List.length packets > 0 then (
+            computers.(i).Intcode.input_queue <- computers.(i).Intcode.input_queue @ packets
+        ) else (
+            if List.length computers.(i).Intcode.input_queue = 0 then
+                computers.(i).Intcode.input_queue <-  [-1]
+        )
+    ) packet_queues;
+
+
+    loop ()
+  in
+  loop ()
+
+let () =
+  let program_string =
+      let ic = open_in "input.txt" in
+      let line = input_line ic in
+      close_in ic;
+      line
+  in
+  solve program_string

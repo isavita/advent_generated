@@ -1,0 +1,135 @@
+
+(* Define the registers as an array *)
+type registers = int array
+
+(* Define the instruction type *)
+type instruction = {
+  opcode: int;
+  a: int;
+  b: int;
+  c: int;
+}
+
+(* Define the opcodes functions. Each takes registers and an instruction, and returns modified registers. *)
+let addr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) + regs.(instr.b);
+  result
+
+let addi regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) + instr.b;
+  result
+
+let mulr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) * regs.(instr.b);
+  result
+
+let muli regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) * instr.b;
+  result
+
+let banr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) land regs.(instr.b);
+  result
+
+let bani regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) land instr.b;
+  result
+
+let borr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) lor regs.(instr.b);
+  result
+
+let bori regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a) lor instr.b;
+  result
+
+let setr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- regs.(instr.a);
+  result
+
+let seti regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- instr.a;
+  result
+
+let gtir regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if instr.a > regs.(instr.b) then 1 else 0;
+  result
+
+let gtri regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if regs.(instr.a) > instr.b then 1 else 0;
+  result
+
+let gtrr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if regs.(instr.a) > regs.(instr.b) then 1 else 0;
+  result
+
+let eqir regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if instr.a = regs.(instr.b) then 1 else 0;
+  result
+
+let eqri regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if regs.(instr.a) = instr.b then 1 else 0;
+  result
+
+let eqrr regs instr =
+  let result = Array.copy regs in
+  result.(instr.c) <- if regs.(instr.a) = regs.(instr.b) then 1 else 0;
+  result
+
+(* List of all opcode functions *)
+let all_opcodes = [
+  addr; addi; mulr; muli; banr; bani; borr; bori;
+  setr; seti; gtir; gtri; gtrr; eqir; eqri; eqrr
+]
+
+(* Function to parse a line representing registers *)
+let parse_registers line =
+  Scanf.sscanf line "Before: [%d, %d, %d, %d]" (fun a b c d -> [|a; b; c; d|])
+
+(* Function to parse a line representing an instruction *)
+let parse_instruction line =
+  Scanf.sscanf line "%d %d %d %d" (fun opcode a b c -> {opcode; a; b; c})
+
+(* Function to check how many opcodes match a given sample *)
+let count_matching_opcodes before instr after =
+  List.fold_left (fun acc opcode_func ->
+    if opcode_func before instr = after then acc + 1 else acc
+  ) 0 all_opcodes
+
+(* Main function to process the input and count samples *)
+let () =
+  let input_channel = open_in "input.txt" in
+  let rec process_samples count =
+    try
+      let before_line = input_line input_channel in
+      let instr_line = input_line input_channel in
+      let after_line = input_line input_channel in
+      (* Consume empty line *)
+      let (_:string) =  try input_line input_channel with _ -> "" in
+      let before = parse_registers before_line in
+      let instr = parse_instruction instr_line in
+      let after =  Scanf.sscanf after_line "After:  [%d, %d, %d, %d]" (fun a b c d -> [|a; b; c; d|]) in
+      let matching_count = count_matching_opcodes before instr after in
+      let new_count = if matching_count >= 3 then count + 1 else count in
+      process_samples new_count
+    with
+    | End_of_file -> count
+  in
+  let result = process_samples 0 in
+  close_in input_channel;
+  Printf.printf "%d\n" result

@@ -1,0 +1,133 @@
+
+open Printf
+
+module IntMap = Map.Make(Int)
+
+type rule =
+  | Char of char
+  | Seq of int list
+  | Or of int list list
+
+let parse_rule line =
+  let parts = String.split_on_char ':' line in
+  let rule_num = int_of_string (List.hd parts) in
+  let rule_def = String.trim (List.nth parts 1) in
+  let rule =
+    if String.starts_with ~prefix:"\"" rule_def then
+      Char (rule_def.[1])
+    else
+      let or_parts = String.split_on_char '|' rule_def in
+      let seqs = List.map (fun s ->
+        List.map int_of_string (String.split_on_char ' ' (String.trim s))
+      ) or_parts in
+      match seqs with
+      | [seq] -> Seq seq
+      | _ -> Or seqs
+  in
+  (rule_num, rule)
+
+let rec matches (rules : rule IntMap.t) (rule_num : int) (message : string) (pos : int) : int list =
+    if pos >= String.length message then
+        []
+    else
+      match IntMap.find rule_num rules with
+      | Char c ->
+        if message.[pos] = c then [pos + 1] else []
+      | Seq seq ->
+        List.fold_left (fun acc rule_num ->
+          List.concat_map (fun p -> matches rules rule_num message p) acc
+        ) [pos] seq
+      | Or seqs ->
+        List.concat_map (fun seq ->
+          List.fold_left (fun acc rule_num ->
+            List.concat_map (fun p -> matches rules rule_num message p) acc
+          ) [pos] seq
+        ) seqs
+    
+
+let solve1 rules messages =
+  List.fold_left (fun acc message ->
+    let match_lengths = matches rules 0 message 0 in
+    if List.exists (fun len -> len = String.length message) match_lengths then
+      acc + 1
+    else
+      acc
+  ) 0 messages
+
+let solve2 rules messages =
+
+  let rec matches2 (rules : rule IntMap.t) (rule_num : int) (message : string) (pos : int) : int list =
+    if pos >= String.length message then
+        []
+    else
+      match IntMap.find rule_num rules with
+      | Char c ->
+        if message.[pos] = c then [pos + 1] else []
+      | Seq seq ->
+        List.fold_left (fun acc rule_num ->
+          List.concat_map (fun p -> matches2 rules rule_num message p) acc
+        ) [pos] seq
+      | Or seqs ->
+        List.concat_map (fun seq ->
+          List.fold_left (fun acc rule_num ->
+            List.concat_map (fun p -> matches2 rules rule_num message p) acc
+          ) [pos] seq
+        ) seqs
+  in
+    
+  List.fold_left (fun acc message ->
+      let match_lengths = matches2 rules 0 message 0 in
+      if List.exists (fun len -> len = String.length message) match_lengths then
+          acc+1
+      else
+          acc
+  ) 0 messages
+  
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_rules acc =
+    try
+      let line = input_line ic in
+      if String.length line = 0 then
+        acc
+      else
+        let (rule_num, rule) = parse_rule line in
+        read_rules (IntMap.add rule_num rule acc)
+    with End_of_file ->
+      close_in ic;
+      acc
+  in
+  let rules = read_rules IntMap.empty in
+
+    (* Re-Open the input file to read the messages part. *)
+  let ic = open_in "input.txt" in
+  let rec read_messages rules_done acc =
+    try
+        let line = input_line ic in
+        if rules_done then
+            if String.length line > 0 then
+                read_messages true (line :: acc)
+            else
+              acc
+        else
+            if String.length line = 0 then
+                read_messages true acc
+            else
+                read_messages false acc
+    with End_of_file -> 
+        close_in ic;
+        acc
+    in
+  let messages = List.rev (read_messages false []) in
+  let part1_result = solve1 rules messages in
+  printf "Part 1: %d\n" part1_result;
+
+
+  let updated_rules =
+    rules
+    |> IntMap.add 8 (Or [[42]; [42; 8]])
+    |> IntMap.add 11 (Or [[42; 31]; [42; 11; 31]])
+  in
+  
+  let part2_result = solve2 updated_rules messages in
+    printf "Part 2: %d\n" part2_result;
