@@ -1,0 +1,85 @@
+
+type range = {
+  dest_start: int;
+  src_start: int;
+  length: int;
+}
+
+let parse_range line =
+  match String.split_on_char ' ' line |> List.map int_of_string with
+  | [d; s; l] -> { dest_start = d; src_start = s; length = l }
+  | _ -> failwith ""
+
+let parse_input filename =
+  let ic = open_in filename in
+  let lines = try really_input_string ic (in_channel_length ic) |> String.split_on_char '\n' with _ -> [] in
+  close_in ic;
+  let lines = List.map String.trim lines |> List.filter (fun s -> s <> "") in
+
+  let seed_ranges = ref [] in
+  let maps = ref [] in
+  let current_ranges = ref [] in
+
+  List.iter (fun line ->
+    if String.starts_with ~prefix:"seeds:" line then (
+      let parts = String.split_on_char ' ' (String.sub line 7 (String.length line - 7)) in
+      let rec parse_seeds acc = function
+        | s :: l :: rest -> parse_seeds ((int_of_string s, int_of_string l) :: acc) rest
+        | _ -> List.rev acc
+      in
+      seed_ranges := parse_seeds [] parts
+    )
+    else if String.ends_with ~suffix:"map:" line then (
+      if !current_ranges <> [] then (
+        maps := (List.rev !current_ranges) :: !maps;
+        current_ranges := []
+      )
+    )
+    else (
+      current_ranges := (parse_range line) :: !current_ranges
+    )
+  ) lines;
+
+  if !current_ranges <> [] then (
+    maps := (List.rev !current_ranges) :: !maps
+  );
+
+  (!seed_ranges, (List.rev !maps))
+
+let reverse_convert_number number ranges =
+  let rec find number = function
+    | [] -> number
+    | r :: rest ->
+        if number >= r.dest_start && number < r.dest_start + r.length then
+          r.src_start + (number - r.dest_start)
+        else
+          find number rest
+  in
+  find number (List.rev ranges)
+
+let is_in_seed_ranges number seed_ranges =
+  List.exists (fun (start, length) -> number >= start && number < start + length) seed_ranges
+
+let main () =
+  let filename = "input.txt" in
+  let seed_ranges, maps = parse_input filename in
+  let location = ref 0 in
+  let found = ref false in
+
+  while not !found do
+    let current_seed =
+      List.fold_left (fun acc ranges ->
+        reverse_convert_number acc ranges
+      ) !location (List.rev maps)
+    in
+
+    if is_in_seed_ranges current_seed seed_ranges then (
+      Printf.printf "%d\n" !location;
+      found := true
+    );
+
+    if not !found then
+      location := !location + 1;
+  done
+
+let () = main ()

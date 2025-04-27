@@ -1,0 +1,99 @@
+
+type coord = { x: int; y: int; z: int ref }
+type brick = { mini: coord; maxi: coord; based_on: brick list ref; support: brick list ref }
+
+let parse_coord s =
+  match String.split_on_char ',' s with
+  | [sx; sy; sz] ->
+    let z = try int_of_string sz with _ -> failwith "invalid z" in
+    let c = {
+      x = (try int_of_string sx with _ -> failwith "invalid x");
+      y = (try int_of_string sy with _ -> failwith "invalid y");
+      z = ref z;
+    } in
+    if z <= 0 then failwith (Printf.sprintf "invalid z: %d" z);
+    c
+  | _ -> failwith ("invalid coord string: " ^ s)
+
+let parse_brick line =
+  match String.split_on_char '~' line with
+  | [s_mini; s_maxi] ->
+    let mini = parse_coord s_mini in
+    let maxi = parse_coord s_maxi in
+    (* Ensure mini.z <= maxi.z *)
+    if !(mini.z) > !(maxi.z) then
+      { mini = maxi; maxi = mini; based_on = ref []; support = ref [] }
+    else
+      { mini; maxi; based_on = ref []; support = ref [] }
+  | _ -> failwith ("invalid brick string: " ^ line)
+
+let parse_input lines =
+  List.map parse_brick (List.filter (fun s -> s <> "") lines)
+
+let intersects_xy b1 b2 =
+  max b1.mini.x b2.mini.x <= min b1.maxi.x b2.maxi.x &&
+  max b1.mini.y b2.mini.y <= min b1.maxi.y b2.maxi.y
+
+let settle bricks =
+  let sorted_bricks = List.sort (fun b1 b2 -> compare !(b1.maxi.z) !(b2.maxi.z)) bricks in
+  let n = List.length sorted_bricks in
+  let brick_array = Array.of_list sorted_bricks in
+
+  for i = 0 to n - 1 do
+    let current_brick = brick_array.(i) in
+    let support_z = ref 0 in
+    let based_bricks_list = ref [] in
+
+    for j = i - 1 downto 0 do
+      let potential_support = brick_array.(j) in
+      if intersects_xy current_brick potential_support then (
+        if !(potential_support.maxi.z) = !support_z then
+          based_bricks_list := potential_support :: !based_bricks_list
+        else if !(potential_support.maxi.z) > !support_z then (
+          support_z := !(potential_support.maxi.z);
+          based_bricks_list := [potential_support]
+        )
+      )
+    done;
+
+    current_brick.based_on := List.rev !based_bricks_list;
+    List.iter (fun bb -> bb.support := current_brick :: !(bb.support)) !based_bricks_list;
+
+    let delta_z = !(current_brick.maxi.z) - !(current_brick.mini.z) in
+    current_brick.mini.z := !support_z + 1;
+    current_brick.maxi.z := !(current_brick.mini.z) + delta_z;
+  done;
+  bricks (* Return the original list which now has updated refs *)
+
+let solve bricks =
+  let disintegratable_count = ref 0 in
+  List.iter (fun brick ->
+    let can_disintegrate =
+      List.for_all (fun supported_brick ->
+        List.length !(supported_brick.based_on) >= 2
+      ) !(brick.support)
+    in
+    if can_disintegrate then
+      incr disintegratable_count
+  ) bricks;
+  !disintegratable_count
+
+let main () =
+  let filename = "input.txt" in
+  try
+    let lines =
+      let ic = open_in filename in
+      let lines = In_channel.input_all ic |> String.split_on_char '\n' in
+      close_in ic;
+      lines
+    in
+    let bricks = parse_input lines in
+    let settled_bricks = settle bricks in
+    let result = solve settled_bricks in
+    Printf.printf "%d\n" result
+  with
+  | Sys_error msg -> Printf.eprintf "Error reading file: %s\n" msg
+  | Failure msg -> Printf.eprintf "Error processing input: %s\n" msg
+  | exn -> Printf.eprintf "An unexpected error occurred: %s\n" (Printexc.to_string exn)
+
+let () = main ()

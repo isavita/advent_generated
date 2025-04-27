@@ -1,0 +1,103 @@
+
+module Coord = struct
+  type t = int * int
+  let compare = compare
+end
+
+module CoordMap = Map.Make(Coord)
+module CoordSet = Set.Make(Coord)
+
+type grid = {
+  width: int;
+  height: int;
+  data: char CoordMap.t;
+}
+
+let parse_grid lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let data = List.mapi (fun y line ->
+    String.to_seqi line
+    |> Seq.filter (fun (_, c) -> c <> '.')
+    |> Seq.map (fun (x, c) -> ((x, y), c))
+  ) lines
+  |> List.fold_left (fun acc seq ->
+      Seq.fold_left (fun acc (coord, char) -> CoordMap.add coord char acc) acc seq
+  ) CoordMap.empty
+  in
+  { width; height; data; }
+
+let find_start grid =
+  CoordMap.fold (fun coord char acc ->
+    if char = 'S' then coord else acc
+  ) grid.data (0, 0)
+
+let is_in_bounds grid (x, y) =
+  x >= 0 && x < grid.width && y >= 0 && y < grid.height
+
+let neighbors4 grid (x, y) =
+  [(x, y - 1); (x, y + 1); (x + 1, y); (x - 1, y)]
+  |> List.filter (fun coord ->
+    is_in_bounds grid coord &&
+    match CoordMap.find_opt coord grid.data with
+    | Some '#' -> false
+    | _ -> true
+  )
+
+let bfs grid start =
+  let q = Queue.create () in
+  Queue.add start q;
+  let distances = CoordMap.add start 0 CoordMap.empty in
+  let reached = CoordSet.add start CoordSet.empty in
+
+  let rec loop distances reached =
+    if Queue.is_empty q then distances
+    else
+      let current = Queue.pop q in
+      let dist = CoordMap.find current distances in
+      let neighbors = neighbors4 grid current in
+      let (new_distances, new_reached) = List.fold_left (fun (acc_dist, acc_reached) next ->
+        if not (CoordSet.mem next acc_reached) then (
+          Queue.add next q;
+          (CoordMap.add next (dist + 1) acc_dist, CoordSet.add next acc_reached)
+        ) else (acc_dist, acc_reached)
+      ) (distances, reached) neighbors
+      in
+      loop new_distances new_reached
+  in
+  loop distances reached
+
+let solve lines num_steps =
+  let grid = parse_grid lines in
+  let start = find_start grid in
+  let distances = bfs grid start in
+  CoordMap.fold (fun _ dist count ->
+    if dist <= num_steps && dist mod 2 = num_steps mod 2 then
+      count + 1
+    else
+      count
+  ) distances 0
+
+let read_file filename =
+  let ic = open_in filename in
+  let lines = try
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file -> List.rev acc
+    in
+    read_lines []
+  with e ->
+    close_in_noerr ic;
+    raise e
+  in
+  close_in_noerr ic;
+  lines
+
+let main () =
+  let input_lines = read_file "input.txt" in
+  let result = solve input_lines 64 in
+  Printf.printf "%d\n" result
+
+let () = main ()

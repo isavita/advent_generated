@@ -1,0 +1,33 @@
+
+let apply_mask value_ll mask_str =
+  let result = ref value_ll in
+  let mask_len = String.length mask_str in
+  for i = 0 to mask_len - 1 do
+    let bit_pos = 35 - i in
+    match mask_str.[i] with
+    | '1' -> result := Int64.logor !result (Int64.shift_left 1L bit_pos)
+    | '0' -> result := Int64.logand !result (Int64.lognot (Int64.shift_left 1L bit_pos))
+    | _ -> ()
+  done;
+  !result
+
+let () =
+  let filename = "input.txt" in
+  let memory_ht = Hashtbl.create 100 in
+  let current_mask = ref "" in
+  let ic = open_in filename in
+  try
+    while true do
+      let line = input_line ic in
+      if String.starts_with ~prefix:"mask = " line then (
+        current_mask := String.sub line 7 (String.length line - 7)
+      ) else (
+        let address, value_ll = Scanf.sscanf line "mem[%d] = %Ld" (fun addr val_ll -> addr, val_ll) in
+        let masked_value_ll = apply_mask value_ll !current_mask in
+        Hashtbl.replace memory_ht address masked_value_ll
+      )
+    done
+  with End_of_file ->
+    close_in ic;
+    let total_sum = Hashtbl.fold (fun _ value acc -> Int64.add acc value) memory_ht 0L in
+    Printf.printf "%Ld\n" total_sum

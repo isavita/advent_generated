@@ -1,0 +1,164 @@
+
+type point = { x : int; y : int; }
+
+type dir = N | E | S | W
+
+type movement = Steps of int | Rotate of char
+
+module Point = struct
+  type t = point
+  let compare p1 p2 =
+    let cmp_x = compare p1.x p2.x in
+    if cmp_x <> 0 then cmp_x else compare p1.y p2.y
+end
+
+module PointMap = Map.Make(Point)
+
+type human = { curr : point; facing : dir; }
+
+let dirs = [| { x = -1; y = 0; }; { x = 0; y = 1; }; { x = 1; y = 0; }; { x = 0; y = -1; } |]
+
+let dir_to_int = function N -> 0 | E -> 1 | S -> 2 | W -> 3
+let int_to_dir = function 0 -> N | 1 -> E | 2 -> S | 3 -> W | _ -> failwith "Invalid dir int"
+
+let rotate dir rot =
+  let d_int = dir_to_int dir in
+  match rot with
+  | 'R' -> int_to_dir ((d_int + 1) mod 4)
+  | 'L' -> int_to_dir ((d_int - 1 + 4) mod 4)
+  | _ -> dir
+
+let points dir =
+  (dir_to_int dir + 3) mod 4
+
+let cross_border p dir size =
+  let x = p.x in
+  let y = p.y in
+  let s = size in
+  if x = -1 && y < 2 * s then ({ x = y + 2 * s; y = x + 1; }, E)
+  else if x = -1 && y >= 2 * s then ({ x = x + 4 * s; y = y - 2 * s; }, N)
+  else if x = s && dir = S then ({ x = y - s; y = x + s - 1; }, W)
+  else if x = 2 * s - 1 && dir = N then ({ x = y + s; y = x - s + 1; }, E)
+  else if x = 3 * s && dir = S then ({ x = y + 2 * s; y = x - 2 * s - 1; }, W)
+  else if x = 4 * s then ({ x = x - 4 * s; y = y + 2 * s; }, S)
+  else if y = -1 && x < 3 * s then ({ x = 3 * s - 1 - x; y = y + s + 1; }, E)
+  else if y = -1 && x >= 3 * s then ({ x = y + 1; y = x - 2 * s; }, S)
+  else if y = s - 1 && x < s then ({ x = 3 * s - 1 - x; y = y - s + 1; }, E)
+  else if y = s - 1 && x >= s && dir = W then ({ x = y + s + 1; y = x - s; }, S)
+  else if y = s && dir = E then ({ x = y + 2 * s - 1; y = x - 2 * s; }, N)
+  else if y = 2 * s && x < 2 * s && dir = E then ({ x = y - s - 1; y = x + s; }, N)
+  else if y = 2 * s && x >= 2 * s then ({ x = 3 * s - 1 - x; y = y + s - 1; }, W)
+  else if y = 3 * s then ({ x = 3 * s - 1 - x; y = y - s - 1; }, W)
+  else raise (Failure (Printf.sprintf "Not a border crossing from (%d, %d) facing %d" x y (dir_to_int dir)))
+
+let walk human map_data size =
+  let dir_delta = dirs.(dir_to_int human.facing) in
+  let next_pos = { x = human.curr.x + dir_delta.x; y = human.curr.y + dir_delta.y; } in
+  match PointMap.find_opt next_pos map_data with
+  | Some is_wall ->
+      if is_wall then (human.curr, human.facing)
+      else (next_pos, human.facing)
+  | None ->
+      let (new_pos, new_facing) = cross_border next_pos human.facing size in
+      match PointMap.find_opt new_pos map_data with
+      | Some is_wall ->
+          if is_wall then (human.curr, human.facing)
+          else (new_pos, new_facing)
+      | None ->
+          raise (Failure "Crossed border to unmapped area")
+
+let parse_path path =
+  let len = String.length path in
+  let rec parse i acc =
+    if i >= len then List.rev acc
+    else
+      let c = String.get path i in
+      match c with
+      | 'R' | 'L' as rot ->
+          parse (i + 1) (Rotate rot :: acc)
+      | d when d >= '0' && d <= '9' ->
+          let rec parse_num j num =
+            if j < len && String.get path j >= '0' && String.get path j <= '9' then
+              parse_num (j + 1) (num * 10 + (Char.code (String.get path j) - Char.code '0'))
+            else
+              (j, num)
+          in
+          let (next_i, steps) = parse_num i 0 in
+          parse next_i (Steps steps :: acc)
+      | _ -> raise (Failure (Printf.sprintf "Invalid character in path: %c" c))
+  in
+  parse 0 []
+
+let parse_input filename =
+  let ic = open_in filename in
+  let lines =
+    let rec read_lines acc =
+      try read_lines (input_line ic :: acc) with End_of_file -> List.rev acc
+    in read_lines []
+  in
+  close_in ic;
+
+  let rec find_blank_line lines row_idx =
+    match lines with
+    | [] -> raise (Failure "Input format error: no blank line found")
+    | "" :: rest -> (row_idx, rest)
+    | _ :: rest -> find_blank_line rest (row_idx + 1)
+  in
+
+  let num_map_lines, rest_lines = find_blank_line lines 0 in
+
+  let rec list_take n lst =
+    if n <= 0 || lst = [] then []
+    else match lst with
+    | h :: t -> h :: list_take (n - 1) t
+  in
+  let map_lines = list_take num_map_lines lines in
+
+  let path_line_str = match rest_lines with
+    | path_str :: _ -> path_str
+    | [] -> raise (Failure "Input format error: path line missing after blank line")
+  in
+
+  let map_data = ref PointMap.empty in
+  let size = ref 0 in
+  List.iteri (fun row line ->
+    if row = 0 then size := String.length line / 3;
+    String.iteri (fun col char ->
+      match char with
+      | '#' -> map_data := PointMap.add { x = row; y = col; } true !map_data
+      | '.' -> map_data := PointMap.add { x = row; y = col; } false !map_data
+      | ' ' -> ()
+      | _ -> raise (Failure (Printf.sprintf "Invalid map character: %c at (%d, %d)" char row col))
+    ) line
+  ) map_lines;
+
+  !map_data, !size, parse_path path_line_str
+
+let main () =
+  let map_data, size, movements = parse_input "input.txt" in
+  let human = ref { curr = { x = 0; y = size; }; facing = E; } in
+
+  List.iter (fun mov ->
+    match mov with
+    | Rotate rot ->
+        human := { !human with facing = rotate !human.facing rot; }
+    | Steps steps ->
+        let current_human = ref !human in
+        let stopped = ref false in
+        for _ = 1 to steps do
+          if not !stopped then (
+            let (new_pos, new_facing) = walk !current_human map_data size in
+            if new_pos = !current_human.curr && new_facing = !current_human.facing then
+              stopped := true
+            else
+              current_human := { curr = new_pos; facing = new_facing; }
+          )
+        done;
+        human := !current_human
+  ) movements;
+
+  let final_value = 1000 * (!human.curr.x + 1) + 4 * (!human.curr.y + 1) + points !human.facing in
+  print_int final_value;
+  print_newline ()
+
+let () = main ()

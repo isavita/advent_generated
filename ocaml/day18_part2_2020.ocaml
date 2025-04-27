@@ -1,0 +1,145 @@
+
+open Printf
+open In_channel
+
+type token =
+  | Number of int
+  | Plus
+  | Star
+
+let tokenize s =
+  let len = String.length s in
+  let rec scan i tokens =
+    if i >= len then List.rev tokens
+    else
+      match s.[i] with
+      | ' ' -> scan (i + 1) tokens
+      | '+' -> scan (i + 1) (Plus :: tokens)
+      | '*' -> scan (i + 1) (Star :: tokens)
+      | '0'..'9' ->
+          let j = ref i in
+          while !j < len && s.[!j] >= '0' && s.[!j] <= '9' do
+            incr j
+          done;
+          let num_str = String.sub s i (!j - i) in
+          let num = int_of_string num_str in
+          scan !j (Number num :: tokens)
+      | c -> failwith (sprintf "Invalid character in expression: %c" c)
+  in
+  scan 0 []
+
+let evaluate_simple_tokens tokens =
+  let rec eval current_value = function
+    | [] -> current_value
+    | Plus :: Number n :: rest -> eval (current_value + n) rest
+    | Star :: Number n :: rest -> eval (current_value * n) rest
+    | _ -> failwith "Invalid token sequence for simple evaluation"
+  in
+  match tokens with
+  | Number n :: rest -> eval n rest
+  | _ -> failwith "Expression must start with a number"
+
+let rec evaluate_advanced_tokens tokens =
+  let rec process_additions current_tokens =
+    let rec find_first_plus_and_replace tokens' prefix =
+      match tokens' with
+      | (Number n1) :: Plus :: (Number n2) :: rest ->
+          let new_tokens = (List.rev prefix) @ (Number (n1 + n2)) :: rest in
+          process_additions new_tokens
+      | h :: t ->
+          find_first_plus_and_replace t (h :: prefix)
+      | [] ->
+          List.rev prefix
+    in
+    find_first_plus_and_replace current_tokens []
+  in
+
+  let tokens_after_additions = process_additions tokens in
+
+  let rec eval_multiplications current_value = function
+    | [] -> current_value
+    | Star :: Number n :: rest -> eval_multiplications (current_value * n) rest
+    | _ -> failwith "Invalid token sequence after additions for advanced evaluation"
+  in
+  match tokens_after_additions with
+  | Number n :: rest -> eval_multiplications n rest
+  | _ -> failwith "Expression after additions must start with a number"
+
+let find_matching_paren s start_index =
+  let len = String.length s in
+  let depth = ref 0 in
+  let rec find i =
+    if i >= len then failwith "Mismatched parentheses: no closing paren found"
+    else
+      match s.[i] with
+      | '(' -> incr depth; find (i + 1)
+      | ')' ->
+          if !depth = 0 then i
+          else (decr depth; find (i + 1))
+      | _ -> find (i + 1)
+  in
+  if s.[start_index] <> '(' then failwith "find_matching_paren expects starting '('"
+  else find (start_index + 1)
+
+let rec evaluate_expression expression_str token_eval_fn =
+  let s = expression_str in
+  let len = String.length s in
+
+  let rec find_last_open i =
+    if i < 0 then -1
+    else if s.[i] = '(' then i
+    else find_last_open (i - 1)
+  in
+
+  let last_open_idx = find_last_open (len - 1) in
+
+  if last_open_idx = -1 then
+    let tokens = tokenize s in
+    token_eval_fn tokens
+  else
+    let matching_close_idx = find_matching_paren s last_open_idx in
+    let inner_expression = String.sub s (last_open_idx + 1) (matching_close_idx - (last_open_idx + 1)) in
+    let inner_result = evaluate_expression inner_expression token_eval_fn in
+    let inner_result_str = string_of_int inner_result in
+    let before_paren = String.sub s 0 last_open_idx in
+    let after_paren = String.sub s (matching_close_idx + 1) (len - (matching_close_idx + 1)) in
+    let new_expression_str = before_paren ^ inner_result_str ^ after_paren in
+    evaluate_expression new_expression_str token_eval_fn
+
+let read_lines filename =
+  let lines = ref [] in
+  let chan = open_text filename in
+  try
+    while true; do
+      let line = input_line chan in
+      match line with
+      | Some s -> lines := s :: !lines
+      | None -> raise End_of_file
+    done; !lines
+  with
+  | End_of_file ->
+      close chan;
+      List.rev !lines
+  | e ->
+      close chan;
+      raise e
+
+let main () =
+  let expressions = read_lines "input.txt" in
+
+  let total_part1 = ref 0 in
+  let total_part2 = ref 0 in
+
+  List.iter (fun expr ->
+    let result1 = evaluate_expression expr evaluate_simple_tokens in
+    let result2 = evaluate_expression expr evaluate_advanced_tokens in
+    total_part1 := !total_part1 + result1;
+    total_part2 := !total_part2 + result2;
+  ) expressions;
+
+  print_int !total_part1;
+  print_newline ();
+  print_int !total_part2;
+  print_newline ()
+
+let () = main ()

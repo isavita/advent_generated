@@ -1,0 +1,113 @@
+
+type file_segment = { id: int; start: int; end_idx: int }
+
+let read_input filename =
+  let ic = In_channel.open_text filename in
+  let line = In_channel.input_line ic in
+  In_channel.close ic;
+  match line with
+  | Some s -> s
+  | None -> ""
+
+let initialize_disk input_line =
+  let lengths = List.map (fun c -> int_of_string (String.make 1 c)) (List.of_seq (String.to_seq input_line)) in
+  let total_size = List.fold_left (+) 0 lengths in
+  let disk = Array.make total_size "." in
+  let current_pos = ref 0 in
+  let file_id = ref 0 in
+  let is_file = ref true in
+  List.iter (fun len ->
+      for i = 0 to len - 1 do
+        disk.(!current_pos + i) <- if !is_file then string_of_int !file_id else ".";
+      done;
+      current_pos := !current_pos + len;
+      if !is_file then incr file_id;
+      is_file := not !is_file;
+    ) lengths;
+  disk
+
+let find_file_segments disk =
+  let n = Array.length disk in
+  let segments = ref [] in
+  let current_id = ref None in
+  let segment_start = ref (-1) in
+
+  for i = 0 to n - 1 do
+    match disk.(i) with
+    | "." ->
+        (match !current_id with
+         | Some id -> segments := { id = id; start = !segment_start; end_idx = i - 1 } :: !segments
+         | None -> ());
+        current_id := None;
+        segment_start := -1;
+    | s ->
+        let id = int_of_string s in
+        (match !current_id with
+         | Some current_file_id when current_file_id = id ->
+             ()
+         | _ ->
+             (match !current_id with
+              | Some prev_id -> segments := { id = prev_id; start = !segment_start; end_idx = i - 1 } :: !segments
+              | None -> ());
+             current_id := Some id;
+             segment_start := i;
+        );
+  done;
+  (match !current_id with
+   | Some id -> segments := { id = id; start = !segment_start; end_idx = n - 1 } :: !segments
+   | None -> ());
+
+  List.rev !segments
+
+let find_free_span disk limit len =
+  let rec search i current_span_start current_span_len =
+    if i >= limit then None
+    else
+      match disk.(i) with
+      | "." ->
+          let new_span_start = if current_span_len = 0 then i else current_span_start in
+          let new_span_len = current_span_len + 1 in
+          if new_span_len = len then Some new_span_start
+          else search (i + 1) new_span_start new_span_len
+      | _ ->
+          search (i + 1) (-1) 0
+  in
+  search 0 (-1) 0
+
+let solve disk segments =
+  let sorted_segments = List.sort (fun a b -> compare b.id a.id) segments in
+
+  List.iter (fun segment ->
+      let file_len = segment.end_idx - segment.start + 1 in
+      match find_free_span disk segment.start file_len with
+      | Some new_start ->
+          for i = segment.start to segment.end_idx do
+            disk.(i) <- ".";
+          done;
+          for i = 0 to file_len - 1 do
+            disk.(new_start + i) <- string_of_int segment.id;
+          done;
+      | None ->
+          ()
+    ) sorted_segments
+
+let calculate_checksum disk =
+  let n = Array.length disk in
+  let checksum = ref 0 in
+  for i = 0 to n - 1 do
+    match disk.(i) with
+    | "." -> ()
+    | s ->
+        let id = int_of_string s in
+        checksum := !checksum + (i * id);
+  done;
+  !checksum
+
+let () =
+  let input_line = read_input "input.txt" in
+  let disk = initialize_disk input_line in
+  let segments = find_file_segments disk in
+  solve disk segments;
+  let checksum = calculate_checksum disk in
+  print_int checksum;
+  print_newline ()

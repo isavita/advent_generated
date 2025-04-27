@@ -1,0 +1,217 @@
+
+module MinHeap = struct
+  type 'a t = {
+    mutable arr: 'a array;
+    mutable size: int;
+  }
+
+  let create initial_capacity = {
+    arr = Array.make initial_capacity (Obj.magic 0);
+    size = 0;
+  }
+
+  let grow heap =
+    let new_capacity = max 1 (heap.size * 2) in
+    let new_arr = Array.make new_capacity (Obj.magic 0) in
+    Array.blit heap.arr 0 new_arr 0 heap.size;
+    heap.arr <- new_arr
+
+  let swap heap i j =
+    let temp = heap.arr.(i) in
+    heap.arr.(i) <- heap.arr.(j);
+    heap.arr.(j) <- temp
+
+  let bubble_up heap idx =
+    let rec loop current_idx =
+      if current_idx = 0 then ()
+      else
+        let parent_idx = (current_idx - 1) / 2 in
+        if heap.arr.(current_idx) < heap.arr.(parent_idx) then (
+          swap heap current_idx parent_idx;
+          loop parent_idx
+        ) else ()
+    in
+    loop idx
+
+  let bubble_down heap idx =
+    let rec loop current_idx =
+      let left_child_idx = 2 * current_idx + 1 in
+      let right_child_idx = 2 * current_idx + 2 in
+      let smallest_idx = ref current_idx in
+
+      if left_child_idx < heap.size && heap.arr.(left_child_idx) < heap.arr.(!smallest_idx) then
+        smallest_idx := left_child_idx;
+
+      if right_child_idx < heap.size && heap.arr.(right_child_idx) < heap.arr.(!smallest_idx) then
+        smallest_idx := right_child_idx;
+
+      if !smallest_idx <> current_idx then (
+        swap heap current_idx !smallest_idx;
+        loop !smallest_idx
+      ) else ()
+    in
+    loop idx
+
+  let push x heap =
+    if heap.size = Array.length heap.arr then grow heap;
+    heap.arr.(heap.size) <- x;
+    heap.size <- heap.size + 1;
+    bubble_up heap (heap.size - 1)
+
+  let pop heap =
+    if heap.size = 0 then None
+    else (
+      let root = heap.arr.(0) in
+      heap.size <- heap.size - 1;
+      if heap.size > 0 then (
+        heap.arr.(0) <- heap.arr.(heap.size);
+        bubble_down heap 0;
+      );
+      Some root
+    )
+end
+
+type direction = North | South | East | West
+
+let turn dir turn_type =
+  match dir, turn_type with
+  | North, 'L' -> West
+  | North, 'R' -> East
+  | South, 'L' -> East
+  | South, 'R' -> West
+  | East, 'L' -> North
+  | East, 'R' -> South
+  | West, 'L' -> South
+  | West, 'R' -> North
+  | _, _ -> failwith "Invalid turn or direction"
+
+let move dir =
+  match dir with
+  | North -> (0, -1)
+  | South -> (0, 1)
+  | East -> (1, 0)
+  | West -> (-1, 0)
+
+let reverse dir =
+  match dir with
+  | North -> South
+  | South -> North
+  | East -> West
+  | West -> East
+
+let dijkstra grid part =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let end_x = width - 1 in
+  let end_y = height - 1 in
+
+  (* State: (heat_loss, x, y, direction, steps) *)
+  let heap = MinHeap.create 1000 in
+
+  (* Visited states: (x, y, direction, steps) -> min_heat_loss *)
+  let visited = Hashtbl.create 100000 in
+
+  if width > 1 then MinHeap.push (grid.(0).(1), 1, 0, East, 1) heap;
+  if height > 1 then MinHeap.push (grid.(1).(0), 0, 1, South, 1) heap;
+
+  let max_steps, min_steps_before_turn =
+    match part with
+    | 1 -> (3, 1)
+    | 2 -> (10, 4)
+    | _ -> failwith "Invalid part"
+  in
+
+  let rec solve () =
+    match MinHeap.pop heap with
+    | None -> -1
+    | Some (current_heat_loss, x, y, direction, steps) ->
+      let state_key = (x, y, direction, steps) in
+
+      match Hashtbl.find_opt visited state_key with
+      | Some existing_heat when existing_heat <= current_heat_loss -> solve ()
+      | _ ->
+        Hashtbl.replace visited state_key current_heat_loss;
+
+        if x = end_x && y = end_y then
+          if part = 2 && steps < min_steps_before_turn then solve ()
+          else current_heat_loss
+        else
+          let possible_moves = [] in
+
+          let possible_moves =
+            if steps < max_steps then ('C', direction) :: possible_moves
+            else possible_moves
+          in
+
+          let possible_moves =
+            if steps >= min_steps_before_turn then
+              let left_dir = turn direction 'L' in
+              let right_dir = turn direction 'R' in
+              ('L', left_dir) :: ('R', right_dir) :: possible_moves
+            else possible_moves
+          in
+
+          let process_move (move_type, next_direction) =
+            let dx, dy = move next_direction in
+            let nx, ny = x + dx, y + dy in
+
+            if nx >= 0 && nx < width && ny >= 0 && ny < height then (
+              if not (next_direction = reverse direction) then (
+                let next_steps =
+                  match move_type with
+                  | 'C' -> steps + 1
+                  | _ -> 1
+                in
+                let next_heat_loss = current_heat_loss + grid.(ny).(nx) in
+                let next_state = (next_heat_loss, nx, ny, next_direction, next_steps) in
+                MinHeap.push next_state heap
+              )
+            )
+          in
+          List.iter process_move possible_moves;
+          solve ()
+  in
+  solve ()
+
+let () =
+  let filename = "input.txt" in
+  let lines =
+    try
+      let ic = open_in filename in
+      let rec read_all acc =
+        try
+          let line = input_line ic in
+          read_all (line :: acc)
+        with End_of_file ->
+          close_in ic;
+          List.rev acc
+      in
+      read_all []
+    with Sys_error msg ->
+      Printf.eprintf "%s\n" msg;
+      []
+  in
+
+  if List.is_empty lines then (
+    exit 1
+  );
+
+  let grid_list = List.map (fun line ->
+    String.to_seq line
+    |> List.of_seq
+    |> List.map (fun c -> int_of_char c - int_of_char '0')
+  ) lines in
+
+  let grid = Array.of_list (List.map Array.of_list grid_list) in
+
+  if Array.length grid = 0 || Array.length grid.(0) = 0 then (
+    exit 1
+  );
+
+  let heat_loss_part1 = dijkstra grid 1 in
+  Printf.printf "%d\n" heat_loss_part1;
+
+  let heat_loss_part2 = dijkstra grid 2 in
+  Printf.printf "%d\n" heat_loss_part2;
+
+  ()

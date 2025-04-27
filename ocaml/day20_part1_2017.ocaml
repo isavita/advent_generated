@@ -1,0 +1,56 @@
+
+type vec3 = int * int * int
+type particle = { p: vec3; v: vec3; a: vec3 }
+
+let manhattan (x, y, z) = abs x + abs y + abs z
+
+let parse_line line =
+  Scanf.sscanf line "p=<%d,%d,%d>, v=<%d,%d,%d>, a=<%d,%d,%d>"
+    (fun px py pz vx vy vz ax ay az ->
+      { p = (px, py, pz); v = (vx, vy, vz); a = (ax, ay, az) })
+
+let read_particles filename =
+  let ic = open_in filename in
+  let rec read_all acc =
+    try
+      let line = input_line ic in
+      let particle = parse_line line in
+      read_all (particle :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  read_all []
+
+let () =
+  let filename = "input.txt" in
+  let particles = read_particles filename in
+  let n = List.length particles in
+
+  if n = 0 then
+    () (* Or handle error if needed *)
+  else begin
+    let initial_particle = List.hd particles in
+    let initial_best_idx = 0 in
+    let initial_best_a = manhattan initial_particle.a in
+    let initial_best_v = manhattan initial_particle.v in
+    let initial_best_p = manhattan initial_particle.p in
+
+    let indexed_particles = List.mapi (fun i p -> (i, p)) particles in
+
+    let (final_best_idx, _, _, _) =
+      List.fold_left (fun (best_idx, best_a, best_v, best_p) (current_idx, particle) ->
+        let current_a = manhattan particle.a in
+        let current_v = manhattan particle.v in
+        let current_p = manhattan particle.p in
+
+        if current_a < best_a ||
+           (current_a = best_a && current_v < best_v) ||
+           (current_a = best_a && current_v = best_v && current_p < best_p) then
+          (current_idx, current_a, current_v, current_p)
+        else
+          (best_idx, best_a, best_v, best_p)
+      ) (initial_best_idx, initial_best_a, initial_best_v, initial_best_p) indexed_particles
+    in
+    Printf.printf "%d\n" final_best_idx
+  end

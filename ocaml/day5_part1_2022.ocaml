@@ -1,0 +1,79 @@
+
+let read_file filename =
+  let ic = open_in filename in
+  let content = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  content
+
+let is_letter c =
+  c >= 'A' && c <= 'Z'
+
+let parse_initial_state_lines lines =
+  let crate_lines = List.filter (fun s -> String.contains s '[') lines in
+  let num_stacks =
+    match crate_lines with
+    | h :: _ -> (String.length h + 1) / 4
+    | [] -> failwith "No crate lines found in input"
+  in
+  let stacks_arr = Array.make num_stacks [] in
+  List.iter (fun line ->
+    for k = 0 to num_stacks - 1 do
+      let char_pos = 1 + 4 * k in
+      if char_pos < String.length line then
+        let crate_char = line.[char_pos] in
+        if is_letter crate_char then
+          stacks_arr.(k) <- crate_char :: stacks_arr.(k)
+    done
+  ) (List.rev crate_lines);
+  stacks_arr
+
+let parse_move_lines lines =
+  List.map (fun line ->
+    let parts = String.split_on_char ' ' line in
+    if List.length parts >= 6 && List.nth parts 0 = "move" && List.nth parts 2 = "from" && List.nth parts 4 = "to" then
+      try
+        let n = int_of_string (List.nth parts 1) in
+        let from_ = int_of_string (List.nth parts 3) in
+        let to_ = int_of_string (List.nth parts 5) in
+        (n, from_ - 1, to_ - 1)
+      with Failure _ -> failwith ("Failed to parse integers in move line: " ^ line)
+    else failwith ("Invalid move line format: " ^ line)
+  ) (List.filter (fun s -> s <> "") lines)
+
+let rec move_one_by_one n from_idx to_idx stacks_arr =
+  if n <= 0 then ()
+  else
+    let src = stacks_arr.(from_idx) in
+    match src with
+    | [] -> ()
+    | crate :: src_rest ->
+        stacks_arr.(from_idx) <- src_rest;
+        stacks_arr.(to_idx) <- crate :: stacks_arr.(to_idx);
+        move_one_by_one (n - 1) from_idx to_idx stacks_arr
+
+let () =
+  let file_content = read_file "input.txt" in
+  let lines = String.split_on_char '\n' file_content in
+
+  let rec split_input acc_state = function
+    | [] -> (List.rev acc_state, [])
+    | "" :: rest -> (List.rev acc_state, rest)
+    | h :: t -> split_input (h :: acc_state) t
+  in
+  let initial_state_lines, move_lines = split_input [] lines in
+
+  let stacks = parse_initial_state_lines initial_state_lines in
+  let moves = parse_move_lines move_lines in
+
+  List.iter (fun (n, from_, to_) ->
+    move_one_by_one n from_ to_ stacks
+  ) moves;
+
+  let top_crates_list = Array.to_list (Array.map (fun stack ->
+    match stack with
+    | h :: _ -> h
+    | [] -> ' '
+  ) stacks) in
+
+  let result_string = String.of_seq (List.to_seq top_crates_list) in
+  print_endline result_string

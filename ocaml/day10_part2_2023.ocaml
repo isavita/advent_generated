@@ -1,0 +1,191 @@
+
+open Printf
+
+type coord = { x : int; y : int }
+
+let top = { x = 0; y = -1 }
+let bottom = { x = 0; y = 1 }
+let left = { x = -1; y = 0 }
+let right = { x = 1; y = 0 }
+let dirs = [top; bottom; left; right]
+
+let empty_tile = '.'
+let start_tile = 'S'
+let vertical_tile = '|'
+let horizontal_tile = '-'
+let top_left_tile = 'J'
+let top_right_tile = 'L'
+let bottom_left_tile = '7'
+let bottom_right_tile = 'F'
+
+let coord_add c1 c2 = { x = c1.x + c2.x; y = c1.y + c2.y }
+let coord_subtract c1 c2 = { x = c1.x - c2.x; y = c1.y - c2.y }
+let coord_opposite c = { x = -c.x; y = -c.y }
+
+let tile_to_dirs = function
+  | c when c = vertical_tile -> [top; bottom]
+  | c when c = horizontal_tile -> [left; right]
+  | c when c = top_left_tile -> [top; left]
+  | c when c = top_right_tile -> [top; right]
+  | c when c = bottom_left_tile -> [bottom; left]
+  | c when c = bottom_right_tile -> [bottom; right]
+  | _ -> []
+
+let build_grid lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let grid = Array.make_matrix height width empty_tile in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      grid.(y).(x) <- char
+    ) line
+  ) lines;
+  (grid, width, height)
+
+let find_start grid width height =
+  let start_coord = ref { x = -1; y = -1 } in
+  let found = ref false in
+  for y = 0 to height - 1 do
+    if not !found then (
+      for x = 0 to width - 1 do
+        if not !found && grid.(y).(x) = start_tile then (
+          start_coord := { x = x; y = y };
+          found := true
+        )
+      done
+    )
+  done;
+  !start_coord
+
+let is_valid_coord {x; y} width height =
+  x >= 0 && x < width && y >= 0 && y < height
+
+let get_start_dirs start grid width height =
+  List.filter (fun dir ->
+    let neighbor_coord = coord_add start dir in
+    if is_valid_coord neighbor_coord width height then (
+      let neighbor_tile = grid.(neighbor_coord.y).(neighbor_coord.x) in
+      let neighbor_possible_dirs = tile_to_dirs neighbor_tile in
+      List.mem (coord_opposite dir) neighbor_possible_dirs
+    ) else false
+  ) dirs
+
+let find_path start_coord grid width height =
+  let start_dirs = get_start_dirs start_coord grid width height in
+  let initial_dir = List.hd start_dirs in
+  let path = ref [start_coord] in
+  let current_coord = ref (coord_add start_coord initial_dir) in
+  let previous_dir = ref initial_dir in
+
+  while !current_coord <> start_coord do
+    path := !current_coord :: !path;
+    let current_tile = grid.(!current_coord.y).(!current_coord.x) in
+    let possible_dirs = tile_to_dirs current_tile in
+    let next_dir = List.find (fun d -> d <> (coord_opposite !previous_dir)) possible_dirs in
+    previous_dir := next_dir;
+    current_coord := coord_add !current_coord next_dir;
+  done;
+  List.rev !path
+
+let get_tile_from_two_dirs d1 d2 =
+    let compare_coords c1 c2 =
+        let cmp_x = compare c1.x c2.x in
+        if cmp_x <> 0 then cmp_x else compare c1.y c2.y
+    in
+    let sorted_dirs = List.sort compare_coords [d1; d2] in
+    let is_equal ds1 ds2 =
+        try List.for_all2 (fun c1 c2 -> c1 = c2) (List.sort compare_coords ds1) (List.sort compare_coords ds2)
+        with Invalid_argument _ -> false
+    in
+    if is_equal sorted_dirs [top; bottom] then vertical_tile
+    else if is_equal sorted_dirs [left; right] then horizontal_tile
+    else if is_equal sorted_dirs [top; left] then top_left_tile
+    else if is_equal sorted_dirs [top; right] then top_right_tile
+    else if is_equal sorted_dirs [bottom; left] then bottom_left_tile
+    else if is_equal sorted_dirs [bottom; right] then bottom_right_tile
+    else empty_tile
+
+let build_path_grid path grid width height =
+  let path_set = Array.make_matrix height width false in
+  List.iter (fun {x; y} -> path_set.(y).(x) <- true) path;
+
+  let start_coord = List.hd path in
+  let next_coord = List.nth path 1 in
+  let last_coord = List.nth path (List.length path - 1) in
+
+  let dir1 = coord_subtract next_coord start_coord in
+  let dir2 = coord_subtract last_coord start_coord in
+  let start_tile_type = get_tile_from_two_dirs dir1 dir2 in
+
+  (path_set, start_tile_type, start_coord)
+
+let is_inside {x; y} path_set grid width height start_coord start_tile_type =
+  if path_set.(y).(x) then false
+  else
+    let crossings = ref 0 in
+    let ray_state = ref empty_tile in
+    for ix = 0 to x - 1 do
+      if path_set.(y).(ix) then (
+        let tile_on_path =
+          if ix = start_coord.x && y = start_coord.y then start_tile_type
+          else grid.(y).(ix)
+        in
+        match tile_on_path with
+        | c when c = vertical_tile -> crossings := !crossings + 1
+        | c when c = top_right_tile -> ray_state := top_right_tile
+        | c when c = bottom_right_tile -> ray_state := bottom_right_tile
+        | c when c = top_left_tile ->
+            begin
+              match !ray_state with
+              | s when s = bottom_right_tile -> crossings := !crossings + 1
+              | s when s = top_right_tile -> ()
+              | _ -> ()
+            end;
+            ray_state := empty_tile
+        | c when c = bottom_left_tile ->
+            begin
+              match !ray_state with
+              | s when s = top_right_tile -> crossings := !crossings + 1
+              | s when s = bottom_right_tile -> ()
+              | _ -> ()
+            end;
+            ray_state := empty_tile
+        | _ -> ()
+      )
+    done;
+    !crossings mod 2 = 1
+
+let solve lines =
+  let grid, width, height = build_grid lines in
+  let start_coord = find_start grid width height in
+  let path = find_path start_coord grid width height in
+  let path_set, start_tile_type, _ = build_path_grid path grid width height in
+
+  let inside_count = ref 0 in
+  for y = 0 to height - 1 do
+    for x = 0 to width - 1 do
+      let current_coord = {x; y} in
+      if is_inside current_coord path_set grid width height start_coord start_tile_type then (
+        inside_count := !inside_count + 1
+      )
+    done
+  done;
+  !inside_count
+
+let read_file filename =
+  let lines = ref [] in
+  let ic = open_in filename in
+  try
+    while true; do
+      lines := input_line ic :: !lines
+    done;
+    []
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+
+let () =
+  let filename = "input.txt" in
+  let lines = read_file filename in
+  let result = solve lines in
+  printf "%d\n" result

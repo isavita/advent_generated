@@ -1,0 +1,95 @@
+
+open Set
+
+module DeckPairOrd = struct
+  type t = int list * int list
+  let rec compare_list l1 l2 =
+    match (l1, l2) with
+    | ([], []) -> 0
+    | ([], _) -> -1
+    | (_, []) -> 1
+    | (x1 :: xs1, x2 :: xs2) ->
+        let c = Int.compare x1 x2 in
+        if c <> 0 then c else compare_list xs1 xs2
+  let compare (d1a, d1b) (d2a, d2b) =
+    let c = compare_list d1a d2a in
+    if c <> 0 then c else compare_list d1b d2b
+end
+
+module StateSet = Make(DeckPairOrd)
+
+let rec take n lst =
+  if n <= 0 then []
+  else
+    match lst with
+    | [] -> []
+    | x :: xs -> x :: take (n - 1) xs
+
+let calculate_score deck =
+  let len = List.length deck in
+  let rec score_aux acc index = function
+    | [] -> acc
+    | card :: rest -> score_aux (acc + card * (len - index)) (index + 1) rest
+  in
+  score_aux 0 0 deck
+
+let rec play_recursive_combat player1_deck player2_deck previous_rounds =
+  if StateSet.mem (player1_deck, player2_deck) previous_rounds then
+    (player1_deck, [])
+  else if player1_deck = [] then
+    ([], player2_deck)
+  else if player2_deck = [] then
+    (player1_deck, [])
+  else
+    let new_previous_rounds = StateSet.add (player1_deck, player2_deck) previous_rounds in
+    let card1 = List.hd player1_deck in
+    let card2 = List.hd player2_deck in
+    let rest_player1 = List.tl player1_deck in
+    let rest_player2 = List.tl player2_deck in
+
+    let player1_wins_round =
+      if List.length rest_player1 >= card1 && List.length rest_player2 >= card2 then
+        let sub_deck1 = take card1 rest_player1 in
+        let sub_deck2 = take card2 rest_player2 in
+        let (sub_winner_deck, _) = play_recursive_combat sub_deck1 sub_deck2 StateSet.empty in
+        sub_winner_deck <> []
+      else
+        card1 > card2
+    in
+
+    if player1_wins_round then
+      let next_player1_deck = rest_player1 @ [card1; card2] in
+      play_recursive_combat next_player1_deck rest_player2 new_previous_rounds
+    else
+      let next_player2_deck = rest_player2 @ [card2; card1] in
+      play_recursive_combat rest_player1 next_player2_deck new_previous_rounds
+
+let read_decks filename =
+  let ic = open_in filename in
+  let rec read_lines acc_p1 acc_p2 current_player =
+    try
+      let line = input_line ic in
+      let line = String.trim line in
+      if line = "" then
+        read_lines acc_p1 acc_p2 `Player2
+      else if String.starts_with ~prefix:"Player" line then
+        read_lines acc_p1 acc_p2 current_player
+      else
+        let card = int_of_string line in
+        match current_player with
+        | `Player1 -> read_lines (card :: acc_p1) acc_p2 `Player1
+        | `Player2 -> read_lines acc_p1 (card :: acc_p2) `Player2
+    with End_of_file ->
+      close_in ic;
+      (List.rev acc_p1, List.rev acc_p2)
+  in
+  read_lines [] [] `Player1
+
+let main () =
+  let player1_initial_deck, player2_initial_deck = read_decks "input.txt" in
+  let (final_p1_deck, final_p2_deck) = play_recursive_combat player1_initial_deck player2_initial_deck StateSet.empty in
+  let winning_deck = if final_p1_deck <> [] then final_p1_deck else final_p2_deck in
+  let score = calculate_score winning_deck in
+  Printf.printf "%d\n" score
+
+let () = main ()
