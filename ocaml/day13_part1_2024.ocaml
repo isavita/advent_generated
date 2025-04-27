@@ -1,0 +1,122 @@
+
+type machine = {
+  ax: int; ay: int;
+  bx: int; by: int;
+  px: int; py: int;
+}
+
+let list_last_exn list =
+  match List.rev list with
+  | h :: _ -> h
+  | [] -> invalid_arg "list_last_exn"
+
+let parse_single_coord_val s =
+  let s = String.trim s in
+  let parts =
+    if String.contains s '+' then String.split_on_char '+' s
+    else if String.contains s '=' then String.split_on_char '=' s
+    else failwith ("Invalid coordinate string: " ^ s)
+  in
+  int_of_string (list_last_exn parts)
+
+let parse_pair s =
+  match String.split_on_char ',' s with
+  | [s1; s2] -> (parse_single_coord_val s1, parse_single_coord_val s2)
+  | _ -> failwith ("Invalid pair string: " ^ s)
+
+let parse_prize_pair s =
+  match String.split_on_char ',' s with
+  | [s1; s2] ->
+      let parts1 = String.split_on_char '=' (String.trim s1) in
+      let parts2 = String.split_on_char '=' (String.trim s2) in
+      (int_of_string (list_last_exn parts1), int_of_string (list_last_exn parts2))
+  | _ -> failwith ("Invalid prize string: " ^ s)
+
+let starts_with s ~prefix =
+  let s_len = String.length s in
+  let prefix_len = String.length prefix in
+  s_len >= prefix_len && String.sub s 0 prefix_len = prefix
+
+let parse_machine_lines lines =
+  let initial_machine = { ax=0; ay=0; bx=0; by=0; px=0; py=0 } in
+  List.fold_left (fun acc line ->
+    if starts_with line ~prefix:"Button A:" then
+      let rest = String.sub line (String.length "Button A:") (String.length line - String.length "Button A:") in
+      let (ax, ay) = parse_pair rest in
+      { acc with ax = ax; ay = ay }
+    else if starts_with line ~prefix:"Button B:" then
+      let rest = String.sub line (String.length "Button B:") (String.length line - String.length "Button B:") in
+      let (bx, by) = parse_pair rest in
+      { acc with bx = bx; by = by }
+    else if starts_with line ~prefix:"Prize:" then
+      let rest = String.sub line (String.length "Prize:") (String.length line - String.length "Prize:") in
+      let (px, py) = parse_prize_pair rest in
+      { acc with px = px; py = py }
+    else acc
+  ) initial_machine lines
+
+let read_lines ic =
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  loop []
+
+let read_machines filename =
+  let ic = open_in filename in
+  let all_lines = read_lines ic in
+  close_in ic;
+
+  let machines = ref [] in
+  let current_machine_lines = ref [] in
+
+  List.iter (fun line ->
+    let line = String.trim line in
+    if String.length line = 0 then (
+      if (List.length !current_machine_lines) > 0 then (
+        machines := (parse_machine_lines !current_machine_lines) :: !machines;
+        current_machine_lines := [];
+      )
+    ) else (
+      current_machine_lines := line :: !current_machine_lines;
+    )
+  ) all_lines;
+
+  if (List.length !current_machine_lines) > 0 then (
+    machines := (parse_machine_lines !current_machine_lines) :: !machines;
+  );
+
+  List.rev !machines
+
+let solve machine =
+  let min_cost = ref (-1) in
+
+  for a_count = 0 to 100 do
+    for b_count = 0 to 100 do
+      let current_x = machine.ax * a_count + machine.bx * b_count in
+      let current_y = machine.ay * a_count + machine.by * b_count in
+
+      if current_x = machine.px && current_y = machine.py then (
+        let cost = a_count * 3 + b_count in
+        if !min_cost = -1 || cost < !min_cost then (
+          min_cost := cost;
+        )
+      )
+    done;
+  done;
+
+  if !min_cost = -1 then None else Some !min_cost
+
+let () =
+  let machines = read_machines "input.txt" in
+  let results = List.filter_map solve machines in
+
+  if results = [] then (
+    Printf.printf "0 0\n"
+  ) else (
+    let count = List.length results in
+    let total_cost = List.fold_left (+) 0 results in
+    Printf.printf "%d %d\n" count total_cost
+  )

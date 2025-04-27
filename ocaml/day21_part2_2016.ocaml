@@ -1,0 +1,151 @@
+
+let find_char_index arr c =
+  let len = Array.length arr in
+  let rec search i =
+    if i >= len then None
+    else if arr.(i) = c then Some i
+    else search (i + 1)
+  in
+  search 0
+
+let swap_positions arr i j =
+  let temp = arr.(i) in
+  arr.(i) <- arr.(j);
+  arr.(j) <- temp
+
+let swap_letters arr c1 c2 =
+  match find_char_index arr c1, find_char_index arr c2 with
+  | Some i, Some j -> swap_positions arr i j
+  | _, _ -> ()
+
+let rotate arr steps =
+  let len = Array.length arr in
+  if len = 0 then ()
+  else
+    let effective_steps = (steps mod len + len) mod len in
+    if effective_steps <> 0 then (
+      let temp_arr = Array.make len ' ' in
+      for i = 0 to len - 1 do
+        temp_arr.(i) <- arr.((i - effective_steps + len) mod len)
+      done;
+      for i = 0 to len - 1 do
+        arr.(i) <- temp_arr.(i)
+      done
+    )
+
+let rotate_letter arr c =
+  match find_char_index arr c with
+  | None -> ()
+  | Some index ->
+      let steps = index + 1 + (if index >= 4 then 1 else 0) in
+      rotate arr steps
+
+let derotate_letter arr c =
+  match find_char_index arr c with
+  | None -> ()
+  | Some final_idx ->
+      let steps =
+        if final_idx = 0 then -1
+        else if final_idx = 1 then -1
+        else if final_idx = 2 then 2
+        else if final_idx = 3 then -2
+        else if final_idx = 4 then 1
+        else if final_idx = 5 then -3
+        else if final_idx = 6 then 0
+        else if final_idx = 7 then -4
+        else 0
+      in
+      rotate arr steps
+
+let reverse arr i j =
+  let rec rev_loop l r =
+    if l < r then (
+      swap_positions arr l r;
+      rev_loop (l + 1) (r - 1)
+    )
+  in
+  rev_loop i j
+
+let move arr i j =
+  let len = Array.length arr in
+  if i < 0 || i >= len || j < 0 || j >= len || i = j then ()
+  else
+    let char_to_move = arr.(i) in
+    if i < j then (
+      for k = i to j - 1 do
+        arr.(k) <- arr.(k + 1)
+      done
+    ) else (
+      for k = i downto j + 1 do
+        arr.(k) <- arr.(k - 1)
+      done
+    );
+    arr.(j) <- char_to_move
+
+let process_instruction arr instruction direction =
+  let parts = String.split_on_char ' ' instruction in
+  match parts with
+  | ["swap"; "position"; x_str; "with"; "position"; y_str] ->
+      let x = int_of_string x_str in
+      let y = int_of_string y_str in
+      swap_positions arr x y
+  | ["swap"; "letter"; x_str; "with"; "letter"; y_str] ->
+      let x = x_str.[0] in
+      let y = y_str.[0] in
+      swap_letters arr x y
+  | ["rotate"; "left"; x_str; _] ->
+      let x = int_of_string x_str in
+      let steps = if direction > 0 then -x else x in
+      rotate arr steps
+  | ["rotate"; "right"; x_str; _] ->
+      let x = int_of_string x_str in
+      let steps = if direction > 0 then x else -x in
+      rotate arr steps
+  | ["rotate"; "based"; "on"; "position"; "of"; "letter"; c_str] ->
+      let c = c_str.[0] in
+      if direction > 0 then
+        rotate_letter arr c
+      else
+        derotate_letter arr c
+  | ["reverse"; "positions"; x_str; "through"; y_str] ->
+      let x = int_of_string x_str in
+      let y = int_of_string y_str in
+      reverse arr x y
+  | ["move"; "position"; x_str; "to"; "position"; y_str] ->
+      let x = int_of_string x_str in
+      let y = int_of_string y_str in
+      let final_x, final_y = if direction > 0 then (x, y) else (y, x) in
+      move arr final_x final_y
+  | _ -> ()
+
+let unscramble initial_pw_str instructions =
+  let pw_arr = initial_pw_str |> String.to_seq |> Array.of_seq in
+  let reversed_instructions = List.rev instructions in
+  List.iter (fun instr -> process_instruction pw_arr instr (-1)) reversed_instructions;
+  pw_arr |> Array.to_seq |> String.of_seq
+
+let main () =
+  let filename = "input.txt" in
+  let initial_hashed_pw = "fbgdceah" in
+
+  let instructions =
+    try
+      let ic = open_in filename in
+      let rec read_lines acc =
+        try
+          let line = input_line ic in
+          read_lines (line :: acc)
+        with End_of_file ->
+          close_in ic;
+          List.rev acc
+      in
+      read_lines []
+    with Sys_error _ ->
+      []
+  in
+
+  if instructions <> [] then
+    let result = unscramble initial_hashed_pw instructions in
+    print_endline result
+
+let () = main ()

@@ -1,0 +1,202 @@
+
+(* Simple mutable min-heap *)
+module Heap = struct
+  type 'a t = {
+    mutable data: 'a array;
+    mutable size: int;
+    cmp: 'a -> 'a -> int;
+  }
+
+  let create initial_capacity cmp = {
+    data = Array.make initial_capacity (Obj.magic 0);
+    size = 0;
+    cmp = cmp;
+  }
+
+  let is_empty heap = heap.size = 0
+
+  let swap heap i j =
+    let tmp = heap.data.(i) in
+    heap.data.(i) <- heap.data.(j);
+    heap.data.(j) <- tmp
+
+  let grow heap =
+    let new_capacity = max 1 (heap.size * 2) in
+    let new_data = Array.make new_capacity (Obj.magic 0) in
+    Array.blit heap.data 0 new_data 0 heap.size;
+    heap.data <- new_data
+
+  let rec bubble_up heap i =
+    if i > 0 then
+      let parent = (i - 1) / 2 in
+      if heap.cmp heap.data.(i) heap.data.(parent) < 0 then begin
+        swap heap i parent;
+        bubble_up heap parent
+      end
+
+  let push heap x =
+    if heap.size = Array.length heap.data then grow heap;
+    heap.data.(heap.size) <- x;
+    heap.size <- heap.size + 1;
+    bubble_up heap (heap.size - 1)
+
+  let rec bubble_down heap i =
+    let left = 2 * i + 1 in
+    let right = 2 * i + 2 in
+    let smallest = ref i in
+    if left < heap.size && heap.cmp heap.data.(left) heap.data.(!smallest) < 0 then
+      smallest := left;
+    if right < heap.size && heap.cmp heap.data.(right) heap.data.(!smallest) < 0 then
+      smallest := right;
+    if !smallest <> i then begin
+      swap heap i !smallest;
+      bubble_down heap !smallest
+    end
+
+  let pop heap =
+    if heap.size = 0 then None
+    else begin
+      let root = heap.data.(0) in
+      heap.size <- heap.size - 1;
+      if heap.size > 0 then begin
+        heap.data.(0) <- heap.data.(heap.size);
+        bubble_down heap 0
+      end;
+      Some root
+    end
+end
+
+open Queue
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec read_lines acc =
+      try
+        let line = input_line ic in
+        read_lines (line :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    read_lines []
+  in
+  let grid = Array.of_list (List.map (fun s -> Array.of_seq (String.to_seq s)) lines) in
+  let n = Array.length grid in
+  let m = Array.length grid.(0) in
+
+  let sx = ref (-1) and sy = ref (-1) and ex = ref (-1) and ey = ref (-1) in
+  for r = 0 to n - 1 do
+    for c = 0 to m - 1 do
+      match grid.(r).(c) with
+      | 'S' -> sx := r; sy := c
+      | 'E' -> ex := r; ey := c
+      | _ -> ()
+    done
+  done;
+  let sx, sy, ex, ey = (!sx, !sy, !ex, !ey) in
+
+  let infinity = 1_000_000_000 in
+  let dist = Array.init n (fun _ -> Array.init m (fun _ -> Array.make 4 infinity)) in
+  let dx = [|-1; 0; 1; 0|] in
+  let dy = [|0; 1; 0; -1|] in
+
+  let pq = Heap.create (n * m * 12 + 10) (fun (c1, _, _, _) (c2, _, _, _) -> compare c1 c2) in
+
+  dist.(sx).(sy).(1) <- 0;
+  Heap.push pq (0, sx, sy, 1);
+
+  while not (Heap.is_empty pq) do
+    match Heap.pop pq with
+    | None -> ()
+    | Some (cost, x, y, d) ->
+      if cost > dist.(x).(y).(d) then
+        ()
+      else begin
+        let turn_cost = cost + 1000 in
+        let nd1 = (d + 1) mod 4 in
+        if turn_cost < dist.(x).(y).(nd1) then begin
+          dist.(x).(y).(nd1) <- turn_cost;
+          Heap.push pq (turn_cost, x, y, nd1);
+        end;
+        let nd2 = (d + 3) mod 4 in
+        if turn_cost < dist.(x).(y).(nd2) then begin
+          dist.(x).(y).(nd2) <- turn_cost;
+          Heap.push pq (turn_cost, x, y, nd2);
+        end;
+
+        let nx = x + dx.(d) in
+        let ny = y + dy.(d) in
+        let move_cost = cost + 1 in
+        if nx >= 0 && nx < n && ny >= 0 && ny < m && grid.(nx).(ny) <> '#' then begin
+          if move_cost < dist.(nx).(ny).(d) then begin
+            dist.(nx).(ny).(d) <- move_cost;
+            Heap.push pq (move_cost, nx, ny, d);
+          end;
+        end;
+      end
+  done;
+
+  let best_cost =
+    let min_c = ref infinity in
+    for d = 0 to 3 do
+      min_c := min !min_c dist.(ex).(ey).(d);
+    done;
+    !min_c
+  in
+
+  let used = Array.init n (fun _ -> Array.make m false) in
+  let vis = Array.init n (fun _ -> Array.init m (fun _ -> Array.make 4 false)) in
+  let rev_states = Queue.create () in
+
+  for d = 0 to 3 do
+    if dist.(ex).(ey).(d) = best_cost then begin
+      if not vis.(ex).(ey).(d) then begin
+        vis.(ex).(ey).(d) <- true;
+        Queue.add (ex, ey, d) rev_states;
+      end;
+    end;
+  done;
+
+  while not (Queue.is_empty rev_states) do
+    let (x, y, d) = Queue.take rev_states in
+    used.(x).(y) <- true;
+
+    let current_cost = dist.(x).(y).(d) in
+
+    let pd1 = (d + 1) mod 4 in
+    if current_cost >= 1000 && dist.(x).(y).(pd1) = current_cost - 1000 then begin
+      if not vis.(x).(y).(pd1) then begin
+        vis.(x).(y).(pd1) <- true;
+        Queue.add (x, y, pd1) rev_states;
+      end;
+    end;
+    let pd2 = (d + 3) mod 4 in
+    if current_cost >= 1000 && dist.(x).(y).(pd2) = current_cost - 1000 then begin
+       if not vis.(x).(y).(pd2) then begin
+        vis.(x).(y).(pd2) <- true;
+        Queue.add (x, y, pd2) rev_states;
+      end;
+    end;
+
+    let px = x - dx.(d) in
+    let py = y - dy.(d) in
+    if px >= 0 && px < n && py >= 0 && py < m && grid.(px).(py) <> '#' then begin
+      if current_cost >= 1 && dist.(px).(py).(d) = current_cost - 1 then begin
+        if not vis.(px).(py).(d) then begin
+          vis.(px).(py).(d) <- true;
+          Queue.add (px, py, d) rev_states;
+        end;
+      end;
+    end;
+  done;
+
+  let used_count = ref 0 in
+  for r = 0 to n - 1 do
+    for c = 0 to m - 1 do
+      if used.(r).(c) then incr used_count;
+    done;
+  done;
+
+  print_int !used_count;
+  print_newline ();

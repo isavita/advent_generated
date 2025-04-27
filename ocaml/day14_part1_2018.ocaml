@@ -1,0 +1,56 @@
+
+(* No comments or explanation *)
+
+let read_input filename =
+  let ic = open_in filename in
+  let line = input_line ic in
+  close_in ic;
+  int_of_string line
+
+let () =
+  let input = read_input "input.txt" in
+
+  let initial_capacity = if input + 10 > 1000 then input + 20 else 1000 in
+  let scores_ref = ref (Array.make initial_capacity 0) in
+  (!scores_ref).(0) <- 3;
+  (!scores_ref).(1) <- 7;
+
+  let size_ref = ref 2 in
+  let capacity_ref = ref initial_capacity in
+  let elf1_ref = ref 0 in
+  let elf2_ref = ref 1 in
+
+  let append_digit digit =
+    if !size_ref = !capacity_ref then (
+      let new_capacity = !capacity_ref * 2 in
+      let new_scores = Array.make new_capacity 0 in
+      Array.blit !scores_ref 0 new_scores 0 !size_ref;
+      scores_ref := new_scores;
+      capacity_ref := new_capacity
+    );
+    (!scores_ref).(!size_ref) <- digit;
+    incr size_ref
+  in
+
+  while !size_ref < input + 10 do
+    let current_scores = !scores_ref in
+    let s1 = current_scores.(!elf1_ref) in
+    let s2 = current_scores.(!elf2_ref) in
+    let new_score = s1 + s2 in
+
+    if new_score >= 10 then (
+      append_digit (new_score / 10)
+    );
+    append_digit (new_score mod 10);
+
+    let len = !size_ref in
+
+    elf1_ref := (!elf1_ref + s1 + 1) mod len;
+    elf2_ref := (!elf2_ref + s2 + 1) mod len;
+  done;
+
+  let final_scores = !scores_ref in
+  for i = input to input + 9 do
+    print_int final_scores.(i)
+  done;
+  print_newline ()

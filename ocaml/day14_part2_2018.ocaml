@@ -1,0 +1,72 @@
+
+type scoreboard = { mutable data: int array; mutable size: int }
+
+let append sb x =
+  if sb.size = Array.length sb.data then begin
+    let new_capacity = max 2 (sb.size * 2) in
+    let new_data = Array.make new_capacity 0 in
+    Array.blit sb.data 0 new_data 0 sb.size;
+    sb.data <- new_data;
+  end;
+  sb.data.(sb.size) <- x;
+  sb.size <- sb.size + 1
+
+let check_end sb input_seq input_len =
+  if sb.size < input_len then false
+  else
+    let start_index = sb.size - input_len in
+    let i = ref 0 in
+    let matched = ref true in
+    while !i < input_len do
+      if sb.data.(start_index + !i) <> input_seq.(!i) then begin
+        matched := false;
+        i := input_len
+      end else
+        incr i
+    done;
+    !matched
+
+let main () =
+  let ic = In_channel.open_text "input.txt" in
+  let input_str = In_channel.input_all ic in
+  In_channel.close ic;
+  let input_str = String.trim input_str in
+  let input_len = String.length input_str in
+  let input_seq = Array.init input_len (fun i -> int_of_char input_str.[i] - int_of_char '0') in
+
+  let initial_capacity = 2 in
+  let sb = { data = Array.make initial_capacity 0; size = 0 } in
+  append sb 3;
+  append sb 7;
+
+  let elf1 = ref 0 in
+  let elf2 = ref 1 in
+
+  let found = ref false in
+  while not !found do
+    let score1 = sb.data.(!elf1) in
+    let score2 = sb.data.(!elf2) in
+    let new_score = score1 + score2 in
+
+    if new_score >= 10 then begin
+      let digit1 = new_score / 10 in
+      append sb digit1;
+      if check_end sb input_seq input_len then found := true;
+    end;
+
+    if not !found then begin
+      let digit2 = new_score mod 10 in
+      append sb digit2;
+      if check_end sb input_seq input_len then found := true;
+    end;
+
+    if not !found then begin
+      let current_size = sb.size in
+      elf1 := (!elf1 + score1 + 1) mod current_size;
+      elf2 := (!elf2 + score2 + 1) mod current_size;
+    end;
+  done;
+
+  Printf.printf "%d\n" (sb.size - input_len)
+
+let () = main ()

@@ -1,0 +1,124 @@
+
+open Printf
+
+let register_index s =
+  match s with
+  | "a" -> 0
+  | "b" -> 1
+  | "c" -> 2
+  | "d" -> 3
+  | _ -> failwith ("Invalid register: " ^ s)
+
+let is_register s =
+  match s with
+  | "a" | "b" | "c" | "d" -> true
+  | _ -> false
+
+let get_value s registers =
+  if is_register s then
+    registers.(register_index s)
+  else (
+    try int_of_string s
+    with Failure _ -> failwith ("Invalid value or register: " ^ s)
+  )
+
+let parse_instruction line =
+  String.split_on_char ' ' line
+
+let toggle_instruction parts =
+  match parts with
+  | [cmd; x] ->
+    let new_cmd = if cmd = "inc" then "dec" else "inc" in
+    [new_cmd; x]
+  | [cmd; x; y] ->
+    let new_cmd = if cmd = "jnz" then "cpy" else "jnz" in
+    [new_cmd; x; y]
+  | _ -> parts
+
+let main () =
+  let initial_registers = [|12; 0; 0; 0|] in
+  let instructions_list =
+    In_channel.with_open_text "input.txt" In_channel.input_lines
+  in
+  let instructions = Array.of_list instructions_list in
+  let registers = Array.copy initial_registers in
+  let ip = ref 0 in
+  let n = Array.length instructions in
+
+  while !ip < n do
+    let current_ip = !ip in
+    let performed_optimization = ref false in
+
+    if current_ip + 5 < n then (
+      let parts0 = parse_instruction instructions.(current_ip) in
+      let parts1 = parse_instruction instructions.(current_ip + 1) in
+      let parts2 = parse_instruction instructions.(current_ip + 2) in
+      let parts3 = parse_instruction instructions.(current_ip + 3) in
+      let parts4 = parse_instruction instructions.(current_ip + 4) in
+      let parts5 = parse_instruction instructions.(current_ip + 5) in
+
+      match (parts0, parts1, parts2, parts3, parts4, parts5) with
+      | (["cpy"; cpy_x; cpy_y],
+         ["inc"; inc_a],
+         ["dec"; dec_c],
+         ["jnz"; jnz_c; jnz_c_offset],
+         ["dec"; dec_d],
+         ["jnz"; jnz_d; jnz_d_offset]) when
+           inc_a = "a" &&
+           is_register cpy_y && dec_c = cpy_y && jnz_c = cpy_y && (try int_of_string jnz_c_offset = -2 with Failure _ -> false) &&
+           is_register dec_d && dec_d = "d" && jnz_d = "d" && (try int_of_string jnz_d_offset = -5 with Failure _ -> false) &&
+           is_register cpy_x
+         ->
+          let val_cpy_x = registers.(register_index cpy_x) in
+          let val_d = registers.(register_index "d") in
+          registers.(register_index "a") <- registers.(register_index "a") + val_cpy_x * val_d;
+          registers.(register_index cpy_y) <- 0;
+          registers.(register_index "d") <- 0;
+          ip := current_ip + 6;
+          performed_optimization := true;
+      | _ -> ()
+    );
+
+    if not !performed_optimization then (
+      let parts = parse_instruction instructions.(current_ip) in
+      match parts with
+      | ["cpy"; x; y] ->
+        if is_register y then (
+          let value_x = get_value x registers in
+          registers.(register_index y) <- value_x;
+        );
+        incr ip
+      | ["inc"; x] ->
+        if is_register x then (
+          registers.(register_index x) <- registers.(register_index x) + 1;
+        );
+        incr ip
+      | ["dec"; x] ->
+        if is_register x then (
+          registers.(register_index x) <- registers.(register_index x) - 1;
+        );
+        incr ip
+      | ["jnz"; x; y] ->
+        let value_x = get_value x registers in
+        let offset = get_value y registers in
+        if value_x <> 0 then
+          ip := current_ip + offset
+        else
+          incr ip
+      | ["tgl"; x] ->
+        let offset = get_value x registers in
+        let target_idx = current_ip + offset in
+        if target_idx >= 0 && target_idx < n then (
+          let target_parts = parse_instruction instructions.(target_idx) in
+          let toggled_parts = toggle_instruction target_parts in
+          instructions.(target_idx) <- String.concat " " toggled_parts;
+        );
+        incr ip
+      | _ ->
+        incr ip
+    )
+  done;
+
+  printf "%d\n" registers.(register_index "a")
+
+let () = main ()
