@@ -1,0 +1,176 @@
+
+module Hashtbl = Stdlib.Hashtbl
+
+type intcode_state = {
+  memory : (int, int) Hashtbl.t;
+  mutable ip : int;
+  input : int list ref;
+  output : int list ref;
+  mutable halted : bool;
+}
+
+let read_mem state addr =
+  if addr < 0 then failwith "Negative memory address access"
+  else Hashtbl.find_opt state.memory addr |> Option.value ~default:0
+
+let write_mem state addr value =
+  if addr < 0 then failwith "Negative memory address write"
+  else Hashtbl.replace state.memory addr value
+
+let create_intcode program =
+  let mem = Hashtbl.create (List.length program) in
+  List.iteri (fun i v -> Hashtbl.add mem i v) program;
+  { memory = mem; ip = 0; input = ref []; output = ref []; halted = false }
+
+let add_input state value =
+  state.input := !(state.input) @ [value] (* Append to maintain order *)
+
+let get_outputs state =
+  let outputs = !(state.output) in
+  state.output := [];
+  outputs
+
+let run state =
+  state.output := [];
+  let rec loop () =
+    if state.halted then ()
+    else
+      let instr = read_mem state state.ip in
+      let opcode = instr mod 100 in
+      let modes = instr / 100 in
+
+      let get_param mode n =
+        let p_addr = state.ip + n in
+        let p_val = read_mem state p_addr in
+        match mode with
+        | 0 -> read_mem state p_val (* Position mode *)
+        | 1 -> p_val              (* Immediate mode *)
+        | _ -> failwith ("Invalid parameter mode: " ^ string_of_int mode)
+      in
+
+      let get_target_addr mode n =
+          let p_addr = state.ip + n in
+          let p_val = read_mem state p_addr in
+           match mode with
+           | 0 -> p_val (* Position mode must return address *)
+           | _ -> failwith "Invalid target parameter mode"
+      in
+
+      match opcode with
+      | 1 | 2 | 7 | 8 -> (* Add, Multiply, Less Than, Equals *)
+          let p1_mode = modes mod 10 in
+          let p2_mode = (modes / 10) mod 10 in
+          let p3_mode = (modes / 100) mod 10 in
+          let val1 = get_param p1_mode 1 in
+          let val2 = get_param p2_mode 2 in
+          let target_addr = get_target_addr p3_mode 3 in
+          let result =
+            match opcode with
+            | 1 -> val1 + val2
+            | 2 -> val1 * val2
+            | 7 -> if val1 < val2 then 1 else 0
+            | 8 -> if val1 = val2 then 1 else 0
+            | _ -> assert false (* Should not happen *)
+          in
+          write_mem state target_addr result;
+          state.ip <- state.ip + 4;
+          loop ()
+      | 3 -> (* Input *)
+          (match !(state.input) with
+          | [] -> () (* Wait for input *)
+          | value :: rest ->
+              state.input := rest;
+              let p1_mode = modes mod 10 in
+              let target_addr = get_target_addr p1_mode 1 in
+              write_mem state target_addr value;
+              state.ip <- state.ip + 2;
+              loop ()
+          )
+      | 4 -> (* Output *)
+          let p1_mode = modes mod 10 in
+          let value = get_param p1_mode 1 in
+          state.output := !(state.output) @ [value]; (* Append output *)
+          state.ip <- state.ip + 2;
+          loop ()
+      | 5 | 6 -> (* Jump-if-true, Jump-if-false *)
+          let p1_mode = modes mod 10 in
+          let p2_mode = (modes / 10) mod 10 in
+          let val1 = get_param p1_mode 1 in
+          let target = get_param p2_mode 2 in
+          if (opcode = 5 && val1 <> 0) || (opcode = 6 && val1 = 0) then
+            state.ip <- target
+          else
+            state.ip <- state.ip + 3;
+          loop ()
+      | 99 -> (* Halt *)
+          state.halted <- true
+      | _ -> failwith ("Unknown opcode: " ^ string_of_int opcode ^ " at ip " ^ string_of_int state.ip)
+  in
+  loop ()
+
+let is_halted state = state.halted
+
+type robot_state = {
+  mutable position : int * int;
+  mutable direction : int; (* 0: Up, 1: Right, 2: Down, 3: Left *)
+}
+
+let create_robot () = { position = (0, 0); direction = 0 }
+
+let turn_and_move robot turn_direction =
+  (* Turn *)
+  robot.direction <- (if turn_direction = 0 then robot.direction + 3 else robot.direction + 1) mod 4;
+  (* Move *)
+  let (x, y) = robot.position in
+  robot.position <- (
+    match robot.direction with
+    | 0 -> (x, y - 1) (* Up *)
+    | 1 -> (x + 1, y) (* Right *)
+    | 2 -> (x, y + 1) (* Down *)
+    | 3 -> (x - 1, y) (* Left *)
+    | _ -> assert false
+  )
+
+let read_program filename =
+  try
+    let ic = In_channel.open_text filename in
+    let line = In_channel.input_line ic |> Option.value ~default:"" in
+    In_channel.close ic;
+    String.split_on_char ',' line
+    |> List.map String.trim
+    |> List.filter (fun s -> s <> "")
+    |> List.map int_of_string
+  with Sys_error msg ->
+    Printf.eprintf "Error reading file '%s': %s\n" filename msg;
+    exit 1
+  | Failure msg ->
+      Printf.eprintf "Error parsing program: %s\n" msg;
+      exit 1
+
+let main () =
+  let program = read_program "input.txt" in
+  let grid : ((int * int), int) Hashtbl.t = Hashtbl.create 100 in
+  let robot = create_robot () in
+  let intcode = create_intcode program in
+
+  while not (is_halted intcode) do
+    let current_color = Hashtbl.find_opt grid robot.position |> Option.value ~default:0 in
+    add_input intcode current_color;
+    run intcode;
+    let outputs = get_outputs intcode in
+
+    match outputs with
+    | [color_to_paint; turn_direction] ->
+        Hashtbl.replace grid robot.position color_to_paint;
+        turn_and_move robot turn_direction
+    | [] when not (is_halted intcode) ->
+        (* Waiting for input, should not happen here if input is always provided *)
+        failwith "Intcode expected input but none was available (internal error)"
+    | [] -> () (* Halted normally *)
+    | _ -> failwith ("Unexpected number of outputs: " ^ string_of_int (List.length outputs))
+  done;
+
+  print_int (Hashtbl.length grid);
+  print_newline ()
+
+let () = main ()

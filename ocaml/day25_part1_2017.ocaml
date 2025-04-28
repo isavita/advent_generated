@@ -1,0 +1,81 @@
+
+open Printf
+
+let read_lines filename =
+  let ch = open_in filename in
+  let lines = ref [] in
+  try
+    while true do
+      let line = input_line ch |> String.trim in
+      if String.length line > 0 then lines := line :: !lines
+    done;
+    assert false
+  with End_of_file ->
+    close_in ch;
+    List.rev !lines
+
+let parse_blueprint lines =
+  let get_char_at s idx = String.get s (String.length s - idx) in
+  let last_word s = List.hd (List.rev (String.split_on_char ' ' s)) in
+
+  let initial_state_line = List.hd lines in
+  let steps_line = List.nth lines 1 in
+  let rest_lines = List.tl (List.tl lines) in
+
+  let initial_state = get_char_at (last_word initial_state_line) 2 in
+  let steps = int_of_string (List.nth (String.split_on_char ' ' steps_line) 5) in
+
+  let states = Hashtbl.create 10 in
+
+  let rec parse_states lines_to_parse =
+    match lines_to_parse with
+    | state_header :: _ :: val0_write :: val0_move :: val0_next ::
+                     _ :: val1_write :: val1_move :: val1_next :: tail ->
+        let state_name = get_char_at state_header 2 in
+
+        let parse_instr write_line move_line next_line =
+          let write_val = int_of_string (String.make 1 (get_char_at (last_word write_line) 2)) in
+          let move_word = List.nth (String.split_on_char ' ' move_line) 6 in
+          let move_dir = if move_word = "left." then -1 else 1 in
+          let next_state_str = last_word next_line in
+          let next_state = String.get next_state_str (String.length next_state_str - 2) in
+          (write_val, move_dir, next_state)
+        in
+
+        let instr0 = parse_instr val0_write val0_move val0_next in
+        let instr1 = parse_instr val1_write val1_move val1_next in
+
+        Hashtbl.add states state_name [| instr0; instr1 |];
+        parse_states tail
+    | [] -> ()
+    | _ -> failwith "Invalid input format"
+  in
+  parse_states rest_lines;
+  (initial_state, steps, states)
+
+let run_turing_machine initial_state steps states =
+  let tape = Hashtbl.create 10000 in
+  let cursor = ref 0 in
+  let state = ref initial_state in
+
+  for _ = 1 to steps do
+    let current_val = Option.value ~default:0 (Hashtbl.find_opt tape !cursor) in
+    let instructions = Hashtbl.find states !state in
+    let (write_val, move_dir, next_state) = instructions.(current_val) in
+
+    if write_val = 1 then
+      Hashtbl.replace tape !cursor 1
+    else
+      Hashtbl.remove tape !cursor;
+
+    cursor := !cursor + move_dir;
+    state := next_state
+  done;
+
+  Hashtbl.length tape
+
+let () =
+  let lines = read_lines "input.txt" in
+  let initial_state, steps, states = parse_blueprint lines in
+  let checksum = run_turing_machine initial_state steps states in
+  printf "%d\n" checksum

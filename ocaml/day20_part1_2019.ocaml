@@ -1,0 +1,136 @@
+
+open Printf
+
+module Coord = struct
+  type t = int * int
+  let compare = compare
+  let equal = (=)
+  let hash = Hashtbl.hash
+end
+
+module CoordHashtbl = Hashtbl.Make(Coord)
+module StringHashtbl = Hashtbl.Make(struct
+  type t = string
+  let equal = String.equal
+  let hash = Hashtbl.hash
+end)
+
+let read_maze filename =
+  let lines = In_channel.with_open_text filename In_channel.input_lines in
+  let height = List.length lines in
+  if height = 0 then [||] else
+  let width = String.length (List.hd lines) in
+  let maze = Array.make_matrix height width ' ' in
+  List.iteri (fun y line ->
+    String.iteri (fun x c -> maze.(y).(x) <- c) line
+  ) lines;
+  maze
+
+let is_portal_char c = 'A' <= c && c <= 'Z'
+
+let find_portals maze =
+  let height = Array.length maze in
+  if height = 0 then (StringHashtbl.create 0, CoordHashtbl.create 0) else
+  let width = Array.length maze.(0) in
+  let portals = StringHashtbl.create 16 in
+  let portal_positions = CoordHashtbl.create 32 in
+
+  let add_portal name pos =
+    CoordHashtbl.add portal_positions pos name;
+    let current_list = StringHashtbl.find_opt portals name |> Option.value ~default:[] in
+    StringHashtbl.replace portals name (pos :: current_list)
+  in
+
+  for y = 0 to height - 1 do
+    for x = 0 to width - 1 do
+      let c1 = maze.(y).(x) in
+      if is_portal_char c1 then begin
+        (* Check right *)
+        if x + 1 < width then begin
+          let c2 = maze.(y).(x+1) in
+          if is_portal_char c2 then begin
+            let name = sprintf "%c%c" c1 c2 in
+            if x + 2 < width && maze.(y).(x+2) = '.' then
+              add_portal name (x+2, y)
+            else if x - 1 >= 0 && maze.(y).(x-1) = '.' then
+              add_portal name (x-1, y)
+          end
+        end;
+        (* Check down *)
+        if y + 1 < height then begin
+           let c2 = maze.(y+1).(x) in
+           if is_portal_char c2 then begin
+             let name = sprintf "%c%c" c1 c2 in
+             if y + 2 < height && maze.(y+2).(x) = '.' then
+               add_portal name (x, y+2)
+             else if y - 1 >= 0 && maze.(y-1).(x) = '.' then
+               add_portal name (x, y-1)
+           end
+        end
+      end
+    done
+  done;
+  (portals, portal_positions)
+
+exception Found of int
+
+let bfs maze portals portal_positions start_pos end_pos =
+  let height = Array.length maze in
+  if height = 0 then -1 else
+  let width = Array.length maze.(0) in
+  let queue = Queue.create () in
+  let visited = CoordHashtbl.create (height * width) in
+  let (sx, sy) = start_pos in
+
+  Queue.add (sx, sy, 0) queue;
+  CoordHashtbl.add visited (sx, sy) ();
+
+  try
+    while not (Queue.is_empty queue) do
+      let (x, y, steps) = Queue.take queue in
+
+      (* Check neighbors *)
+      let moves = [(-1, 0); (1, 0); (0, -1); (0, 1)] in
+      List.iter (fun (dx, dy) ->
+        let nx, ny = x + dx, y + dy in
+        if nx >= 0 && nx < width && ny >= 0 && ny < height then
+            match maze.(ny).(nx) with
+            | '.' ->
+                if (nx, ny) = end_pos then raise (Found (steps + 1));
+                if not (CoordHashtbl.mem visited (nx, ny)) then begin
+                    CoordHashtbl.add visited (nx, ny) ();
+                    Queue.add (nx, ny, steps + 1) queue
+                end
+            | _ -> ()
+      ) moves;
+
+      (* Check portals *)
+      match CoordHashtbl.find_opt portal_positions (x, y) with
+      | Some name ->
+          begin
+            try
+                let exits = StringHashtbl.find portals name in
+                List.iter (fun (px, py) ->
+                   if (px, py) <> (x, y) && not (CoordHashtbl.mem visited (px, py)) then begin
+                      CoordHashtbl.add visited (px, py) ();
+                      Queue.add (px, py, steps + 1) queue
+                   end
+                ) exits
+            with Not_found -> () (* Should not happen if portal_positions is consistent *)
+          end
+      | None -> ()
+    done;
+    -1 (* Not found *)
+  with Found steps -> steps
+
+let () =
+  let maze = read_maze "input.txt" in
+  let portals, portal_positions = find_portals maze in
+  try
+      let start_pos = StringHashtbl.find portals "AA" |> List.hd in
+      let end_pos = StringHashtbl.find portals "ZZ" |> List.hd in
+      let result = bfs maze portals portal_positions start_pos end_pos in
+      printf "%d\n" result
+  with
+  | Not_found -> eprintf "Error: Start 'AA' or End 'ZZ' portal not found\n"; exit 1
+  | Failure _ -> eprintf "Error: Start 'AA' or End 'ZZ' portal has no entry point\n"; exit 1
