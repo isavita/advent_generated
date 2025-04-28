@@ -1,0 +1,76 @@
+
+let read_all_lines ic =
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  loop []
+
+let rec take n lst =
+  if n <= 0 then []
+  else match lst with
+  | h :: t -> h :: take (n - 1) t
+  | [] -> []
+
+let rec drop n lst =
+  if n <= 0 then lst
+  else match lst with
+  | _ :: t -> drop (n - 1) t
+  | [] -> []
+
+let () =
+  let ic = open_in "input.txt" in
+  let all_lines = read_all_lines ic in
+  close_in ic;
+
+  let stack_lines_rev, move_lines =
+    let rec split acc_stacks = function
+      | [] -> acc_stacks, []
+      | "" :: moves -> acc_stacks, moves
+      | line :: rest -> split (line :: acc_stacks) rest
+    in
+    let stacks_rev, moves = split [] all_lines in
+    (List.rev stacks_rev), moves
+  in
+
+  let num_stacks_line = List.hd (List.rev stack_lines_rev) in
+  let num_stacks = (String.length num_stacks_line + 1) / 4 in
+
+  let stacks = Array.make num_stacks [] in
+
+  let stack_lines_for_parsing = List.filter (fun line -> String.contains line '[') stack_lines_rev in
+
+  List.iter (fun line ->
+    String.iteri (fun i c ->
+      if c >= 'A' && c <= 'Z' then
+        let stack_idx = (i - 1) / 4 in
+        stacks.(stack_idx) <- c :: stacks.(stack_idx)
+    ) line
+  ) stack_lines_for_parsing;
+
+  let stacks = Array.map List.rev stacks in
+
+  List.iter (fun move_line ->
+    if String.trim move_line <> "" then
+      Scanf.sscanf move_line "move %d from %d to %d" (fun n src dest ->
+        let src_idx = src - 1 in
+        let dest_idx = dest - 1 in
+
+        let taken = take n stacks.(src_idx) in
+        let rest = drop n stacks.(src_idx) in
+
+        stacks.(src_idx) <- rest;
+        stacks.(dest_idx) <- taken @ stacks.(dest_idx);
+      )
+  ) move_lines;
+
+  let top_crates = Array.map (fun stack ->
+    match stack with
+    | h :: _ -> h
+    | [] -> ' '
+  ) stacks in
+
+  Array.iter print_char top_crates;
+  print_newline ()

@@ -1,0 +1,140 @@
+
+module PointOrd = struct
+  type t = int * int * int
+  let compare (x1,y1,z1) (x2,y2,z2) =
+    let c = compare x1 x2 in if c <> 0 then c else
+    let c = compare y1 y2 in if c <> 0 then c else
+    compare z1 z2
+end
+
+module PointSet = Set.Make(PointOrd)
+module PointMap = Map.Make(PointOrd)
+module IntSet = Set.Make(Int)
+module IntMap = Map.Make(Int)
+
+let add (x1,y1,z1) (x2,y2,z2) = (x1+x2, y1+y2, z1+z2)
+let subtract (x1,y1,z1) (x2,y2,z2) = (x1-x2, y1-y2, z1-z2)
+let manhattan (x1,y1,z1) (x2,y2,z2) = abs(x1-x2) + abs(y1-y2) + abs(z1-z2)
+
+let dot (x1,y1,z1) (x2,y2,z2) = x1*x2 + y1*y2 + z1*z2
+let cross (x1,y1,z1) (x2,y2,z2) = (y1*z2 - z1*y2, z1*x2 - x1*z2, x1*y2 - y1*x2)
+let rotate_point (r1, r2, r3) p = (dot r1 p, dot r2 p, dot r3 p)
+
+let get_rotations () =
+  let e = [(1,0,0); (0,1,0); (0,0,1)] in
+  let axes = e @ (List.map (fun (x,y,z) -> (-x,-y,-z)) e) in
+  let rotations = ref [] in
+  List.iter (fun v1 ->
+    List.iter (fun v2 ->
+      if dot v1 v2 = 0 then
+        let v3 = cross v1 v2 in
+        if List.mem v3 axes then
+          rotations := (rotate_point (v1, v2, v3)) :: !rotations
+    ) axes
+  ) axes;
+  !rotations
+
+let read_input filename =
+  let ic = open_in filename in
+  let scanners = ref [] in
+  let current_scanner = ref [] in
+  try
+    while true do
+      let line = input_line ic in
+      let line = String.trim line in
+      if line = "" then ()
+      else if String.starts_with ~prefix:"---" line then (
+        if !current_scanner <> [] then (
+          scanners := List.rev !current_scanner :: !scanners;
+          current_scanner := []
+        )
+      ) else (
+        match String.split_on_char ',' line with
+        | [sx; sy; sz] ->
+            let x = int_of_string sx in
+            let y = int_of_string sy in
+            let z = int_of_string sz in
+            current_scanner := (x, y, z) :: !current_scanner
+        | _ -> failwith ("Invalid line format: " ^ line)
+      )
+    done;
+    assert false
+  with End_of_file ->
+    if !current_scanner <> [] then
+      scanners := List.rev !current_scanner :: !scanners;
+    close_in ic;
+    Array.of_list (List.rev !scanners)
+
+let solve scanners =
+  let rotations = get_rotations () in
+
+  let scanner_positions = ref (IntMap.singleton 0 (0,0,0)) in
+  let beacons = ref (PointSet.of_list (Array.get scanners 0)) in
+  let pending = ref (IntSet.of_list (List.init (Array.length scanners - 1) (fun i -> i + 1))) in
+
+  let rec align_next () =
+    if IntSet.is_empty !pending then
+      ()
+    else
+      let found_alignment = ref false in
+      let next_pending_list = IntSet.elements !pending in
+      List.iter (fun scanner_idx ->
+        if not !found_alignment then (
+          let current_scanner_beacons = Array.get scanners scanner_idx in
+          List.iter (fun rotate_fn ->
+            if not !found_alignment then (
+              let rotated_beacons = List.map rotate_fn current_scanner_beacons in
+              let deltas = ref PointMap.empty in
+              List.iter (fun beacon_rot ->
+                PointSet.iter (fun beacon_align ->
+                  let delta = subtract beacon_align beacon_rot in
+                  deltas := PointMap.update delta (fun count -> Some (match count with None -> 1 | Some c -> c + 1)) !deltas
+                ) !beacons
+              ) rotated_beacons;
+
+              let max_count = ref 0 in
+              let best_delta = ref (0,0,0) in
+              PointMap.iter (fun delta count ->
+                if count > !max_count then (
+                  max_count := count;
+                  best_delta := delta;
+                )
+              ) !deltas;
+
+              if !max_count >= 12 then (
+                let translation = !best_delta in
+                scanner_positions := IntMap.add scanner_idx translation !scanner_positions;
+                List.iter (fun beacon_rot ->
+                  beacons := PointSet.add (add beacon_rot translation) !beacons
+                ) rotated_beacons;
+                pending := IntSet.remove scanner_idx !pending;
+                found_alignment := true;
+              )
+            )
+          ) rotations;
+        )
+      ) next_pending_list;
+
+      if !found_alignment then
+        align_next ()
+  in
+
+  align_next ();
+
+  let positions = IntMap.bindings !scanner_positions |> List.map snd in
+  let max_dist = ref 0 in
+  List.iter (fun p1 ->
+    List.iter (fun p2 ->
+      let dist = manhattan p1 p2 in
+      if dist > !max_dist then
+        max_dist := dist
+    ) positions
+  ) positions;
+  !max_dist
+
+let () =
+  let filename = "input.txt" in
+  let scanners_data = read_input filename in
+  let result = solve scanners_data in
+  print_int result;
+  print_newline ()

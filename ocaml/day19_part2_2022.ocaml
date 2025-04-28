@@ -1,0 +1,216 @@
+
+type blueprint = {
+  id : int;
+  ore_cost : int;
+  clay_ore_cost : int;
+  obsidian_ore_cost : int;
+  obsidian_clay_cost : int;
+  geode_ore_cost : int;
+  geode_obsidian_cost : int;
+}
+
+type state = {
+  ore : int;
+  clay : int;
+  obsidian : int;
+  geode : int;
+  ore_robots : int;
+  clay_robots : int;
+  obsidian_robots : int;
+  geode_robots : int;
+  time_left : int;
+}
+
+type state_key_tuple = int * int * int * int * int * int * int * int * int
+
+module StateSet = Set.Make(struct
+  type t = state_key_tuple
+  let compare = compare
+end)
+
+let max_geode blueprint initial_state =
+  let max_geodes = ref 0 in
+  let q = Queue.create () in
+  Queue.add initial_state q;
+  let visited = ref StateSet.empty in
+
+  let max_ore_needed = max blueprint.ore_cost
+                         (max blueprint.clay_ore_cost
+                            (max blueprint.obsidian_ore_cost
+                               blueprint.geode_ore_cost))
+  in
+  let max_clay_needed = blueprint.obsidian_clay_cost in
+  let max_obsidian_needed = blueprint.geode_obsidian_cost in
+
+  while not (Queue.is_empty q) do
+    let s = Queue.pop q in
+
+    max_geodes := max !max_geodes s.geode;
+
+    if s.time_left = 0 then
+      ()
+    else begin
+      let time_left' = s.time_left - 1 in
+
+      let pruned_ore_robots = min s.ore_robots max_ore_needed in
+      let pruned_clay_robots = min s.clay_robots max_clay_needed in
+      let pruned_obsidian_robots = min s.obsidian_robots max_obsidian_needed in
+      let pruned_geode_robots = s.geode_robots in
+
+      let ore_cap = max 0 (s.time_left * max_ore_needed - s.ore_robots * (s.time_left - 1)) in
+      let clay_cap = max 0 (s.time_left * max_clay_needed - s.clay_robots * (s.time_left - 1)) in
+      let obsidian_cap = max 0 (s.time_left * max_obsidian_needed - s.obsidian_robots * (s.time_left - 1)) in
+
+      let pruned_ore = min s.ore ore_cap in
+      let pruned_clay = min s.clay clay_cap in
+      let pruned_obsidian = min s.obsidian obsidian_cap in
+      let pruned_geode = s.geode in
+
+      let state_key =
+        (pruned_ore, pruned_clay, pruned_obsidian, pruned_geode,
+         pruned_ore_robots, pruned_clay_robots, pruned_obsidian_robots, pruned_geode_robots,
+         s.time_left)
+      in
+
+      if StateSet.mem state_key !visited then
+        ()
+      else begin
+        visited := StateSet.add state_key !visited;
+
+        let s_pruned = {
+            ore = pruned_ore;
+            clay = pruned_clay;
+            obsidian = pruned_obsidian;
+            geode = pruned_geode;
+            ore_robots = pruned_ore_robots;
+            clay_robots = pruned_clay_robots;
+            obsidian_robots = pruned_obsidian_robots;
+            geode_robots = pruned_geode_robots;
+            time_left = s.time_left;
+        } in
+
+        let ore_gain = s_pruned.ore_robots in
+        let clay_gain = s_pruned.clay_robots in
+        let obsidian_gain = s_pruned.obsidian_robots in
+        let geode_gain = s_pruned.geode_robots in
+
+        let time_left_next = time_left' in
+
+        let next_s_wait = {
+          ore = s_pruned.ore + ore_gain;
+          clay = s_pruned.clay + clay_gain;
+          obsidian = s_pruned.obsidian + obsidian_gain;
+          geode = s_pruned.geode + geode_gain;
+          ore_robots = s_pruned.ore_robots;
+          clay_robots = s_pruned.clay_robots;
+          obsidian_robots = s_pruned.obsidian_robots;
+          geode_robots = s_pruned.geode_robots;
+          time_left = time_left_next;
+        } in
+        Queue.add next_s_wait q;
+
+        if s_pruned.ore >= blueprint.ore_cost then begin
+          let next_s_build_ore = {
+            ore = s_pruned.ore - blueprint.ore_cost + ore_gain;
+            clay = s_pruned.clay + clay_gain;
+            obsidian = s_pruned.obsidian + obsidian_gain;
+            geode = s_pruned.geode + geode_gain;
+            ore_robots = s_pruned.ore_robots + 1;
+            clay_robots = s_pruned.clay_robots;
+            obsidian_robots = s_pruned.obsidian_robots;
+            geode_robots = s_pruned.geode_robots;
+            time_left = time_left_next;
+          } in
+          Queue.add next_s_build_ore q;
+        end;
+
+        if s_pruned.ore >= blueprint.clay_ore_cost then begin
+             let next_s_build_clay = {
+            ore = s_pruned.ore - blueprint.clay_ore_cost + ore_gain;
+            clay = s_pruned.clay + clay_gain;
+            obsidian = s_pruned.obsidian + obsidian_gain;
+            geode = s_pruned.geode + geode_gain;
+            ore_robots = s_pruned.ore_robots;
+            clay_robots = s_pruned.clay_robots + 1;
+            obsidian_robots = s_pruned.obsidian_robots;
+            geode_robots = s_pruned.geode_robots;
+            time_left = time_left_next;
+          } in
+          Queue.add next_s_build_clay q;
+        end;
+
+        if s_pruned.ore >= blueprint.obsidian_ore_cost && s_pruned.clay >= blueprint.obsidian_clay_cost then begin
+          let next_s_build_obsidian = {
+            ore = s_pruned.ore - blueprint.obsidian_ore_cost + ore_gain;
+            clay = s_pruned.clay - blueprint.obsidian_clay_cost + clay_gain;
+            obsidian = s_pruned.obsidian + obsidian_gain;
+            geode = s_pruned.geode + geode_gain;
+            ore_robots = s_pruned.ore_robots;
+            clay_robots = s_pruned.clay_robots;
+            obsidian_robots = s_pruned.obsidian_robots + 1;
+            geode_robots = s_pruned.geode_robots;
+            time_left = time_left_next;
+          } in
+          Queue.add next_s_build_obsidian q;
+        end;
+
+        if s_pruned.ore >= blueprint.geode_ore_cost && s_pruned.obsidian >= blueprint.geode_obsidian_cost then begin
+          let next_s_build_geode = {
+            ore = s_pruned.ore - blueprint.geode_ore_cost + ore_gain;
+            clay = s_pruned.clay + clay_gain;
+            obsidian = s_pruned.obsidian - blueprint.geode_obsidian_cost + obsidian_gain;
+            geode = s_pruned.geode + geode_gain;
+            ore_robots = s_pruned.ore_robots;
+            clay_robots = s_pruned.clay_robots;
+            obsidian_robots = s_pruned.obsidian_robots;
+            geode_robots = s_pruned.geode_robots + 1;
+            time_left = time_left_next;
+          } in
+          Queue.add next_s_build_geode q;
+        end;
+      end
+    end
+  done;
+
+  !max_geodes
+
+let parse_blueprint line =
+  let parts = String.split_on_char ' ' line in
+  let id = int_of_string (String.sub (List.nth parts 1) 0 ((String.length (List.nth parts 1)) - 1)) in
+  let ore_cost = int_of_string (List.nth parts 6) in
+  let clay_ore_cost = int_of_string (List.nth parts 12) in
+  let obsidian_ore_cost = int_of_string (List.nth parts 18) in
+  let obsidian_clay_cost = int_of_string (List.nth parts 21) in
+  let geode_ore_cost = int_of_string (List.nth parts 27) in
+  let geode_obsidian_cost = int_of_string (List.nth parts 30) in
+  { id; ore_cost; clay_ore_cost; obsidian_ore_cost; obsidian_clay_cost; geode_ore_cost; geode_obsidian_cost }
+
+let () =
+  let blueprints = ref [] in
+  let file_channel = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line file_channel in
+      let blueprint = parse_blueprint line in
+      blueprints := !blueprints @ [blueprint];
+    done
+  with End_of_file ->
+    close_in file_channel;
+
+  let initial_state = {
+    ore = 0; clay = 0; obsidian = 0; geode = 0;
+    ore_robots = 1; clay_robots = 0; obsidian_robots = 0; geode_robots = 0;
+    time_left = 32;
+  } in
+
+  let product =
+    match !blueprints with
+    | b1 :: b2 :: b3 :: _ ->
+      let max1 = max_geode b1 initial_state in
+      let max2 = max_geode b2 initial_state in
+      let max3 = max_geode b3 initial_state in
+      max1 * max2 * max3
+    | _ -> failwith "Not enough blueprints in input file"
+  in
+
+  Printf.printf "%d\n" product
