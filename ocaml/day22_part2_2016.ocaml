@@ -1,0 +1,116 @@
+
+type point = { x : int; y : int; }
+type node = { used : int; avail : int; }
+
+module PointMap = Map.Make(struct
+  type t = point
+  let compare p1 p2 =
+    let cmp_x = Int.compare p1.x p2.x in
+    if cmp_x <> 0 then cmp_x else Int.compare p1.y p2.y
+end)
+
+type nodes_map = node PointMap.t
+
+let neighbors4 : point list =
+  [{ x = 0; y = 1; }; { x = 0; y = -1; }; { x = 1; y = 0; }; { x = -1; y = 0; }]
+
+let wall_threshold = 400
+
+let read_input filename : nodes_map =
+  let nodes = ref PointMap.empty in
+  let ic = open_in filename in
+  try
+    ignore (input_line ic);
+    ignore (input_line ic);
+    while true do
+      let line = input_line ic in
+      let fields = String.split_on_char ' ' line |> List.filter (fun s -> String.length s > 0) in
+      match fields with
+      | [ field0; _size; used_str; avail_str; _use_percent ] ->
+          let parts = String.split_on_char '-' field0 in
+          (match parts with
+           | [ _prefix; x_str; y_str ] ->
+               let x = int_of_string (String.sub x_str 1 (String.length x_str - 1)) in
+               let y = int_of_string (String.sub y_str 1 (String.length y_str - 1)) in
+               let used = int_of_string (String.sub used_str 0 (String.length used_str - 1)) in
+               let avail = int_of_string (String.sub avail_str 0 (String.length avail_str - 1)) in
+               let p = { x; y; } in
+               let n = { used; avail; } in
+               nodes := PointMap.add p n !nodes
+           | _ -> failwith ("Malformed node field: " ^ field0))
+      | _ -> failwith ("Malformed line: " ^ line)
+    done;
+    !nodes
+  with
+  | End_of_file -> close_in ic; !nodes
+  | e -> close_in ic; raise e
+
+let dim nodes : int * int =
+  PointMap.fold (fun p _ (max_x, max_y) ->
+    (max max_x p.x, max max_y p.y)
+  ) nodes (0, 0)
+
+let find_hole nodes : point =
+  let hole_opt = PointMap.fold (fun p n acc ->
+    match acc with
+    | Some _ -> acc
+    | None -> if n.used == 0 then Some p else None
+  ) nodes None in
+  match hole_opt with
+  | Some p -> p
+  | None -> failwith "No hole node found"
+
+let is_valid nodes w h goal p =
+  p.x >= 0 && p.y >= 0 && p.x <= w && p.y <= h &&
+  (match PointMap.find_opt p nodes with
+   | Some n -> n.used <= wall_threshold && p <> goal
+   | None -> false
+  )
+
+let moves nodes goal from_pos to_pos w h : int =
+  let q = Queue.create () in
+  let dist = ref PointMap.empty in
+
+  Queue.add from_pos q;
+  dist := PointMap.add from_pos 0 !dist;
+
+  let found = ref false in
+
+  while not (Queue.is_empty q) && not !found do
+    let p = Queue.take q in
+    let d = PointMap.find p !dist in
+
+    if p = to_pos then
+      found := true
+    else
+      List.iter (fun neighbor_delta ->
+        let next_pos = { x = p.x + neighbor_delta.x; y = p.y + neighbor_delta.y; } in
+        if is_valid nodes w h goal next_pos && not (PointMap.mem next_pos !dist) then (
+          Queue.add next_pos q;
+          dist := PointMap.add next_pos (d + 1) !dist
+        )
+      ) neighbors4
+  done;
+
+  if !found then
+    PointMap.find to_pos !dist
+  else
+    failwith "No path found during BFS"
+
+let solve nodes : int =
+  let w, h = dim nodes in
+  let hole_start = find_hole nodes in
+  let goal_start = { x = w; y = 0; } in
+  let target_adj_to_goal = { x = w - 1; y = 0; } in
+
+  if w < 0 || goal_start.y <> 0 || not (PointMap.mem goal_start nodes) then
+      failwith "Invalid grid structure or goal position";
+
+  let initial_hole_moves = moves nodes goal_start hole_start target_adj_to_goal w h in
+
+  initial_hole_moves + 1 + (w - 1) * 5
+
+let () =
+  let nodes = read_input "input.txt" in
+  let answer = solve nodes in
+  Printf.printf "%d\n" answer

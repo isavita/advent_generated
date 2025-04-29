@@ -1,0 +1,150 @@
+
+module Hashtbl = Stdlib.Hashtbl
+module Queue = Stdlib.Queue
+module List = Stdlib.List
+module String = Stdlib.String
+module Scanf = Stdlib.Scanf
+
+type graph = (string, (string, unit) Hashtbl.t) Hashtbl.t
+
+let parse_input lines : graph =
+  let graph = Hashtbl.create 100 in
+  let add_node node =
+    if not (Hashtbl.mem graph node) then
+      Hashtbl.add graph node (Hashtbl.create 10)
+  in
+  let add_edge node1 node2 =
+    add_node node1;
+    add_node node2;
+    let neighbors1 = Hashtbl.find graph node1 in
+    let neighbors2 = Hashtbl.find graph node2 in
+    Hashtbl.replace neighbors1 node2 ();
+    Hashtbl.replace neighbors2 node1 ()
+  in
+  List.iter (fun line ->
+    let parts = String.split_on_char ':' line in
+    let vertex = String.trim (List.hd parts) in
+    let others_str = String.trim (List.nth parts 1) in
+    let others = String.split_on_char ' ' others_str in
+    List.iter (fun other -> if other <> "" then add_edge vertex other) others
+  ) lines;
+  graph
+
+let copy_graph graph : graph =
+  let new_graph = Hashtbl.create (Hashtbl.length graph) in
+  Hashtbl.iter (fun node neighbors ->
+    let new_neighbors = Hashtbl.create (Hashtbl.length neighbors) in
+    Hashtbl.iter (fun neighbor () -> Hashtbl.add new_neighbors neighbor ()) neighbors;
+    Hashtbl.add new_graph node new_neighbors
+  ) graph;
+  new_graph
+
+let remove_edge graph node1 node2 =
+  try
+    let neighbors1 = Hashtbl.find graph node1 in
+    Hashtbl.remove neighbors1 node2;
+  with Not_found -> ();
+  try
+    let neighbors2 = Hashtbl.find graph node2 in
+    Hashtbl.remove neighbors2 node1;
+  with Not_found -> ()
+
+let breadth_first_search graph start : (string, string) Hashtbl.t * (string, unit) Hashtbl.t =
+  let frontier = Queue.create () in
+  let reached = Hashtbl.create (Hashtbl.length graph) in
+  let came_from = Hashtbl.create (Hashtbl.length graph) in
+
+  Queue.add start frontier;
+  Hashtbl.add reached start ();
+  Hashtbl.add came_from start start;
+
+  while not (Queue.is_empty frontier) do
+    let current = Queue.take frontier in
+    try
+      let neighbors = Hashtbl.find graph current in
+      Hashtbl.iter (fun next () ->
+        if not (Hashtbl.mem reached next) then (
+          Hashtbl.add reached next ();
+          Hashtbl.add came_from next current;
+          Queue.add next frontier
+        )
+      ) neighbors
+    with Not_found -> ()
+  done;
+  came_from, reached
+
+let reconstruct_path start goal came_from : string list =
+  let rec build_path current acc =
+    if current = start then start :: acc
+    else
+      try
+        let parent = Hashtbl.find came_from current in
+        build_path parent (current :: acc)
+      with Not_found ->
+        []
+  in
+  if not (Hashtbl.mem came_from goal) then []
+  else build_path goal []
+
+let solve lines : int =
+  let min_cut_size = 3 in
+  let initial_graph = parse_input lines in
+  let all_nodes = Hashtbl.fold (fun k _ acc -> k :: acc) initial_graph [] in
+  let num_total_nodes = List.length all_nodes in
+
+  match all_nodes with
+  | [] -> 0
+  | source :: rest_of_nodes ->
+    let partition1_size = ref 0 in
+    let partition2_size = ref 0 in
+    let cut_found = ref false in
+
+    List.iter (fun target ->
+      if not !cut_found then (
+        if source <> target then (
+          let graph_copy = copy_graph initial_graph in
+
+          for _ = 1 to min_cut_size do
+            let came_from, reached = breadth_first_search graph_copy source in
+            if Hashtbl.mem reached target then (
+              let path = reconstruct_path source target came_from in
+              let rec remove_path_edges = function
+                 | [] | [_] -> ()
+                 | u :: v :: rest ->
+                   remove_edge graph_copy u v;
+                   remove_path_edges (v :: rest)
+              in
+              remove_path_edges path;
+            ) (* else target is unreachable, continue to next path attempt (usually won't find 3 if already cut) *)
+          done;
+
+          let _, reached_after_cut = breadth_first_search graph_copy source in
+
+          if not (Hashtbl.mem reached_after_cut target) then (
+            partition1_size := Hashtbl.length reached_after_cut;
+            partition2_size := num_total_nodes - !partition1_size;
+            cut_found := true;
+          )
+        )
+      )
+    ) rest_of_nodes;
+
+    !partition1_size * !partition2_size
+
+let read_file filename : string list =
+  let lines = ref [] in
+  let ic = open_in filename in
+  try
+    while true; do
+      lines := input_line ic :: !lines
+    done; [] (* Should not reach here *)
+  with End_of_file ->
+    close_in ic;
+    List.rev !lines
+
+let () =
+  let filename = "input.txt" in
+  let input_lines = read_file filename in
+  let result = solve input_lines in
+  print_int result;
+  print_newline ()

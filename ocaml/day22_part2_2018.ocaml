@@ -1,0 +1,175 @@
+
+let geologicY = 16807
+let geologicX = 48271
+let caveModulo = 20183
+
+let typeRocky = 0
+let typeWet = 1
+let typeNarrow = 2
+
+let toolNone = 1
+let toolTorch = 2
+let toolGear = 4
+
+type map_state = {
+  depth : int;
+  target : int * int;
+  geologic_indices_cache : (int * int, int) Hashtbl.t;
+  erosion_levels_cache : (int * int, int) Hashtbl.t;
+}
+
+let memoize cache key compute =
+  match Hashtbl.find_opt cache key with
+  | Some value -> value
+  | None ->
+    let value = compute key in
+    Hashtbl.replace cache key value;
+    value
+
+let rec geologic_index state (x, y) =
+  memoize state.geologic_indices_cache (x, y) (fun (x, y) ->
+    if x = 0 && y = 0 then 0
+    else if x = fst state.target && y = snd state.target then 0
+    else if y = 0 then x * geologicY
+    else if x = 0 then y * geologicX
+    else
+      let level_prev_x = erosion_level state (x - 1, y) in
+      let level_prev_y = erosion_level state (x, y - 1) in
+      level_prev_x * level_prev_y
+  )
+
+and erosion_level state (x, y) =
+  memoize state.erosion_levels_cache (x, y) (fun (x, y) ->
+    (geologic_index state (x, y) + state.depth) mod caveModulo
+  )
+
+let region_type state (x, y) =
+  (erosion_level state (x, y)) mod 3
+
+let allowed region_type =
+  match region_type with
+  | t when t = typeRocky -> toolGear lor toolTorch
+  | t when t = typeWet -> toolGear lor toolNone
+  | t when t = typeNarrow -> toolTorch lor toolNone
+  | _ -> failwith "Unknown region type"
+
+let neighbors state (x, y) equip =
+  let moves = [(1, 0); (0, 1); (-1, 0); (0, -1)] in
+  let result = ref [] in
+
+  List.iter (fun (dx, dy) ->
+    let nx = x + dx in
+    let ny = y + dy in
+    if nx >= 0 && ny >= 0 then begin
+      let neighbor_type = region_type state (nx, ny) in
+      let allowed_neigh = allowed neighbor_type in
+      if (equip land allowed_neigh) <> 0 then begin
+        result := (nx, ny, equip, 1) :: !result;
+
+        let other_equip = allowed_neigh lxor equip in
+        if other_equip = toolNone || other_equip = toolTorch || other_equip = toolGear then begin
+           result := (nx, ny, other_equip, 8) :: !result;
+        end
+      end
+    end
+  ) moves;
+
+  !result
+
+module PriorityMap = Map.Make(Int)
+
+let rescue input_str =
+  let lines = String.split_on_char '\n' input_str in
+  let depth = Scanf.sscanf (List.nth lines 0) "depth: %d" (fun d -> d) in
+  let target_str = Scanf.sscanf (List.nth lines 1) "target: %s" (fun s -> s) in
+  let target_coords = String.split_on_char ',' target_str |> List.map int_of_string in
+  let target_x = List.nth target_coords 0 in
+  let target_y = List.nth target_coords 1 in
+  let target = (target_x, target_y) in
+
+  let state = {
+    depth = depth;
+    target = target;
+    geologic_indices_cache = Hashtbl.create 10000;
+    erosion_levels_cache = Hashtbl.create 10000;
+  } in
+
+  let distances = Hashtbl.create 10000 in
+  Hashtbl.replace distances ((0, 0), toolTorch) 0;
+
+  let pq = PriorityMap.singleton 0 [((0, 0), toolTorch)] in
+
+  let rec extract_min pq =
+    match PriorityMap.min_binding_opt pq with
+    | None -> None
+    | Some (time, states) ->
+      match states with
+      | [] -> extract_min (PriorityMap.remove time pq)
+      | state :: rest ->
+        let new_pq =
+          if rest = [] then PriorityMap.remove time pq
+          else PriorityMap.add time rest pq
+        in
+        Some ((time, state), new_pq)
+  in
+
+  let add_to_pq pq time state =
+    let states_at_time = match PriorityMap.find_opt time pq with
+      | Some states -> states
+      | None -> []
+    in
+    PriorityMap.add time (state :: states_at_time) pq
+  in
+
+  let rec loop pq =
+    match extract_min pq with
+    | None -> failwith "Target not reached"
+    | Some ((time, ((x, y), equip)), pq') ->
+      let current_pos = (x, y) in
+
+      match Hashtbl.find_opt distances (current_pos, equip) with
+      | Some existing_time when time > existing_time -> loop pq'
+      | _ ->
+        if current_pos = target && equip = toolTorch then
+          time
+        else begin
+          let bound_x = 8 * target_x in
+          let bound_y = 8 * target_y in
+
+          if x > bound_x || y > bound_y then
+            loop pq'
+          else begin
+            let neighbors_list = neighbors state current_pos equip in
+
+            let pq'' = List.fold_left (fun current_pq (nx, ny, nequip, cost) ->
+              let neighbor_pos = (nx, ny) in
+              let new_time = time + cost in
+              let neighbor_state_key = (neighbor_pos, nequip) in
+
+              match Hashtbl.find_opt distances neighbor_state_key with
+              | Some existing_time when new_time >= existing_time -> current_pq
+              | _ ->
+                Hashtbl.replace distances neighbor_state_key new_time;
+                add_to_pq current_pq new_time neighbor_state_key
+
+            ) pq' neighbors_list in
+
+            loop pq''
+          end
+        end
+  in
+
+  loop pq
+
+let () =
+  try
+    let ic = open_in "input.txt" in
+    let input_data = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    let result = rescue input_data in
+    print_int result;
+    print_newline ()
+  with
+  | Sys_error msg -> prerr_endline msg
+  | e -> prerr_endline (Printexc.to_string e)
+

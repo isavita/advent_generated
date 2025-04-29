@@ -1,0 +1,116 @@
+
+let parse_coord_pair s =
+  let s = String.trim s in
+  let parts = String.split_on_char ',' s |> List.map String.trim in
+  match parts with
+  | [x_str; y_str] ->
+      let extract_val_after_prefix s =
+          if String.starts_with ~prefix:"X=" s then String.sub s 2 (String.length s - 2)
+          else if String.starts_with ~prefix:"Y=" s then String.sub s 2 (String.length s - 2)
+          else if String.starts_with ~prefix:"X+" s then String.sub s 2 (String.length s - 2)
+          else if String.starts_with ~prefix:"Y+" s then String.sub s 2 (String.length s - 2)
+          else failwith ("Unknown coordinate format: " ^ s)
+      in
+      let x = extract_val_after_prefix x_str |> String.trim |> int_of_string in
+      let y = extract_val_after_prefix y_str |> String.trim |> int_of_string in
+      (x, y)
+  | _ -> failwith ("Invalid coordinate pair: " ^ s)
+
+let parse_prize_pair s =
+  let s = String.trim s in
+  let parts = String.split_on_char ',' s |> List.map String.trim in
+  match parts with
+  | [x_str; y_str] ->
+      let extract_val_after_prefix s =
+          if String.starts_with ~prefix:"X=" s then String.sub s 2 (String.length s - 2)
+          else if String.starts_with ~prefix:"Y=" s then String.sub s 2 (String.length s - 2)
+          else failwith ("Unknown prize format: " ^ s)
+      in
+      let x = extract_val_after_prefix x_str |> String.trim |> int_of_string in
+      let y = extract_val_after_prefix y_str |> String.trim |> int_of_string in
+      (x, y)
+  | _ -> failwith ("Invalid prize pair: " ^ s)
+
+let parse_machine_lines lines =
+  let ax = ref 0 and ay = ref 0 in
+  let bx = ref 0 and by = ref 0 in
+  let px = ref 0 and py = ref 0 in
+  List.iter (fun line ->
+    let line = String.trim line in
+    if String.starts_with ~prefix:"Button A:" line then
+      let s = String.sub line 9 (String.length line - 9) |> String.trim in
+      let x, y = parse_coord_pair s in
+      ax := x; ay := y
+    else if String.starts_with ~prefix:"Button B:" line then
+      let s = String.sub line 9 (String.length line - 9) |> String.trim in
+      let x, y = parse_coord_pair s in
+      bx := x; by := y
+    else if String.starts_with ~prefix:"Prize:" line then
+      let s = String.sub line 6 (String.length line - 6) |> String.trim in
+      let x, y = parse_prize_pair s in
+      px := x; py := y
+    else ()
+  ) lines;
+  (!ax, !ay, !bx, !by, !px, !py)
+
+let read_machines filename =
+  let ic = open_in filename in
+  let rec read_and_group current_machine_lines machines_acc =
+    try
+      let line = input_line ic in
+      if String.trim line = "" then
+        if current_machine_lines <> [] then
+          read_and_group [] ((List.rev current_machine_lines) :: machines_acc)
+        else
+          read_and_group [] machines_acc
+      else
+        read_and_group (line :: current_machine_lines) machines_acc
+    with
+    | End_of_file ->
+        close_in ic;
+        if current_machine_lines <> [] then
+          List.rev ((List.rev current_machine_lines) :: machines_acc)
+        else
+          List.rev machines_acc
+  in
+  let machine_line_groups = read_and_group [] [] in
+  List.map parse_machine_lines machine_line_groups
+
+let solve_machine ax ay bx by px py =
+  let offset = 10000000000000L in
+  let ax64 = Int64.of_int ax in
+  let ay64 = Int64.of_int ay in
+  let bx64 = Int64.of_int bx in
+  let by64 = Int64.of_int by in
+  let px64 = Int64.add (Int64.of_int px) offset in
+  let py64 = Int64.add (Int64.of_int py) offset in
+
+  let d64 = Int64.sub (Int64.mul ax64 by64) (Int64.mul ay64 bx64) in
+  if d64 = 0L then None
+  else
+    let num_a64 = Int64.sub (Int64.mul px64 by64) (Int64.mul py64 bx64) in
+    let num_b64 = Int64.sub (Int64.mul ax64 py64) (Int64.mul ay64 px64) in
+
+    if Int64.rem num_a64 d64 <> 0L || Int64.rem num_b64 d64 <> 0L then None
+    else
+      let a64 = Int64.div num_a64 d64 in
+      let b64 = Int64.div num_b64 d64 in
+      if a64 < 0L || b64 < 0L then None
+      else
+        Some (Int64.add (Int64.mul 3L a64) b64)
+
+let main () =
+  let machines = read_machines "input.txt" in
+  let results =
+    List.filter_map (fun (ax, ay, bx, by, px, py) ->
+      solve_machine ax ay bx by px py
+    ) machines
+  in
+  if results = [] then
+    print_endline "0 0"
+  else
+    let count = List.length results in
+    let total_cost = List.fold_left Int64.add 0L results in
+    Printf.printf "%d %Ld\n" count total_cost
+
+let () = main ()
