@@ -1,0 +1,328 @@
+
+open Printf
+module P = Printf
+module L = List
+module A = Array
+
+(* ----- Types ----- *)
+
+type pos = { r : int; c : int }
+
+(* Reading order comparison for positions *)
+let compare_pos p1 p2 =
+  if p1.r <> p2.r then compare p1.r p2.r else compare p1.c p2.c
+
+type ptype = Elf | Goblin
+
+let char_of_ptype = function Elf -> 'E' | Goblin -> 'G'
+let enemy_of = function Elf -> Goblin | Goblin -> Elf
+
+type unit = {
+  id : int; (* Unique ID for stable sorting during turns *)
+  mutable pos : pos;
+  mutable hp : int;
+  ptype : ptype;
+  attack_power : int;
+}
+
+(* Reading order comparison for units based on position *)
+let compare_unit_pos u1 u2 = compare_pos u1.pos u2.pos
+
+type cell = Wall | Open | Unit of unit
+type map = cell array array
+type game_state = {
+  mutable map : map;
+  mutable units : unit list;
+  mutable rounds : int;
+  dims : int * int; (* rows, cols *)
+  elf_attack_power : int;
+  mutable combat_over : bool;
+  mutable an_elf_died : bool;
+}
+
+(* ----- Helpers ----- *)
+
+let copy_map map = A.map A.copy map
+
+let get_cell state pos =
+  let rows, cols = state.dims in
+  if pos.r >= 0 && pos.r < rows && pos.c >= 0 && pos.c < cols then
+    state.map.(pos.r).(pos.c)
+  else Wall (* Treat out of bounds as Wall *)
+
+let set_cell state pos cell_type =
+  state.map.(pos.r).(pos.c) <- cell_type
+
+let is_open state pos =
+  match get_cell state pos with
+  | Open -> true
+  | _ -> false
+
+let get_neighbors pos =
+  (* Return neighbors in reading order: Up, Left, Right, Down *)
+  [
+    { r = pos.r - 1; c = pos.c };
+    { r = pos.r; c = pos.c - 1 };
+    { r = pos.r; c = pos.c + 1 };
+    { r = pos.r + 1; c = pos.c };
+  ]
+
+(* ----- Input Parsing ----- *)
+
+let parse_input lines elf_attack_power =
+  let rows = L.length lines in
+  let cols = String.length (L.hd lines) in
+  let map = A.make_matrix rows cols Open in
+  let units = ref [] in
+  let unit_id_counter = ref 0 in
+  L.iteri (fun r line ->
+    String.iteri (fun c char ->
+      match char with
+      | '#' -> map.(r).(c) <- Wall
+      | '.' -> map.(r).(c) <- Open
+      | ('E' | 'G') as utype ->
+          let ptype = if utype = 'E' then Elf else Goblin in
+          let attack = if ptype = Elf then elf_attack_power else 3 in
+          let unit = { id = !unit_id_counter; pos = {r; c}; hp = 200; ptype; attack_power = attack } in
+          incr unit_id_counter;
+          map.(r).(c) <- Unit unit;
+          units := unit :: !units
+      | _ -> failwith ("Invalid character in map: " ^ String.make 1 char)
+    ) line
+  ) lines;
+  { map; units = L.rev !units; rounds = 0; dims = (rows, cols); elf_attack_power; combat_over = false; an_elf_died = false }
+
+(* ----- Pathfinding (BFS) ----- *)
+
+module PosMap = Map.Make(struct type t = pos let compare = compare_pos end)
+module PosSet = Set.Make(struct type t = pos let compare = compare_pos end)
+
+(* Performs BFS from start_pos to find shortest distances to all reachable Open cells *)
+let bfs state start_pos =
+  let q = Queue.create () in
+  Queue.add (start_pos, 0) q;
+  let dists = ref (PosMap.add start_pos 0 PosMap.empty) in
+  let visited = ref (PosSet.add start_pos PosSet.empty) in
+
+  while not (Queue.is_empty q) do
+    let curr_pos, d = Queue.take q in
+    L.iter (fun next_pos ->
+      if is_open state next_pos && not (PosSet.mem next_pos !visited) then (
+        visited := PosSet.add next_pos !visited;
+        dists := PosMap.add next_pos (d + 1) !dists;
+        Queue.add (next_pos, d + 1) q
+      )
+    ) (get_neighbors curr_pos)
+  done;
+  !dists
+
+(* ----- Combat Logic ----- *)
+
+(* Find targets for a given unit *)
+let find_targets unit state =
+  let target_type = enemy_of unit.ptype in
+  L.filter (fun u -> u.ptype = target_type && u.hp > 0) state.units
+
+(* Find open squares adjacent to targets *)
+let find_in_range_squares targets state =
+  L.fold_left (fun acc_set target ->
+    L.fold_left (fun s neighbor_pos ->
+      if is_open state neighbor_pos then PosSet.add neighbor_pos s else s
+    ) acc_set (get_neighbors target.pos)
+  ) PosSet.empty targets
+
+(* Find adjacent enemy units *)
+let find_adjacent_targets unit state =
+  let target_type = enemy_of unit.ptype in
+  L.fold_left (fun acc neighbor_pos ->
+    match get_cell state neighbor_pos with
+    | Unit u when u.ptype = target_type && u.hp > 0 -> u :: acc
+    | _ -> acc
+  ) [] (get_neighbors unit.pos)
+
+(* Select target to attack based on HP, then reading order *)
+let select_target_to_attack adjacent_targets =
+  match adjacent_targets with
+  | [] -> None
+  | targets ->
+      let sorted_targets = L.sort (fun t1 t2 ->
+        let hp_cmp = compare t1.hp t2.hp in
+        if hp_cmp <> 0 then hp_cmp else compare_unit_pos t1 t2
+      ) targets in
+      Some (L.hd sorted_targets)
+
+(* Perform attack *)
+let attack unit target state =
+    target.hp <- target.hp - unit.attack_power;
+    if target.hp <= 0 then (
+      (* Target died *)
+      if target.ptype = Elf then state.an_elf_died <- true;
+      set_cell state target.pos Open;
+      (* Remove dead unit. Filter preserves order. *)
+      state.units <- L.filter (fun u -> u.id <> target.id) state.units;
+    )
+
+(* Determine movement *)
+let determine_move unit targets state =
+  let in_range_squares = find_in_range_squares targets state in
+  if PosSet.is_empty in_range_squares then
+    None (* No path possible *)
+  else
+    let distances = bfs state unit.pos in
+    (* Filter in_range squares to those reachable, keeping distance *)
+    let reachable_in_range =
+      PosSet.elements in_range_squares
+      |> L.filter_map (fun p ->
+          match PosMap.find_opt p distances with
+          | Some d -> Some (p, d)
+          | None -> None)
+    in
+    match reachable_in_range with
+    | [] -> None (* No in_range squares are reachable *)
+    | reachable ->
+        (* Find minimum distance *)
+        let min_dist = L.fold_left (fun m (_, d) -> min m d) max_int reachable in
+        (* Get all reachable squares at minimum distance *)
+        let nearest_reachables = L.filter (fun (_, d) -> d = min_dist) reachable in
+        (* Choose the one first in reading order *)
+        let chosen_dest, _ = L.hd (L.sort (fun (p1, _) (p2, _) -> compare_pos p1 p2) nearest_reachables) in
+
+        (* Now find the best first step towards chosen_dest *)
+        (* BFS from the destination to find distances back to unit's neighbors *)
+        let dest_distances = bfs state chosen_dest in
+        let neighbors = get_neighbors unit.pos in
+        let possible_steps =
+          L.filter_map (fun neighbor_pos ->
+             if is_open state neighbor_pos then
+                match PosMap.find_opt neighbor_pos dest_distances with
+                | Some d -> Some (neighbor_pos, d)
+                | None -> None (* Should not happen if destination is reachable *)
+             else None
+          ) neighbors
+        in
+        match possible_steps with
+        | [] -> None (* Cannot move *)
+        | steps ->
+           let min_step_dist = L.fold_left (fun m (_, d) -> min m d) max_int steps in
+           let best_steps = L.filter (fun (_, d) -> d = min_step_dist) steps in
+           (* Choose step first in reading order *)
+           let chosen_step, _ = L.hd (L.sort (fun (p1, _) (p2, _) -> compare_pos p1 p2) best_steps) in
+           Some chosen_step
+
+(* Execute a single unit's turn *)
+let take_turn unit_id state allow_elf_death =
+  (* Find the unit; it might have died earlier this round *)
+  match L.find_opt (fun u -> u.id = unit_id && u.hp > 0) state.units with
+  | None -> () (* Unit already dead or removed *)
+  | Some unit ->
+      (* Part 2 check: elf died *)
+      if not allow_elf_death && state.an_elf_died then (
+          state.combat_over <- true;
+          () (* End combat immediately if an elf died and we don't allow it *)
+      ) else (
+          let targets = find_targets unit state in
+          if L.length targets = 0 then (
+              state.combat_over <- true; (* No targets left, combat ends *)
+              ()
+          ) else (
+              (* Check if already in range *)
+              let adjacent_targets = find_adjacent_targets unit state in
+              let moved =
+                if L.length adjacent_targets > 0 then
+                    false (* Already in range, don't move *)
+                else (
+                  (* Attempt to move *)
+                  match determine_move unit targets state with
+                  | Some next_pos ->
+                      (* Update map and unit position *)
+                      set_cell state unit.pos Open;
+                      unit.pos <- next_pos;
+                      set_cell state unit.pos (Unit unit);
+                      true
+                  | None -> false (* Could not move *)
+                )
+              in
+
+              (* Attack if possible (either after moving or if started in range) *)
+              if moved || L.length adjacent_targets > 0 then (
+                  let current_adjacent_targets = find_adjacent_targets unit state in
+                  match select_target_to_attack current_adjacent_targets with
+                  | Some target_to_attack -> attack unit target_to_attack state
+                  | None -> () (* No adjacent target to attack, even after moving *)
+              )
+          )
+      )
+
+(* Simulate one full round *)
+let run_round state allow_elf_death =
+  (* Sort units by reading order at the start of the round *)
+  let ordered_units = L.sort compare_unit_pos state.units in
+  let unit_ids_in_order = L.map (fun u -> u.id) ordered_units in
+
+  (* Iterate through units based on the initial order *)
+  L.iter (fun unit_id ->
+      if not state.combat_over then
+        take_turn unit_id state allow_elf_death
+  ) unit_ids_in_order;
+
+  if not state.combat_over then
+    state.rounds <- state.rounds + 1
+
+(* ----- Main Simulation Loop ----- *)
+
+let run_simulation initial_lines elf_attack_power allow_elf_death =
+  let state = parse_input initial_lines elf_attack_power in
+  while not state.combat_over do
+      run_round state allow_elf_death;
+      (* Check for early exit due to elf death if applicable *)
+      if not allow_elf_death && state.an_elf_died then
+          state.combat_over <- true;
+  done;
+
+  let remaining_hp_sum = L.fold_left (fun sum u -> sum + u.hp) 0 state.units in
+  let outcome = state.rounds * remaining_hp_sum in
+
+  outcome, state.an_elf_died
+
+(* ----- Solve Parts ----- *)
+
+let solve_part1 lines =
+  let outcome, _ = run_simulation lines 3 true (* Elf attack power 3, allow elf deaths *)
+  in
+  outcome
+
+let solve_part2 lines =
+    let rec find_min_power ap =
+        printf "Trying Elf Attack Power: %d\n%!" ap;
+        let outcome, elf_died = run_simulation lines ap false (* Disallow elf deaths *) in
+        if elf_died then
+            find_min_power (ap + 1)
+        else
+            outcome
+    in
+    find_min_power 4 (* Start checking from attack power 4 *)
+
+
+(* ----- Entry Point ----- *)
+let main () =
+  let filename = "input.txt" in
+  let ic = open_in filename in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line ic :: !lines
+    done
+  with End_of_file ->
+    close_in ic;
+    let initial_lines = L.rev !lines in
+
+    (* Part 1 *)
+    let part1_result = solve_part1 initial_lines in
+    P.printf "Part 1: %d\n" part1_result;
+
+    (* Part 2 *)
+    let part2_result = solve_part2 initial_lines in
+    P.printf "Part 2: %d\n" part2_result
+
+let () = main ()
+

@@ -1,0 +1,271 @@
+
+(* Define direction and turn state types *)
+type direction = Up | Right | Down | Left
+type turn_state = TurnLeft | Straight | TurnRight
+
+(* Define the cart record *)
+type cart = {
+  id: int;
+  mutable x: int;
+  mutable y: int;
+  mutable dir: direction;
+  mutable turn: turn_state;
+}
+
+(* Helper to convert direction to int for calculations *)
+let dir_to_int = function
+  | Up -> 0
+  | Right -> 1
+  | Down -> 2
+  | Left -> 3
+
+(* Helper to convert int back to direction *)
+let int_to_dir i =
+  match i mod 4 with
+  | 0 -> Up
+  | 1 -> Right
+  | 2 -> Down
+  | 3 -> Left
+  | _ -> failwith "Invalid int dir" (* Should not happen with mod 4 *)
+
+(* Get dx, dy for a direction *)
+let step dir =
+  match dir with
+  | Up -> (0, -1)
+  | Right -> (1, 0)
+  | Down -> (0, 1)
+  | Left -> (-1, 0)
+
+(* Change direction based on turn state *)
+let apply_turn dir turn =
+  let dir_int = dir_to_int dir in
+  let new_dir_int =
+    match turn with
+    | Straight -> dir_int
+    | TurnLeft -> (dir_int + 3) mod 4
+    | TurnRight -> (dir_int + 1) mod 4
+  in
+  int_to_dir new_dir_int
+
+(* Get next turn state *)
+let next_turn_state = function
+  | TurnLeft -> Straight
+  | Straight -> TurnRight
+  | TurnRight -> TurnLeft
+
+(* Change direction based on track type *)
+let apply_track_bend dir track_char =
+  let dir_int = dir_to_int dir in
+  let new_dir_int =
+    match track_char with
+    | '/' ->
+        (* Up/Down (0, 2) -> Right (int + 1) *)
+        (* Left/Right (1, 3) -> Left (int + 3) *)
+        if dir_int = 0 || dir_int = 2
+        then (dir_int + 1) mod 4
+        else (dir_int + 3) mod 4
+    | '\\' -> (* Use OCaml escape for backslash *)
+        (* Up/Down (0, 2) -> Left (int + 3) *)
+        (* Left/Right (1, 3) -> Right (int + 1) *)
+        if dir_int = 0 || dir_int = 2
+        then (dir_int + 3) mod 4
+        else (dir_int + 1) mod 4
+    | _ -> dir_int (* Should only be called on / or \ *)
+  in
+  int_to_dir new_dir_int
+
+(* Parse the input lines into a grid and initial carts *)
+let parse_grid lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let grid = Array.make_matrix height width ' ' in
+  let carts = ref [] in
+  List.iteri (fun y line ->
+    String.iteri (fun x char ->
+      match char with
+      | ' ' | '|' | '-' | '/' | '\\' | '+' as track_char ->
+          grid.(y).(x) <- track_char
+      | '^' | '>' | 'v' | '<' as cart_char ->
+          let track_char_under = match cart_char with
+            | '^' | 'v' -> '|'
+            | '<' | '>' -> '-'
+            | _ -> failwith "Impossible cart char during parse"
+          in
+          grid.(y).(x) <- track_char_under;
+          let dir = match cart_char with
+            | '^' -> Up
+            | '>' -> Right
+            | 'v' -> Down
+            | '<' -> Left
+            | _ -> failwith "Invalid cart char"
+          in
+          (* Add cart to a list, assign a unique ID *)
+          let cart_id = List.length !carts in
+          carts := { id = cart_id; x = x; y = y; dir = dir; turn = TurnLeft } :: !carts
+      | _ -> failwith (Printf.sprintf "Invalid character in input: %c at %d,%d" char x y)
+    ) line
+  ) lines;
+  (* Reverse the list to process carts in row-major order by ID initially *)
+  let initial_carts = List.rev !carts in
+  (grid, initial_carts)
+
+(* Run the simulation for Part 1 or Part 2 *)
+let run_simulation grid initial_carts ~part2 =
+  (* Clone carts as their state is mutated during the simulation *)
+  let carts_ref = ref (List.map (fun c -> {c with x=c.x; y=c.y; dir=c.dir; turn=c.turn}) initial_carts) in
+  let first_collision_loc = ref None in (* Used for Part 1 *)
+
+  (* Recursive function for the simulation loop (one tick per call) *)
+  let rec simulation_loop () =
+    (* Part 1 termination check *)
+    if not part2 && !first_collision_loc <> None then
+       !first_collision_loc
+
+    (* Part 2 termination check *)
+    else if part2 && List.length !carts_ref <= 1 then
+      match !carts_ref with
+      | [last_cart] -> Some (last_cart.x, last_cart.y)
+      | _ -> None (* 0 carts left *)
+
+    (* Check if simulation should continue (are there any carts left?) *)
+    else if List.length !carts_ref == 0 then
+        None (* Simulation ended without meeting success condition *)
+    else begin (* Continue simulation tick *)
+
+      (* Sort carts by position (Y then X) for processing order *)
+      let active_carts = List.sort (fun c1 c2 ->
+        let dy = compare c1.y c2.y in
+        if dy = 0 then compare c1.x c2.x else dy
+      ) !carts_ref in
+
+      (* Create maps/set to track state within this tick *)
+      (* current_pos_map: Start-of-tick positions of active carts not yet processed *)
+      let current_pos_map = Hashtbl.create (List.length active_carts) in
+      List.iter (fun c -> Hashtbl.add current_pos_map (c.y, c.x) c.id) active_carts;
+
+      (* moved_pos_map: End-of-step positions of carts processed *so far* in this tick *)
+      let moved_pos_map = Hashtbl.create (List.length active_carts) in
+
+      (* crashed_ids_this_tick: Set of cart IDs that crash in this tick *)
+      let crashed_ids_this_tick = Hashtbl.create (List.length active_carts) in (* Used as a set (id -> ()) *)
+
+      (* Process each cart in sorted order *)
+      List.iter (fun cart_i ->
+        (* If this cart has already crashed (collided into by an earlier cart in this tick), skip *)
+        if Hashtbl.mem crashed_ids_this_tick cart_i.id then
+          () (* Skip this cart, it was removed *)
+        else begin
+          (* Remove cart_i from its old position in current_pos_map.
+             Crucial: this is done *before* calculating next_pos and checking collision.
+             It removes the cart from the set of "carts at start pos" so other carts
+             don't collide with it at its old spot later in tick. *)
+          Hashtbl.remove current_pos_map (cart_i.y, cart_i.x);
+
+          (* Calculate next position *)
+          let dx, dy = step cart_i.dir in
+          let next_x = cart_i.x + dx in
+          let next_y = cart_i.y + dy in
+          let next_pos = (next_y, next_x) in
+
+          (* Check for collision at next_pos *)
+          (* Collect IDs of *all* carts currently located at next_pos (either start-of-tick or moved-in-this-tick) *)
+          let colliding_ids = ref [] in
+          (* Check carts still at start-of-tick positions at next_pos *)
+          begin match Hashtbl.find_opt current_pos_map next_pos with
+          | Some id ->
+              colliding_ids := id :: !colliding_ids;
+              (* Remove the found cart from current_pos_map as it's involved in a crash *)
+              Hashtbl.remove current_pos_map next_pos;
+          | None -> ()
+          end;
+          (* Check carts that already moved to next_pos in this tick *)
+          begin match Hashtbl.find_opt moved_pos_map next_pos with
+          | Some id ->
+              colliding_ids := id :: !colliding_ids;
+               (* Remove the found cart from moved_pos_map as it's involved in a crash *)
+              Hashtbl.remove moved_pos_map next_pos;
+          | None -> ()
+          end;
+
+          (* Handle collision if any other cart was found at next_pos *)
+          if !colliding_ids <> [] then begin
+              (* Collision occurred! Mark this cart and all colliding carts as crashed for this tick *)
+              Hashtbl.add crashed_ids_this_tick cart_i.id ();
+              List.iter (fun id -> Hashtbl.add crashed_ids_this_tick id ()) !colliding_ids;
+
+              (* Record the location of the first collision for Part 1 *)
+              if not part2 && !first_collision_loc = None then
+                first_collision_loc := Some (next_x, next_y);
+
+              (* This cart (cart_i) does not get its state updated, as it crashed *)
+          end else begin
+              (* No collision, update cart state in place *)
+              let track_char = grid.(next_y).(next_x) in
+              cart_i.x <- next_x;
+              cart_i.y <- next_y;
+              begin match track_char with
+              | '|' | '-' -> () (* Direction doesn't change on straight tracks *)
+              | '/' | '\\' -> cart_i.dir <- apply_track_bend cart_i.dir track_char
+              | '+' ->
+                  cart_i.dir <- apply_turn cart_i.dir cart_i.turn;
+                  cart_i.turn <- next_turn_state cart_i.turn;
+              | _ -> failwith (Printf.sprintf "Unexpected track character: %c at %d,%d" track_char next_x next_y)
+              end;
+
+              (* Add the successfully moved cart's new position to moved_pos_map *)
+              Hashtbl.add moved_pos_map next_pos cart_i.id;
+          end
+        end (* End else (cart not crashed) *)
+      ) active_carts; (* End of List.iter loop over active_carts *)
+
+      (* Filter out crashed carts for the next tick *)
+      carts_ref := List.filter (fun c -> not (Hashtbl.mem crashed_ids_this_tick c.id)) active_carts;
+
+      (* Recurse to the next tick *)
+      simulation_loop ()
+    end (* End else (continue simulation) *)
+  in (* End of simulation_loop function *)
+
+  (* Start the simulation loop *)
+  simulation_loop ()
+;;
+
+(* Main function to read input, run simulations, and print output *)
+let main () =
+  let filename = "input.txt" in
+  let lines =
+    let ic = open_in filename in
+    let lines = ref [] in
+    try
+      while true do
+        lines := input_line ic :: !lines
+      done;
+      !lines
+    with End_of_file ->
+      close_in ic;
+      List.rev !lines (* Reverse lines to get them in correct grid order *)
+  in
+
+  let grid, initial_carts = parse_grid lines in
+
+  (* Part 1 *)
+  Printf.printf "Part 1: ";
+  (* Run simulation starting from initial state for Part 1 *)
+  let part1_result = run_simulation grid initial_carts ~part2:false in
+  begin match part1_result with
+  | Some (x, y) -> Printf.printf "%d,%d\n" x y
+  | None -> Printf.printf "Part 1: No collision found (unexpected)\n"
+  end;
+
+  (* Part 2 *)
+  Printf.printf "Part 2: ";
+  (* Run simulation starting again from original initial state for Part 2 *)
+  let part2_result = run_simulation grid initial_carts ~part2:true in
+  begin match part2_result with
+  | Some (x, y) -> Printf.printf "%d,%d\n" x y
+  | None -> Printf.printf "Part 2: Did not end with a single cart (unexpected)\n"
+  end;
+;;
+
+(* Execute the main function *)
+let () = main ()

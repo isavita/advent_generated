@@ -1,0 +1,305 @@
+
+(* day15.ml *)
+
+(* Utility modules *)
+module Pos = struct
+  type t = int * int (* row, col *)
+  let compare (r1, c1) (r2, c2) = compare (r1, c1) (r2, c2)
+  let neighbors (r, c) = [(r - 1, c); (r, c - 1); (r, c + 1); (r + 1, c)]
+end
+
+module PosSet = Set.Make(Pos)
+module PosMap = Map.Make(Pos)
+
+(* Type definitions *)
+type unit_type = Elf | Goblin
+
+let enemy_type = function Elf -> Goblin | Goblin -> Elf
+
+type unit_info = {
+  id : int;
+  u_type : unit_type;
+  ap : int;
+  mutable hp : int;
+  mutable pos : Pos.t;
+}
+
+type cell = Wall | Open | Unit of int (* Unit ID *)
+
+type game_state = {
+  grid : cell array array;
+  width : int;
+  height : int;
+  units : (int, unit_info) Hashtbl.t; (* id -> unit_info *)
+  mutable next_unit_id : int;
+  mutable rounds_completed : int;
+}
+
+(* Helper functions *)
+let is_valid state (r, c) =
+  r >= 0 && r < state.height && c >= 0 && c < state.width
+
+let get_cell state pos =
+  if is_valid state pos then state.grid.(pos |> fst).(pos |> snd) else Wall
+
+let is_open state pos =
+  match get_cell state pos with
+  | Open -> true
+  | _ -> false
+
+let find_units_of_type state target_type =
+  Hashtbl.fold (fun _id unit acc ->
+    if unit.u_type = target_type && unit.hp > 0 then unit :: acc else acc
+  ) state.units []
+
+let get_unit state id = Hashtbl.find state.units id
+
+let reading_order_sort units =
+  List.sort (fun u1 u2 -> Pos.compare u1.pos u2.pos) units
+
+(* BFS for finding shortest paths *)
+let bfs state start_pos =
+  let q = Queue.create () in
+  let visited = Hashtbl.create (state.width * state.height) in
+  Queue.add (start_pos, 0) q;
+  Hashtbl.add visited start_pos 0;
+
+  let distances = Hashtbl.create (state.width * state.height) in
+  Hashtbl.add distances start_pos 0;
+
+  while not (Queue.is_empty q) do
+    let (curr_pos, dist) = Queue.take q in
+    Pos.neighbors curr_pos
+    |> List.iter (fun next_pos ->
+         if is_open state next_pos && not (Hashtbl.mem visited next_pos) then begin
+           Hashtbl.add visited next_pos (dist + 1);
+           Hashtbl.add distances next_pos (dist + 1);
+           Queue.add (next_pos, dist + 1) q
+         end
+       )
+  done;
+  distances
+
+(* Find reachable target squares and shortest distances *)
+let find_reachable_targets state unit =
+  let targets = find_units_of_type state (enemy_type unit.u_type) in
+  if targets = [] then (PosSet.empty, PosMap.empty)
+  else
+    let target_squares =
+      targets
+      |> List.fold_left (fun acc t ->
+           Pos.neighbors t.pos
+           |> List.fold_left (fun s p ->
+                if is_open state p || p = unit.pos then PosSet.add p s else s
+              ) acc
+         ) PosSet.empty
+    in
+
+    let distances = bfs state unit.pos in
+
+    let reachable_targets =
+      PosSet.filter (fun p -> Hashtbl.mem distances p) target_squares
+    in
+
+    let target_distances =
+        PosMap.of_seq (
+            PosSet.to_seq reachable_targets
+            |> Seq.map (fun p -> (p, Hashtbl.find distances p))
+        )
+    in
+
+    (reachable_targets, target_distances)
+
+
+(* Movement logic *)
+let choose_move state unit =
+    let reachable_target_squares, target_distances = find_reachable_targets state unit in
+
+    if PosSet.is_empty reachable_target_squares then None (* No path to any target *)
+    else
+        let min_dist = PosMap.fold (fun _ dist acc -> min dist acc) target_distances max_int in
+
+        let nearest_targets =
+            PosMap.filter (fun _ dist -> dist = min_dist) target_distances
+            |> PosMap.bindings
+            |> List.map fst
+            |> List.sort Pos.compare
+        in
+
+        let chosen_destination = List.hd nearest_targets in
+
+        (* Now find the best first step towards chosen_destination *)
+        let step_distances = bfs state chosen_destination in (* BFS from destination *)
+
+        let possible_steps =
+            Pos.neighbors unit.pos
+            |> List.filter (fun p -> is_open state p && Hashtbl.mem step_distances p)
+        in
+
+        if possible_steps = [] then None (* Should not happen if destination is reachable *)
+        else
+            let min_step_dist =
+                possible_steps
+                |> List.fold_left (fun acc p -> min acc (Hashtbl.find step_distances p)) max_int
+            in
+
+            let best_steps =
+                possible_steps
+                |> List.filter (fun p -> Hashtbl.find step_distances p = min_step_dist)
+                |> List.sort Pos.compare
+            in
+            Some (List.hd best_steps)
+
+
+(* Attack logic *)
+let choose_target_to_attack state unit =
+  Pos.neighbors unit.pos
+  |> List.filter_map (fun p ->
+       match get_cell state p with
+       | Unit target_id ->
+         let target_unit = get_unit state target_id in
+         if target_unit.u_type = enemy_type unit.u_type && target_unit.hp > 0 then
+           Some target_unit
+         else None
+       | _ -> None)
+  |> List.sort (fun t1 t2 ->
+       let hp_cmp = compare t1.hp t2.hp in
+       if hp_cmp <> 0 then hp_cmp else Pos.compare t1.pos t2.pos)
+  |> fun targets -> List.nth_opt targets 0
+
+let perform_attack state attacker target =
+    target.hp <- target.hp - attacker.ap;
+    if target.hp <= 0 then begin
+        (*Printf.printf "Unit %d at %s dies\n" target.id (string_of_pos target.pos);*)
+        state.grid.(target.pos |> fst).(target.pos |> snd) <- Open;
+        Hashtbl.remove state.units target.id;
+        true (* Target died *)
+    end else false (* Target survived *)
+
+
+(* Turn logic *)
+let perform_turn state unit_id =
+  if not (Hashtbl.mem state.units unit_id) then false (* Unit died earlier this round *)
+  else
+    let unit = get_unit state unit_id in
+    if unit.hp <= 0 then false (* Should not happen with the check above, but safety *)
+    else
+        let targets_exist = find_units_of_type state (enemy_type unit.u_type) <> [] in
+        if not targets_exist then true (* Combat ends *)
+        else
+            (* Check if already in range *)
+            let initial_target_opt = choose_target_to_attack state unit in
+
+            let moved =
+                if initial_target_opt = None then begin
+                    match choose_move state unit with
+                    | Some next_pos ->
+                        (* Update grid and unit position *)
+                        state.grid.(unit.pos |> fst).(unit.pos |> snd) <- Open;
+                        state.grid.(next_pos |> fst).(next_pos |> snd) <- Unit unit.id;
+                        unit.pos <- next_pos;
+                        true
+                    | None -> false (* No move possible/needed *)
+                end else false (* Already in range, no move *)
+            in
+
+            (* Attack if possible (either initially in range or after moving) *)
+             let target_to_attack_opt =
+               if moved then choose_target_to_attack state unit else initial_target_opt
+            in
+
+            (match target_to_attack_opt with
+            | Some target -> ignore (perform_attack state unit target)
+            | None -> ());
+
+            false (* Combat continues *)
+
+
+(* Round simulation *)
+let run_round state =
+  let unit_ids_in_order =
+    Hashtbl.fold (fun id u acc -> if u.hp > 0 then (id, u.pos) :: acc else acc) state.units []
+    |> List.sort (fun (_, p1) (_, p2) -> Pos.compare p1 p2)
+    |> List.map fst
+  in
+
+  let combat_ended = ref false in
+  let units_iter = List.iter (fun unit_id ->
+      if not !combat_ended then
+          combat_ended := perform_turn state unit_id
+  ) unit_ids_in_order
+  in
+
+  if not !combat_ended then begin
+    state.rounds_completed <- state.rounds_completed + 1;
+    false
+  end else true (* Combat ended *)
+
+
+(* Main simulation loop *)
+let simulate state =
+  while not (run_round state) do
+    (* Print state for debugging if needed *)
+    (* print_state state; *)
+    ()
+  done;
+  let remaining_hp_sum =
+    Hashtbl.fold (fun _id unit acc -> acc + unit.hp) state.units 0
+  in
+  state.rounds_completed * remaining_hp_sum
+
+(* Input parsing *)
+let parse_input lines =
+  let height = List.length lines in
+  let width = String.length (List.hd lines) in
+  let grid = Array.make_matrix height width Open in
+  let units = Hashtbl.create 10 in
+  let next_unit_id = ref 0 in
+
+  List.iteri (fun r line ->
+    String.iteri (fun c char ->
+      match char with
+      | '#' -> grid.(r).(c) <- Wall
+      | '.' -> grid.(r).(c) <- Open
+      | 'G' | 'E' ->
+        let u_type = if char = 'G' then Goblin else Elf in
+        let unit_id = !next_unit_id in
+        incr next_unit_id;
+        let unit = { id = unit_id; u_type; ap = 3; hp = 200; pos = (r, c) } in
+        grid.(r).(c) <- Unit unit_id;
+        Hashtbl.add units unit_id unit
+      | _ -> failwith "Invalid character in input"
+    ) line
+  ) lines;
+
+  { grid; width; height; units; next_unit_id = !next_unit_id; rounds_completed = 0 }
+
+(* File reading *)
+let read_lines filename =
+  let chan = open_in filename in
+  let lines = ref [] in
+  try
+    while true do
+      lines := input_line chan :: !lines
+    done;
+    assert false (* Should not reach here *)
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines
+
+(* Main function *)
+let main () =
+  let filename = "input.txt" in
+  try
+    let lines = read_lines filename in
+    let initial_state = parse_input lines in
+    let outcome = simulate initial_state in
+    print_int outcome;
+    print_newline ()
+  with
+  | Sys_error msg -> Printf.eprintf "Error reading file '%s': %s\n" filename msg; exit 1
+  | Failure msg -> Printf.eprintf "An error occurred: %s\n" msg; exit 1
+  | ex -> Printf.eprintf "An unexpected error occurred: %s\n" (Printexc.to_string ex); exit 1
+
+(* Entry point *)
+let () = main ()

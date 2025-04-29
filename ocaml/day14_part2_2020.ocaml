@@ -1,0 +1,133 @@
+
+(*
+  Day 14: Docking Data
+  OCaml solution
+
+  Reads from "input.txt" and prints results to stdout.
+*)
+
+module Int64Map = Map.Make(Int64)
+
+(* --- Input Parsing --- *)
+
+type instruction =
+  | Mask of string
+  | Mem of (int * int64)
+
+let read_lines filename =
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done;
+    !lines (* Should not be reached *)
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines (* Reverse to maintain original order *)
+
+let parse_line line =
+  try
+    if String.starts_with ~prefix:"mask = " line then
+      Scanf.sscanf line "mask = %s" (fun s -> Mask s)
+    else if String.starts_with ~prefix:"mem[" line then
+      Scanf.sscanf line "mem[%d] = %Ld" (fun addr value -> Mem (addr, value))
+    else
+      failwith ("Invalid line format: " ^ line)
+  with Scanf.Scan_failure _ | Failure _ ->
+      failwith ("Failed to parse line: " ^ line)
+
+(* --- Part 1 --- *)
+
+let apply_mask_v1 value mask =
+  let or_mask = ref Int64.zero in (* bits to set to 1 *)
+  let and_mask = ref 0xFFFFFFFFF_L in (* bits to set to 0 (start with all 1s) *)
+  String.iteri (fun i char ->
+    let bit_pos = 35 - i in
+    match char with
+    | '1' -> or_mask := Int64.logor !or_mask (Int64.shift_left 1L bit_pos)
+    | '0' -> and_mask := Int64.logand !and_mask (Int64.lognot (Int64.shift_left 1L bit_pos))
+    | 'X' -> () (* Do nothing, keep original bit *)
+    | _ -> failwith "Invalid mask character"
+  ) mask;
+  Int64.logor (Int64.logand value !and_mask) !or_mask
+
+let solve_part1 instructions =
+  let memory = Hashtbl.create 1000 in (* Use Hashtbl for mutable map *)
+  let current_mask = ref "" in
+  List.iter (function
+    | Mask s -> current_mask := s
+    | Mem (addr, value) ->
+      let masked_value = apply_mask_v1 value !current_mask in
+      Hashtbl.replace memory addr masked_value
+  ) instructions;
+
+  Hashtbl.fold (fun _addr value acc -> Int64.add acc value) memory 0L
+
+(* --- Part 2 --- *)
+
+(* Generates all possible addresses from a base address and a mask *)
+let rec generate_addresses base_addr mask_chars =
+  match mask_chars with
+  | [] -> [base_addr] (* Base case: no more bits to process *)
+  | (pos, char) :: rest ->
+    let sub_addresses = generate_addresses base_addr rest in
+    match char with
+    | '0' -> sub_addresses (* Address bit unchanged, use results from sub-problem *)
+    | '1' -> (* Overwrite bit to 1 *)
+       List.map (fun addr -> Int64.logor addr (Int64.shift_left 1L pos)) sub_addresses
+    | 'X' -> (* Floating bit: generate both 0 and 1 possibilities *)
+       List.concat_map (fun addr ->
+         let addr_with_0 = Int64.logand addr (Int64.lognot (Int64.shift_left 1L pos)) in
+         let addr_with_1 = Int64.logor addr (Int64.shift_left 1L pos) in
+         [addr_with_0; addr_with_1]
+       ) sub_addresses
+     | _ -> failwith "Invalid mask character in generate_addresses"
+
+let solve_part2 instructions =
+  let memory = ref Int64Map.empty in (* Use immutable Map for cleaner state management *)
+  let current_mask = ref "" in
+  List.iter (function
+    | Mask s -> current_mask := s
+    | Mem (addr, value) ->
+      let mask = !current_mask in
+      (* Prepare list of (position, char) for the mask *)
+      let mask_chars =
+        List.init (String.length mask) (fun i -> (35 - i, mask.[i]))
+      in
+      (* Generate all addresses based on the current mask and input address *)
+      let addresses_to_write = generate_addresses (Int64.of_int addr) mask_chars in
+      (* Update memory for all generated addresses *)
+      List.iter (fun final_addr ->
+         memory := Int64Map.add final_addr value !memory
+      ) addresses_to_write
+  ) instructions;
+
+  (* Sum all values in the final memory map *)
+  Int64Map.fold (fun _addr value acc -> Int64.add acc value) !memory 0L
+
+
+(* --- Main Execution --- *)
+
+let main () =
+  let filename = "input.txt" in
+  try
+    let lines = read_lines filename in
+    let instructions = List.map parse_line lines in
+
+    (* Solve Part 1 *)
+    let result_part1 = solve_part1 instructions in
+    Printf.printf "Part 1: %Ld\n" result_part1;
+
+    (* Solve Part 2 *)
+    let result_part2 = solve_part2 instructions in
+    Printf.printf "Part 2: %Ld\n" result_part2
+
+  with
+  | Sys_error msg -> Printf.eprintf "Error reading file: %s\n" msg; exit 1
+  | Failure msg -> Printf.eprintf "Error: %s\n" msg; exit 1
+  | Scanf.Scan_failure msg -> Printf.eprintf "Parsing error: %s\n" msg; exit 1
+  | ex -> Printf.eprintf "An unexpected error occurred: %s\n" (Printexc.to_string ex); exit 1
+
+(* Run the main function *)
+let () = main ()
