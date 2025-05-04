@@ -1,0 +1,76 @@
+
+#lang racket
+
+(define (read-lines filename)
+  (with-input-from-file filename
+    (lambda ()
+      (define lines (port->list read-line))
+      (filter (lambda (line) (not (eof-object? line))) lines))))
+
+(define (find-galaxies lines)
+  (let loop ((y 0) (lines lines) (galaxies '()))
+    (if (empty? lines)
+        (reverse galaxies)
+        (let* ((line (first lines))
+               (line-galaxies (let loop-x ((x 0) (chars (string->list line)) (acc '()))
+                                (if (empty? chars)
+                                    (reverse acc)
+                                    (if (char=? (first chars) #\#)
+                                        (loop-x (add1 x) (rest chars) (cons (list x y) acc))
+                                        (loop-x (add1 x) (rest chars) acc))))))
+          (loop (add1 y) (rest lines) (append line-galaxies galaxies))))))
+
+(define (find-empty-rows galaxies height)
+  (let ((galaxy-rows (map second galaxies)))
+    (let loop ((y 0) (empty-rows '()))
+      (if (>= y height)
+          (reverse empty-rows)
+          (if (member y galaxy-rows)
+              (loop (add1 y) empty-rows)
+              (loop (add1 y) (cons y empty-rows)))))))
+
+(define (find-empty-cols galaxies width)
+  (let ((galaxy-cols (map first galaxies)))
+    (let loop ((x 0) (empty-cols '()))
+      (if (>= x width)
+          (reverse empty-cols)
+          (if (member x galaxy-cols)
+              (loop (add1 x) empty-cols)
+              (loop (add1 x) (cons x empty-cols)))))))
+
+(define (count-between val1 val2 lst)
+  (let* ((min-val (min val1 val2))
+         (max-val (max val1 val2)))
+    (count (lambda (v) (and (> v min-val) (< v max-val))) lst)))
+
+(define (calculate-expanded-distance g1 g2 empty-rows empty-cols expansion-factor)
+  (let* ((x1 (first g1)) (y1 (second g1))
+         (x2 (first g2)) (y2 (second g2))
+         (base-dist (+ (abs (- x2 x1)) (abs (- y2 y1))))
+         (empty-cols-crossed (count-between x1 x2 empty-cols))
+         (empty-rows-crossed (count-between y1 y2 empty-rows))
+         (expansion (* (+ empty-cols-crossed empty-rows-crossed) (- expansion-factor 1))))
+    (+ base-dist expansion)))
+
+(define (solve filename expansion-factor)
+  (let* ((lines (read-lines filename))
+         (height (length lines))
+         (width (if (empty? lines) 0 (string-length (first lines))))
+         (galaxies (find-galaxies lines))
+         (empty-rows (find-empty-rows galaxies height))
+         (empty-cols (find-empty-cols galaxies width)))
+    (let loop ((galaxies-to-process galaxies) (total-distance 0))
+      (if (empty? galaxies-to-process)
+          total-distance
+          (let* ((g1 (first galaxies-to-process))
+                 (rest-galaxies (rest galaxies-to-process))
+                 (distance-from-g1 (apply + (map (lambda (g2)
+                                                    (calculate-expanded-distance g1 g2 empty-rows empty-cols expansion-factor))
+                                                  rest-galaxies))))
+            (loop rest-galaxies (+ total-distance distance-from-g1)))))))
+
+(define (main)
+  (displayln (solve "input.txt" 1000000)))
+
+(module+ main
+  (main))
