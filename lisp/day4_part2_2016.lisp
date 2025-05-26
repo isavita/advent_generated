@@ -1,0 +1,50 @@
+
+(defun is-real-room (name checksum)
+  (let ((counts (make-array 26 :initial-element 0)))
+    (loop for char across name
+          unless (char= char #\-)
+            do (incf (aref counts (- (char-code char) (char-code #\a)))))
+    (let* ((char-freqs (loop for i from 0 to 25
+                             for count = (aref counts i)
+                             when (> count 0)
+                               collect (list count (code-char (+ i (char-code #\a))))))
+           (sorted-chars (subseq (sort char-freqs #'(lambda (a b)
+                                                       (if (= (car a) (car b))
+                                                           (char< (cadr a) (cadr b))
+                                                           (> (car a) (car b)))))
+                                 0 5)))
+      (string= checksum (map 'string #'cadr sorted-chars)))))
+
+(defun decrypt-name (name sector-id)
+  (with-output-to-string (s)
+    (loop for char across name
+          do (if (char= char #\-)
+                 (write-char #\Space s)
+                 (let* ((offset (- (char-code char) (char-code #\a)))
+                        (shifted-offset (mod (+ offset sector-id) 26)))
+                   (write-char (code-char (+ shifted-offset (char-code #\a))) s))))))
+
+(defun parse-line (line)
+  (let* ((open-bracket-pos (position #\[ line :from-end t))
+         (close-bracket-pos (position #\] line :from-end t))
+         (checksum (subseq line (1+ open-bracket-pos) close-bracket-pos))
+         (last-hyphen-before-bracket (position #\- line :from-end t :end open-bracket-pos))
+         (sector-id-str (subseq line (1+ last-hyphen-before-bracket) open-bracket-pos))
+         (sector-id (parse-integer sector-id-str))
+         (name (subseq line 0 last-hyphen-before-bracket)))
+    (values name sector-id checksum)))
+
+(defun main ()
+  (let ((total-sector-ids 0))
+    (with-open-file (stream "input.txt" :direction :input)
+      (loop for line = (read-line stream nil nil)
+            while line
+            do (multiple-value-bind (name sector-id checksum)
+                   (parse-line line)
+                 (when (is-real-room name checksum)
+                   (incf total-sector-ids sector-id)
+                   (when (string= (decrypt-name name sector-id) "northpole object storage")
+                     (print sector-id))))))
+    (print total-sector-ids)))
+
+(main)

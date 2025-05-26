@@ -1,0 +1,48 @@
+
+(defvar *favorite-number*)
+
+(defun bit-count (n)
+  (logcount n))
+
+(defun is-wall (x y)
+  (let ((num (+ (* x x) (* 3 x) (* 2 x y) y (* y y) *favorite-number*)))
+    (oddp (bit-count num))))
+
+(defun bfs (start-x start-y target-x target-y)
+  (let ((q-in (list (list start-x start-y 0)))
+        (q-out nil)
+        (visited (make-hash-table :test 'equal)))
+    (loop
+      (when (null q-out)
+        (unless q-in (return-from bfs nil))
+        (setf q-out (nreverse q-in))
+        (setf q-in nil))
+      (let* ((current-state (pop q-out))
+             (x (first current-state))
+             (y (second current-state))
+             (steps (third current-state)))
+        (when (and (= x target-x) (= y target-y))
+          (return-from bfs steps))
+        (unless (or (gethash (list x y) visited)
+                    (is-wall x y))
+          (setf (gethash (list x y) visited) t)
+          (dolist (dir '((1 0) (-1 0) (0 1) (0 -1)))
+            (let* ((dx (first dir))
+                   (dy (second dir))
+                   (new-x (+ x dx))
+                   (new-y (+ y dy)))
+              (when (and (>= new-x 0) (>= new-y 0))
+                (push (list new-x new-y (1+ steps)) q-in)))))))))
+
+(defun main ()
+  (let* ((*favorite-number*
+           (with-open-file (f "input.txt" :direction :input)
+             (parse-integer (read-line f))))
+         (start-x 1)
+         (start-y 1)
+         (target-x 31)
+         (target-y 39)
+         (result (bfs start-x start-y target-x target-y)))
+    (format t "~a~%" result)))
+
+(main)
