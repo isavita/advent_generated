@@ -1,0 +1,36 @@
+
+(defun main ()
+  (let* ((line (with-open-file (f "input.txt" :direction :input)
+                 (string-trim '(#\Newline #\Return) (read-line f))))
+         (disk (make-array 0 :adjustable t :fill-pointer 0))
+         (file-id 0)
+         (is-file t))
+    (loop for char across line
+          do (let ((length (digit-char-p char)))
+               (loop repeat length
+                     do (vector-push-extend (if is-file
+                                                (code-char (+ (char-code #\0) file-id))
+                                                #\.)
+                                            disk)))
+             (when is-file (incf file-id))
+             (setf is-file (not is-file)))
+    (loop
+      (let ((lfree -1)
+            (rfile -1))
+        (loop for i from 0 below (length disk)
+              when (char= (aref disk i) #\.)
+                do (setf lfree i) (loop-finish))
+        (when (= lfree -1) (return))
+        (loop for i from (1- (length disk)) downto (1+ lfree)
+              when (char/= (aref disk i) #\.)
+                do (setf rfile i) (loop-finish))
+        (when (= rfile -1) (return))
+        (rotatef (aref disk lfree) (aref disk rfile))))
+    (let ((checksum 0))
+      (loop for i from 0 below (length disk)
+            for val = (aref disk i)
+            when (char/= val #\.)
+              do (incf checksum (* i (- (char-code val) (char-code #\0)))))
+      (print checksum))))
+
+(main)

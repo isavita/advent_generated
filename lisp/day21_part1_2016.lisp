@@ -1,0 +1,92 @@
+
+(defun swap-position (password x y)
+  (let* ((len (length password))
+         (arr (make-string len)))
+    (loop for i from 0 below len do (setf (char arr i) (char password i)))
+    (rotatef (char arr x) (char arr y))
+    arr))
+
+(defun swap-letter (password x y)
+  (let ((temp-char #\_))
+    (substitute y temp-char (substitute x y (substitute temp-char x password)))))
+
+(defun rotate-left (password steps)
+  (let* ((len (length password))
+         (actual-steps (mod steps len)))
+    (concatenate 'string (subseq password actual-steps) (subseq password 0 actual-steps))))
+
+(defun rotate-right (password steps)
+  (let* ((len (length password))
+         (actual-steps (mod steps len)))
+    (concatenate 'string (subseq password (- len actual-steps)) (subseq password 0 (- len actual-steps)))))
+
+(defun rotate-based-on-position (password x)
+  (let* ((idx (position x password))
+         (steps (+ 1 idx (if (>= idx 4) 1 0))))
+    (rotate-right password steps)))
+
+(defun reverse-positions (password x y)
+  (let* ((start (min x y))
+         (end (1+ (max x y)))
+         (reversed-middle (reverse (coerce (subseq password start end) 'list))))
+    (concatenate 'string
+                 (subseq password 0 start)
+                 (coerce reversed-middle 'string)
+                 (subseq password end))))
+
+(defun move-position (password x y)
+  (let* ((char-to-move (char password x))
+         (temp-password (concatenate 'string (subseq password 0 x) (subseq password (1+ x)))))
+    (concatenate 'string (subseq temp-password 0 y) (string char-to-move) (subseq temp-password y))))
+
+(defun parse-op (op-string)
+  (read-from-string (format nil "(~a)" op-string)))
+
+(defun apply-operation (op password)
+  (let ((fields (parse-op op)))
+    (cond
+      ((eq (first fields) 'SWAP)
+       (cond
+         ((eq (second fields) 'POSITION)
+          (let ((x (third fields))
+                (y (sixth fields)))
+            (swap-position password x y)))
+         ((eq (second fields) 'LETTER)
+          (let ((x (char-downcase (char (symbol-name (third fields)) 0)))
+                (y (char-downcase (char (symbol-name (sixth fields)) 0))))
+            (swap-letter password x y)))))
+      ((eq (first fields) 'ROTATE)
+       (cond
+         ((eq (second fields) 'LEFT)
+          (let ((steps (third fields)))
+            (rotate-left password steps)))
+         ((eq (second fields) 'RIGHT)
+          (let ((steps (third fields)))
+            (rotate-right password steps)))
+         ((eq (second fields) 'BASED)
+          (let ((x (char-downcase (char (symbol-name (seventh fields)) 0))))
+            (rotate-based-on-position password x)))))
+      ((eq (first fields) 'REVERSE)
+       (let ((x (third fields))
+             (y (fifth fields)))
+         (reverse-positions password x y)))
+      ((eq (first fields) 'MOVE)
+       (let ((x (third fields))
+             (y (sixth fields)))
+         (move-position password x y)))
+      (t password))))
+
+(defun main ()
+  (let ((operations ()))
+    (with-open-file (f "input.txt" :direction :input)
+      (loop for line = (read-line f nil)
+            while line
+            do (push line operations)))
+    (setq operations (nreverse operations))
+
+    (let ((password "abcdefgh"))
+      (dolist (op operations)
+        (setq password (apply-operation op password)))
+      (print password))))
+
+(main)

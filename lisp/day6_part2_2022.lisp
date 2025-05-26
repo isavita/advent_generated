@@ -1,0 +1,37 @@
+
+(defun read-file-into-string (filepath)
+  (with-open-file (in filepath :direction :input :element-type 'character)
+    (with-output-to-string (s)
+      (loop for char = (read-char in nil :eof)
+            until (eq char :eof)
+            do (write-char char s)))))
+
+(defun find-marker-optimized (data marker-length)
+  (let* ((data-len (length data))
+         (char-counts (make-array 256 :initial-element 0))
+         (unique-count 0))
+    (loop for i from 0 below marker-length
+          for char-code = (char-code (char data i))
+          do (when (= (aref char-counts char-code) 0)
+               (incf unique-count))
+             (incf (aref char-counts char-code)))
+    (when (= unique-count marker-length)
+      (return-from find-marker-optimized marker-length))
+    (loop for i from marker-length below data-len
+          for char-to-remove-code = (char-code (char data (- i marker-length)))
+          for char-to-add-code = (char-code (char data i))
+          do (decf (aref char-counts char-to-remove-code))
+             (when (= (aref char-counts char-to-remove-code) 0)
+               (decf unique-count))
+             (when (= (aref char-counts char-to-add-code) 0)
+               (incf unique-count))
+             (incf (aref char-counts char-to-add-code))
+             (when (= unique-count marker-length)
+               (return-from find-marker-optimized (1+ i))))))
+
+(defun main ()
+  (let* ((raw-data (read-file-into-string "input.txt"))
+         (data (string-trim '(#\Space #\Tab #\Newline #\Return) raw-data)))
+    (format t "~a~%" (find-marker-optimized data 14))))
+
+(main)

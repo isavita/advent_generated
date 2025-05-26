@@ -1,0 +1,28 @@
+
+(defun main ()
+  (let* ((steps (with-open-file (stream "input.txt" :direction :input)
+                  (read stream))))
+    (let ((buffer (list 0))
+          (current-pos 0))
+      (loop for i from 1 to 2017 do
+        (let* ((len (length buffer))
+               (new-insert-idx (mod (+ current-pos steps) len))
+               (next-current-pos (+ new-insert-idx 1)))
+          (setf buffer (append (subseq buffer 0 next-current-pos)
+                               (list i)
+                               (subseq buffer next-current-pos)))
+          (setf current-pos next-current-pos)))
+      (princ (nth (mod (+ current-pos 1) (length buffer)) buffer))
+      (terpri))
+    (let ((current-pos 0)
+          (value-after-zero nil))
+      (loop for i from 1 to 50000000 do
+        (let* ((insertion-point-relative-to-start (mod (+ current-pos steps) i))
+               (next-current-pos (+ insertion-point-relative-to-start 1)))
+          (when (= next-current-pos 1)
+            (setf value-after-zero i))
+          (setf current-pos next-current-pos)))
+      (princ value-after-zero)
+      (terpri))))
+
+(main)

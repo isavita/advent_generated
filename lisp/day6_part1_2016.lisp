@@ -1,0 +1,23 @@
+
+(defun main ()
+  (with-open-file (f "input.txt")
+    (let* ((ls (loop for l = (read-line f nil :eof)
+                     until (eq l :eof)
+                     collect l))
+           (ml (length (first ls)))
+           (rs '()))
+      (dotimes (i ml)
+        (let ((cs (make-hash-table :test 'eql))
+              (mc nil)
+              (mx -1))
+          (dolist (l ls)
+            (incf (gethash (char l i) cs 0)))
+          (maphash (lambda (c n)
+                     (when (> n mx)
+                       (setf mx n
+                             mc c)))
+                   cs)
+          (push mc rs)))
+      (format t "~A~%" (coerce (nreverse rs) 'string)))))
+
+(main)

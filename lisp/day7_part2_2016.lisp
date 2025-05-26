@@ -1,0 +1,60 @@
+
+(defun has-abba (s)
+  (and (char= (char s 0) (char s 3))
+       (char= (char s 1) (char s 2))
+       (not (char= (char s 0) (char s 1)))))
+
+(defun supports-tls (ip)
+  (let ((hypernet nil)
+        (abba-outside nil)
+        (abba-inside nil))
+    (loop for i from 0 below (length ip)
+          for char = (char ip i)
+          do (cond ((char= char #\[) (setf hypernet t))
+                   ((char= char #\]) (setf hypernet nil))
+                   (t (when (<= (+ i 3) (1- (length ip)))
+                        (when (has-abba (subseq ip i (+ i 4)))
+                          (if hypernet
+                              (setf abba-inside t)
+                              (setf abba-outside t)))))))
+    (and abba-outside (not abba-inside))))
+
+(defun has-aba (s)
+  (when (and (char= (char s 0) (char s 2))
+             (not (char= (char s 0) (char s 1))))
+    (list s)))
+
+(defun supports-ssl (ip)
+  (let ((hypernet-abas '())
+        (supernet-abas '())
+        (hypernet nil))
+    (loop for i from 0 below (length ip)
+          for char = (char ip i)
+          do (cond ((char= char #\[) (setf hypernet t))
+                   ((char= char #\]) (setf hypernet nil))
+                   (t (when (<= (+ i 2) (1- (length ip)))
+                        (let ((abas (has-aba (subseq ip i (+ i 3)))))
+                          (when abas
+                            (if hypernet
+                                (setf hypernet-abas (nconc hypernet-abas abas))
+                                (setf supernet-abas (nconc supernet-abas abas)))))))))
+    (loop for aba in supernet-abas
+          for bab = (format nil "~a~a~a" (char aba 1) (char aba 0) (char aba 1))
+          when (member bab hypernet-abas :test #'string=)
+            do (return t)
+          finally (return nil))))
+
+(defun main ()
+  (let ((tls-count 0)
+        (ssl-count 0))
+    (with-open-file (file "input.txt" :direction :input)
+      (loop for line = (read-line file nil)
+            while line
+            do (when (supports-tls line)
+                 (incf tls-count))
+               (when (supports-ssl line)
+                 (incf ssl-count))))
+    (format t "~a~%" tls-count)
+    (format t "~a~%" ssl-count)))
+
+(main)

@@ -1,0 +1,32 @@
+
+(defun get-char-or-dot (s idx)
+  (if (and (>= idx 0) (< idx (length s)))
+      (char s idx)
+      #\.))
+
+(defun read-first-row (filename)
+  (with-open-file (f filename :direction :input)
+    (string-trim '(#\Space #\Tab #\Newline #\Return) (read-line f nil ""))))
+
+(defun count-safe-tiles (first-row total-rows)
+  (let* ((current-row first-row)
+         (row-len (length first-row))
+         (safe-count (count #\. current-row)))
+    (dotimes (i (- total-rows 1))
+      (let ((next-row (make-string row-len)))
+        (dotimes (j row-len)
+          (let* ((l (get-char-or-dot current-row (- j 1)))
+                 (r (get-char-or-dot current-row (+ j 1)))
+                 (next-char (if (char/= l r) #\^ #\.)))
+            (setf (char next-row j) next-char)
+            (when (char= next-char #\.)
+              (incf safe-count))))
+        (setf current-row next-row)))
+    safe-count))
+
+(defun main ()
+  (let* ((first-row (read-first-row "input.txt"))
+         (safe-tiles-count (count-safe-tiles first-row 400000)))
+    (format t "~a~%" safe-tiles-count)))
+
+(main)
