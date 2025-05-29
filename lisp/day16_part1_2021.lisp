@@ -1,0 +1,45 @@
+
+(defun hex-to-binary (hex-string)
+  (loop for char across hex-string
+        collect (format nil "~4,'0B" (parse-integer (string char) :radix 16)) into parts
+        finally (return (apply #'concatenate 'string parts))))
+
+(defun parse-packet (binary current-index)
+  (let* ((version (parse-integer (subseq binary current-index (+ current-index 3)) :radix 2))
+         (next-index (+ current-index 3))
+         (type-id (parse-integer (subseq binary next-index (+ next-index 3)) :radix 2))
+         (next-index (+ next-index 3))
+         (total-version-sum version))
+    (if (= type-id 4)
+        (loop for more = (char= (char binary next-index) #\1)
+              do (setf next-index (+ next-index 5))
+              while more
+              finally (return (values total-version-sum next-index)))
+        (let ((length-type-id (char binary next-index)))
+          (setf next-index (+ next-index 1))
+          (if (char= length-type-id #\0)
+              (let* ((total-length (parse-integer (subseq binary next-index (+ next-index 15)) :radix 2))
+                     (next-index (+ next-index 15))
+                     (end-index (+ next-index total-length)))
+                (loop while (< next-index end-index)
+                      do (multiple-value-bind (sub-version-sum new-idx)
+                             (parse-packet binary next-index)
+                           (incf total-version-sum sub-version-sum)
+                           (setf next-index new-idx))
+                      finally (return (values total-version-sum next-index))))
+              (let* ((num-sub-packets (parse-integer (subseq binary next-index (+ next-index 11)) :radix 2))
+                     (next-index (+ next-index 11)))
+                (loop for i from 0 below num-sub-packets
+                      do (multiple-value-bind (sub-version-sum new-idx)
+                             (parse-packet binary next-index)
+                           (incf total-version-sum sub-version-sum)
+                           (setf next-index new-idx))
+                      finally (return (values total-version-sum next-index)))))))))
+
+(defun main ()
+  (with-open-file (f "input.txt" :direction :input :if-does-not-exist :error)
+    (let* ((input-line (string-trim '(#\Newline #\Return) (read-line f)))
+           (binary-string (hex-to-binary input-line)))
+      (print (nth-value 0 (parse-packet binary-string 0))))))
+
+(main)

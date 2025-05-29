@@ -1,0 +1,30 @@
+
+(defun calculate-ways-to-win-optimized (time record)
+  (let* ((discriminant (- (* time time) (* 4 record))))
+    (when (<= discriminant 0)
+      (return-from calculate-ways-to-win-optimized 0))
+    (let* ((sqrt-discriminant (sqrt (coerce discriminant 'double-float)))
+           (root1 (/ (- time sqrt-discriminant) 2.0d0))
+           (root2 (/ (+ time sqrt-discriminant) 2.0d0)))
+      (let* ((start-hold-time (1+ (floor root1)))
+             (end-hold-time (1- (ceiling root2))))
+        (max 0 (+ (- end-hold-time start-hold-time) 1))))))
+
+(defun parse-num-from-line (line)
+  (let* ((colon-pos (position #\: line))
+         (num-str (subseq line (1+ colon-pos)))
+         (cleaned-str (remove #\Space num-str)))
+    (parse-integer cleaned-str)))
+
+(defun main ()
+  (with-open-file (in "input.txt" :direction :input :if-does-not-exist :error)
+    (let* ((line1 (read-line in nil nil))
+           (time (when line1 (parse-num-from-line line1)))
+           (line2 (read-line in nil nil))
+           (distance (when line2 (parse-num-from-line line2))))
+      (cond ((and time distance)
+             (print (calculate-ways-to-win-optimized time distance)))
+            (t
+             (error "Invalid input file format"))))))
+
+(main)
