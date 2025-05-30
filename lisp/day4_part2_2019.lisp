@@ -1,0 +1,52 @@
+
+(defun is-valid-password (password)
+  (let ((has-double nil)
+        (is-non-decreasing t)
+        (prev-digit -1))
+    (loop for i from 0 below 6
+          for current-digit = (mod (floor password (expt 10 (- 5 i))) 10)
+          do (when (and (> i 0) (< current-digit prev-digit))
+               (setf is-non-decreasing nil)
+               (return))
+             (when (and (> i 0) (= current-digit prev-digit))
+               (setf has-double t))
+             (setf prev-digit current-digit))
+    (and has-double is-non-decreasing)))
+
+(defun is-valid-password-part-two (password)
+  (let ((has-exact-double nil)
+        (is-non-decreasing t)
+        (prev-digit -1)
+        (count 1))
+    (loop for i from 0 below 6
+          for current-digit = (mod (floor password (expt 10 (- 5 i))) 10)
+          do (when (and (> i 0) (< current-digit prev-digit))
+               (setf is-non-decreasing nil)
+               (return))
+             (if (and (> i 0) (= current-digit prev-digit))
+                 (incf count)
+                 (progn
+                   (when (and (> i 0) (= count 2))
+                     (setf has-exact-double t))
+                   (setf count 1)))
+             (setf prev-digit current-digit))
+    (when (= count 2)
+      (setf has-exact-double t))
+    (and has-exact-double is-non-decreasing)))
+
+(defun count-valid-passwords (range-min range-max validate-fn)
+  (loop for i from range-min to range-max
+        count (funcall validate-fn i)))
+
+(defun main ()
+  (let* ((input-string (with-open-file (f "input.txt" :direction :input)
+                         (read-line f)))
+         (dash-pos (position #\- input-string))
+         (min-val (parse-integer (subseq input-string 0 dash-pos)))
+         (max-val (parse-integer (subseq input-string (1+ dash-pos)))))
+    (let ((part-one-count (count-valid-passwords min-val max-val #'is-valid-password))
+          (part-two-count (count-valid-passwords min-val max-val #'is-valid-password-part-two)))
+      (format t "Part One: ~a~%" part-one-count)
+      (format t "Part Two: ~a~%" part-two-count))))
+
+(main)

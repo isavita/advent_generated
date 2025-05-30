@@ -1,0 +1,83 @@
+
+(defconstant +directions+
+  '((-1 -1) (-1 0) (-1 1)
+    (0 -1)          (0 1)
+    (1 -1) (1 0) (1 1)))
+
+(defun read-input (filename)
+  (with-open-file (stream filename :direction :input)
+    (loop for line = (read-line stream nil nil)
+          while line
+          collect (coerce line 'vector) into layout-list
+          finally (return (coerce layout-list 'vector)))))
+
+(defun count-adjacent-occupied (layout row col)
+  (let ((rows (length layout))
+        (cols (length (aref layout 0)))
+        (count 0))
+    (dolist (dir +directions+ count)
+      (let* ((dr (first dir))
+             (dc (second dir))
+             (nr (+ row dr))
+             (nc (+ col dc)))
+        (when (and (>= nr 0) (< nr rows)
+                   (>= nc 0) (< nc cols)
+                   (char= (aref (aref layout nr) nc) #\#))
+          (incf count))))))
+
+(defun count-visible-occupied (layout row col)
+  (let ((rows (length layout))
+        (cols (length (aref layout 0)))
+        (count 0))
+    (dolist (dir +directions+ count)
+      (let* ((dr (first dir))
+             (dc (second dir)))
+        (loop for nr = (+ row dr) then (+ nr dr)
+              for nc = (+ col dc) then (+ nc dc)
+              when (or (< nr 0) (>= nr rows)
+                       (< nc 0) (>= nc cols))
+                do (loop-finish)
+              do (let ((char (aref (aref layout nr) nc)))
+                   (cond ((char= char #\#) (incf count) (loop-finish))
+                         ((char= char #\L) (loop-finish)))))))))
+
+(defun simulate-seating (initial-layout use-visible-rules)
+  (let* ((current-layout initial-layout)
+         (rows (length initial-layout))
+         (cols (length (aref initial-layout 0))))
+    (loop
+      (let ((new-layout (map 'vector #'copy-seq current-layout))
+            (changed nil))
+        (dotimes (r rows)
+          (dotimes (c cols)
+            (let ((seat (aref (aref current-layout r) c)))
+              (cond ((char= seat #\L)
+                     (when (if use-visible-rules
+                               (zerop (count-visible-occupied current-layout r c))
+                               (zerop (count-adjacent-occupied current-layout r c)))
+                       (setf (aref (aref new-layout r) c) #\#)
+                       (setf changed t)))
+                    ((char= seat #\#)
+                     (when (if use-visible-rules
+                               (>= (count-visible-occupied current-layout r c) 5)
+                               (>= (count-adjacent-occupied current-layout r c) 4))
+                       (setf (aref (aref new-layout r) c) #\L)
+                       (setf changed t)))))))
+        (if changed
+            (setf current-layout new-layout)
+            (return current-layout))))))
+
+(defun count-occupied-seats (layout)
+  (let ((count 0))
+    (dotimes (r (length layout) count)
+      (dotimes (c (length (aref layout 0)))
+        (when (char= (aref (aref layout r) c) #\#)
+          (incf count))))))
+
+(defun main ()
+  (let* ((initial-layout (read-input "input.txt"))
+         (final-layout (simulate-seating initial-layout t))
+         (occupied-count (count-occupied-seats final-layout)))
+    (format t "~a~%" occupied-count)))
+
+(main)

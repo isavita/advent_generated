@@ -1,0 +1,76 @@
+
+(defun read-file-content (filepath)
+  (with-open-file (in filepath :element-type 'character :direction :input)
+    (let ((content (make-string (file-length in))))
+      (read-sequence content in)
+      content)))
+
+(defun split-string-by-newline (s)
+  (loop for start = 0 then (1+ end)
+        for end = (position #\Newline s :start start)
+        collect (subseq s start (or end (length s)))
+        while end))
+
+(defun calc-flat-slice-part (input-vec)
+  (let* ((len (length input-vec))
+         (vec (make-array len :element-type 'string :adjustable t :fill-pointer len :initial-contents input-vec)))
+    (loop for char-str across (subseq vec 0 (fill-pointer vec))
+          do (when (or (string= char-str "(") (string= char-str ")"))
+               (error "Unexpected paren in flat input: ~a" (subseq vec 0 (fill-pointer vec)))))
+
+    (loop with i = 1
+          while (< i (1- (fill-pointer vec)))
+          do (cond ((string= (elt vec i) "+")
+                    (let ((left (parse-integer (elt vec (1- i))))
+                          (right (parse-integer (elt vec (1+ i)))))
+                      (setf (elt vec (1- i)) (princ-to-string (+ left right)))
+                      (replace vec vec :start1 i :start2 (+ i 2) :end2 (fill-pointer vec))
+                      (decf (fill-pointer vec) 2)
+                      (decf i)))
+                   (t nil))
+          (incf i))
+
+    (loop with i = 1
+          while (< i (1- (fill-pointer vec)))
+          do (cond ((string= (elt vec i) "*")
+                    (let ((left (parse-integer (elt vec (1- i))))
+                          (right (parse-integer (elt vec (1+ i)))))
+                      (setf (elt vec (1- i)) (princ-to-string (* left right)))
+                      (replace vec vec :start1 i :start2 (+ i 2) :end2 (fill-pointer vec))
+                      (decf (fill-pointer vec) 2)
+                      (decf i)))
+                   (t nil))
+          (incf i))
+    (unless (= (fill-pointer vec) 1)
+      (error "CalcFlatSlicePart did not reduce to a single element: ~a" (subseq vec 0 (fill-pointer vec))))
+    (elt vec 0)))
+
+(defun do-maths (input-list flattening-func)
+  (let ((stack-open-indices nil)
+        (stack-flattened (make-array (length input-list) :adjustable t :fill-pointer 0 :element-type 'string)))
+    (loop for char-str in input-list
+          do (vector-push-extend char-str stack-flattened)
+             (case (char char-str 0)
+               (#\( (push (1- (fill-pointer stack-flattened)) stack-open-indices))
+               (#\) (let* ((open-idx (pop stack-open-indices))
+                           (sli-to-flatten (subseq stack-flattened (1+ open-idx) (1- (fill-pointer stack-flattened)))))
+                      (setf (elt stack-flattened open-idx) (funcall flattening-func sli-to-flatten))
+                      (setf (fill-pointer stack-flattened) (1+ open-idx))))))
+    (parse-integer (funcall flattening-func (subseq stack-flattened 0 (fill-pointer stack-flattened))))))
+
+(defun parse-input (input-string)
+  (loop for line in (split-string-by-newline (string-trim '(#\Newline #\Return) input-string))
+        collect (loop for char across (remove #\Space line)
+                      collect (string char))))
+
+(defun solve (input-string)
+  (let ((lines (parse-input input-string)))
+    (loop for line in lines
+          sum (do-maths line #'calc-flat-slice-part))))
+
+(defun main ()
+  (let* ((input (read-file-content "input.txt"))
+         (ans (solve input)))
+    (format t "~a~%" ans)))
+
+(main)
