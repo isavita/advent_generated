@@ -1,0 +1,77 @@
+
+(defun read-lines-from-file (filename)
+  (with-open-file (stream filename :direction :input)
+    (loop for line = (read-line stream nil nil)
+          while line
+          when (> (length line) 0)
+          collect line)))
+
+(defun parse-data (data)
+  (let ((garden (make-hash-table :test 'equal))
+        (start nil))
+    (loop for y from 0 below (length data)
+          for line = (nth y data)
+          do (loop for x from 0 below (length line)
+                   for char = (char line x)
+                   do (unless (char= char #\#)
+                        (setf (gethash (list x y) garden) t))
+                      (when (char= char #\S)
+                        (setf start (list x y)))))
+    (unless start (error "No start found!"))
+    (list garden start)))
+
+(defun complex-mod (point mod-val)
+  (let ((x (car point))
+        (y (cadr point)))
+    (list (mod (+ x (* 10 mod-val)) mod-val)
+          (mod (+ y (* 10 mod-val)) mod-val))))
+
+(defun calculate-num-ends (garden start num-iterations max-size)
+  (let ((queue (make-hash-table :test 'equal))
+        (done nil)
+        (target-remainder (floor (- max-size 1) 2)))
+    (setf (gethash start queue) t)
+
+    (loop for i from 0
+          do (when (and (= (mod i max-size) target-remainder))
+                (push (hash-table-count queue) done)
+                (when (= (length done) 3) (return)))
+
+             (let ((new-queue (make-hash-table :test 'equal)))
+               (dolist (dir '((1 0) (-1 0) (0 1) (0 -1)))
+                 (maphash (lambda (point val)
+                            (declare (ignore val))
+                            (let* ((px (car point))
+                                   (py (cadr point))
+                                   (dx (car dir))
+                                   (dy (cadr dir))
+                                   (new-point (list (+ px dx) (+ py dy))))
+                              (when (gethash (complex-mod new-point max-size) garden)
+                                (setf (gethash new-point new-queue) t))))
+                          queue))
+               (setf queue new-queue))
+          while (< i (* 3 max-size)))
+
+    (setf done (nreverse done)) ; Ensure a, b, c are in correct order
+
+    (let* ((a (nth 0 done))
+           (b (nth 1 done))
+           (c (nth 2 done))
+           (n (floor num-iterations max-size)))
+      ;; Quadratic formula for f(x) where x=0,1,2 gives a,b,c applied at 'n'.
+      (+ a (* n (+ (- b a)
+                   (/ (* (- n 1)
+                         (+ c (* -2 b) a))
+                      2)))))))
+
+(defun main ()
+  (let* ((lines (read-lines-from-file "input.txt"))
+         (parsed-data (parse-data lines))
+         (garden (car parsed-data))
+         (start (cadr parsed-data))
+         (max-size (length lines))
+         (num-iterations 26501365)
+         (result (calculate-num-ends garden start num-iterations max-size)))
+    (format t "~a~%" result)))
+
+(main)

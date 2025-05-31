@@ -1,0 +1,36 @@
+
+(defun first-revisited-distance (instructions)
+  (let* ((x 0)
+         (y 0)
+         (visited (make-hash-table :test 'equal))
+         (directions #((0 1) (1 0) (0 -1) (-1 0)))
+         (dir-index 0))
+    (setf (gethash (list x y) visited) t)
+    (loop for instruction in instructions do
+      (let* ((turn (char instruction 0))
+             (blocks (parse-integer (subseq instruction 1))))
+        (cond ((char= turn #\R)
+               (setf dir-index (mod (1+ dir-index) 4)))
+              ((char= turn #\L)
+               (setf dir-index (mod (1- dir-index) 4))))
+        (loop for i from 1 to blocks do
+          (let ((current-direction (aref directions dir-index)))
+            (incf x (first current-direction))
+            (incf y (second current-direction))
+            (when (gethash (list x y) visited)
+              (return-from first-revisited-distance (+ (abs x) (abs y))))
+            (setf (gethash (list x y) visited) t)))))))
+
+(defun parse-instructions (line)
+  (loop for start = 0 then (1+ end)
+        for end = (position #\, line :start start)
+        collect (string-trim " " (subseq line start (or end (length line))))
+        while end))
+
+(defun main ()
+  (with-open-file (in "input.txt" :direction :input :if-does-not-exist :error)
+    (let* ((line (read-line in nil nil))
+           (instructions (parse-instructions line)))
+      (print (first-revisited-distance instructions)))))
+
+(main)
