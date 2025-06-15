@@ -1,0 +1,39 @@
+
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CalculateFloor.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INPUT-FILE ASSIGN TO "input.txt"
+           ORGANIZATION IS LINE SEQUENTIAL.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  INPUT-FILE.
+       01  INPUT-RECORD         PIC X(8192).
+
+       WORKING-STORAGE SECTION.
+       01  WS-UP-COUNT          PIC 9(8) VALUE 0.
+       01  WS-DOWN-COUNT        PIC 9(8) VALUE 0.
+       01  WS-FLOOR             PIC S9(8).
+       01  WS-DISPLAY-FLOOR     PIC -9(8).
+
+       PROCEDURE DIVISION.
+       MAIN.
+           OPEN INPUT INPUT-FILE.
+           READ INPUT-FILE.
+           CLOSE INPUT-FILE.
+
+           INSPECT INPUT-RECORD TALLYING WS-UP-COUNT
+               FOR ALL '('.
+
+           INSPECT INPUT-RECORD TALLYING WS-DOWN-COUNT
+               FOR ALL ')'.
+
+           COMPUTE WS-FLOOR = WS-UP-COUNT - WS-DOWN-COUNT.
+
+           MOVE WS-FLOOR TO WS-DISPLAY-FLOOR.
+           DISPLAY FUNCTION TRIM(WS-DISPLAY-FLOOR).
+
+           STOP RUN.

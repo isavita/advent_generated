@@ -1,0 +1,55 @@
+
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. Solve.
+       AUTHOR. Programmer.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INPUT-FILE ASSIGN TO "input.txt"
+               ORGANIZATION IS LINE SEQUENTIAL.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD  INPUT-FILE.
+       01  INPUT-RECORD         PIC X(256).
+
+       WORKING-STORAGE SECTION.
+       01  WS-EOF               PIC A(1) VALUE 'N'.
+           88 FILE-AT-END                VALUE 'Y'.
+
+       01  WS-TOTAL-DIFF        PIC 9(9) VALUE 0.
+       01  WS-LINE-LENGTH       PIC 9(4).
+       01  WS-SPECIAL-COUNT     PIC 9(4).
+
+       PROCEDURE DIVISION.
+       MAIN.
+           OPEN INPUT INPUT-FILE.
+           PERFORM UNTIL FILE-AT-END
+               READ INPUT-FILE
+                   AT END SET FILE-AT-END TO TRUE
+                   NOT AT END PERFORM PROCESS-LINE
+               END-READ
+           END-PERFORM.
+           CLOSE INPUT-FILE.
+
+           DISPLAY WS-TOTAL-DIFF.
+           STOP RUN.
+
+       PROCESS-LINE.
+           PERFORM CALCULATE-LINE-LENGTH.
+           INITIALIZE WS-SPECIAL-COUNT.
+
+           INSPECT INPUT-RECORD (1:WS-LINE-LENGTH)
+               TALLYING WS-SPECIAL-COUNT FOR ALL '\'.
+           INSPECT INPUT-RECORD (1:WS-LINE-LENGTH)
+               TALLYING WS-SPECIAL-COUNT FOR ALL '"'.
+
+           ADD 2, WS-SPECIAL-COUNT TO WS-TOTAL-DIFF.
+
+       CALCULATE-LINE-LENGTH.
+           MOVE 0 TO WS-LINE-LENGTH.
+           INSPECT FUNCTION REVERSE(INPUT-RECORD)
+               TALLYING WS-LINE-LENGTH FOR LEADING SPACES.
+           COMPUTE WS-LINE-LENGTH = LENGTH OF INPUT-RECORD -
+                                    WS-LINE-LENGTH.
