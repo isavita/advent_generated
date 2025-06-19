@@ -1,0 +1,223 @@
+
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ASTEROID-VAPORIZER.
+       AUTHOR. EXPERT PROGRAMMER.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INPUT-FILE ASSIGN TO 'input.txt'.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD INPUT-FILE.
+       01 INPUT-RECORD PIC X(80).
+
+       WORKING-STORAGE SECTION.
+       01 GRID-DATA.
+          05 GRID-ROW OCCURS 50 TIMES.
+             10 GRID-CELL OCCURS 50 TIMES PIC X.
+
+       01 ASTEROID-COUNT PIC 9(4).
+       01 MAX-VISIBLE-COUNT PIC 9(4).
+       01 BEST-X PIC 9(2).
+       01 BEST-Y PIC 9(2).
+
+       01 CURRENT-X PIC 9(2).
+       01 CURRENT-Y PIC 9(2).
+       01 OTHER-X PIC 9(2).
+       01 OTHER-Y PIC 9(2).
+       01 VISIBLE-COUNT PIC 9(4).
+
+       01 NUM-ROWS PIC 9(2) VALUE 0.
+       01 NUM-COLS PIC 9(2) VALUE 0.
+
+       01 STATION-X PIC 9(2).
+       01 STATION-Y PIC 9(2).
+
+       01 TARGET-DATA.
+          05 TARGET-ENTRY OCCURS 2500 TIMES.
+             10 TARGET-X PIC 9(2).
+             10 TARGET-Y PIC 9(2).
+             10 TARGET-ANGLE PIC S9(9)V9(9).
+             10 TARGET-DIST PIC S9(9)V9(9).
+
+       01 TARGET-COUNT PIC 9(4).
+       01 VAPORIZED-COUNT PIC 9(4).
+       01 VAPORIZED-TARGET-INDEX PIC 9(4).
+       01 LAST-VAPORIZED-ANGLE PIC S9(9)V9(9) VALUE -999999999.
+       01 CURRENT-TARGET-INDEX PIC 9(4).
+       01 TEMP-TARGET-INDEX PIC 9(4).
+       01 SWAP-INDEX PIC 9(4).
+       01 I PIC 9(4).
+       01 J PIC 9(4).
+       01 K PIC 9(4).
+
+       01 PI-VALUE PIC S9(9)V9(9) VALUE 3.1415926535.
+       01 TWO-PI PIC S9(9)V9(9) VALUE 6.2831853070.
+       01 HALF-PI PIC S9(9)V9(9) VALUE 1.5707963267.
+
+       01 DELTA-X PIC S9(4).
+       01 DELTA-Y PIC S9(4).
+       01 ANGLE-CALC PIC S9(9)V9(9).
+       01 DIST-CALC PIC S9(9)V9(9).
+
+       01 RESULT-X PIC 9(4).
+       01 RESULT-Y PIC 9(4).
+       01 FINAL-RESULT PIC 9(6).
+
+       PROCEDURE DIVISION.
+       MAIN-PROCEDURE.
+           PERFORM READ-INPUT.
+           PERFORM FIND-BEST-LOCATION.
+           PERFORM VAPORIZE-ASTEROIDS.
+           PERFORM PRINT-RESULT.
+           STOP RUN.
+
+       READ-INPUT.
+           OPEN INPUT INPUT-FILE.
+           PERFORM UNTIL EOF
+               READ INPUT-FILE
+                   AT END MOVE 'Y' TO EOF-FLAG
+                   NOT AT END
+                       ADD 1 TO NUM-ROWS
+                       MOVE FUNCTION TRIM(INPUT-RECORD) TO GRID-ROW(NUM-ROWS)
+                       INSPECT INPUT-RECORD TALLYING NUM-COLS FOR '#'
+                       IF NUM-COLS > 0
+                           ADD 1 TO NUM-COLS
+                       END-IF
+               END-READ
+           END-PERFORM.
+           CLOSE INPUT-FILE.
+           MOVE NUM-ROWS TO ASTEROID-COUNT.
+           MOVE NUM-COLS TO ASTEROID-COUNT.
+
+       FIND-BEST-LOCATION.
+           MOVE 0 TO MAX-VISIBLE-COUNT.
+           MOVE 0 TO BEST-X.
+           MOVE 0 TO BEST-Y.
+           PERFORM VARYING CURRENT-Y FROM 1 BY 1 UNTIL CURRENT-Y > NUM-ROWS
+               PERFORM VARYING CURRENT-X FROM 1 BY 1 UNTIL CURRENT-X > NUM-COLS
+                   IF GRID-CELL(CURRENT-Y, CURRENT-X) = '#'
+                       PERFORM COUNT-VISIBLE
+                       IF VISIBLE-COUNT > MAX-VISIBLE-COUNT
+                           MOVE VISIBLE-COUNT TO MAX-VISIBLE-COUNT
+                           MOVE CURRENT-X TO BEST-X
+                           MOVE CURRENT-Y TO BEST-Y
+                       END-IF
+                   END-IF
+               END-PERFORM
+           END-PERFORM.
+           MOVE BEST-X TO STATION-X.
+           MOVE BEST-Y TO STATION-Y.
+
+       COUNT-VISIBLE.
+           MOVE 0 TO VISIBLE-COUNT.
+           MOVE 0 TO TARGET-COUNT.
+           PERFORM VARYING OTHER-Y FROM 1 BY 1 UNTIL OTHER-Y > NUM-ROWS
+               PERFORM VARYING OTHER-X FROM 1 BY 1 UNTIL OTHER-X > NUM-COLS
+                   IF GRID-CELL(OTHER-Y, OTHER-X) = '#' AND
+                      NOT (OTHER-X = CURRENT-X AND OTHER-Y = CURRENT-Y)
+                       ADD 1 TO VISIBLE-COUNT
+                   END-IF
+               END-PERFORM
+           END-PERFORM.
+
+       VAPORIZE-ASTEROIDS.
+           MOVE 0 TO TARGET-COUNT.
+           PERFORM VARYING CURRENT-Y FROM 1 BY 1 UNTIL CURRENT-Y > NUM-ROWS
+               PERFORM VARYING CURRENT-X FROM 1 BY 1 UNTIL CURRENT-X > NUM-COLS
+                   IF GRID-CELL(CURRENT-Y, CURRENT-X) = '#' AND
+                      NOT (CURRENT-X = STATION-X AND CURRENT-Y = STATION-Y)
+                       ADD 1 TO TARGET-COUNT
+                       MOVE CURRENT-X TO TARGET-X(TARGET-COUNT)
+                       MOVE CURRENT-Y TO TARGET-Y(TARGET-COUNT)
+
+                       SUBTRACT STATION-Y FROM CURRENT-Y GIVING DELTA-Y
+                       SUBTRACT STATION-X FROM CURRENT-X GIVING DELTA-X
+
+                       COMPUTE ANGLE-CALC = FUNCTION ATAN2(DELTA-Y, DELTA-X)
+                       COMPUTE DIST-CALC = FUNCTION SQRT(DELTA-X * DELTA-X + DELTA-Y * DELTA-Y)
+
+                       IF ANGLE-CALC < -HALF-PI
+                           ADD TWO-PI TO ANGLE-CALC
+                       END-IF
+
+                       MOVE ANGLE-CALC TO TARGET-ANGLE(TARGET-COUNT)
+                       MOVE DIST-CALC TO TARGET-DIST(TARGET-COUNT)
+                   END-IF
+               END-PERFORM
+           END-PERFORM.
+
+           PERFORM SORT-TARGETS.
+
+           MOVE 0 TO VAPORIZED-COUNT.
+           MOVE 0 TO VAPORIZED-TARGET-INDEX.
+           MOVE -999999999 TO LAST-VAPORIZED-ANGLE.
+
+           PERFORM UNTIL TARGET-COUNT = 0
+               MOVE 0 TO CURRENT-TARGET-INDEX
+               MOVE 0 TO TEMP-TARGET-INDEX
+               PERFORM VARYING I FROM 1 BY 1 UNTIL I > TARGET-COUNT
+                   IF TARGET-ANGLE(I) NOT = LAST-VAPORIZED-ANGLE
+                       ADD 1 TO VAPORIZED-COUNT
+                       MOVE I TO VAPORIZED-TARGET-INDEX
+                       MOVE TARGET-ANGLE(I) TO LAST-VAPORIZED-ANGLE
+                       MOVE 1 TO CURRENT-TARGET-INDEX
+                       MOVE I TO TEMP-TARGET-INDEX
+                   ELSE
+                       ADD 1 TO CURRENT-TARGET-INDEX
+                   END-IF
+               END-PERFORM
+
+               IF VAPORIZED-TARGET-INDEX > 0
+                   MOVE TARGET-X(VAPORIZED-TARGET-INDEX) TO RESULT-X
+                   MOVE TARGET-Y(VAPORIZED-TARGET-INDEX) TO RESULT-Y
+                   PERFORM REMOVE-TARGET
+               END-IF
+           END-PERFORM.
+
+       SORT-TARGETS.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TARGET-COUNT - 1
+               PERFORM VARYING J FROM I + 1 BY 1 UNTIL J > TARGET-COUNT
+                   IF TARGET-ANGLE(I) > TARGET-ANGLE(J) OR
+                      (TARGET-ANGLE(I) = TARGET-ANGLE(J) AND TARGET-DIST(I) > TARGET-DIST(J))
+                       MOVE I TO SWAP-INDEX
+                       PERFORM SWAP-TARGETS
+                   END-IF
+               END-PERFORM
+           END-PERFORM.
+
+       SWAP-TARGETS.
+           MOVE TARGET-X(SWAP-INDEX) TO TARGET-X(J)
+           MOVE TARGET-X(I) TO TARGET-X(SWAP-INDEX)
+
+           MOVE TARGET-Y(SWAP-INDEX) TO TARGET-Y(J)
+           MOVE TARGET-Y(I) TO TARGET-Y(SWAP-INDEX)
+
+           MOVE TARGET-ANGLE(SWAP-INDEX) TO TARGET-ANGLE(J)
+           MOVE TARGET-ANGLE(I) TO TARGET-ANGLE(SWAP-INDEX)
+
+           MOVE TARGET-DIST(SWAP-INDEX) TO TARGET-DIST(J)
+           MOVE TARGET-DIST(I) TO TARGET-DIST(SWAP-INDEX)
+
+       REMOVE-TARGET.
+           PERFORM VARYING K FROM VAPORIZED-TARGET-INDEX BY 1 UNTIL K >= TARGET-COUNT
+               MOVE TARGET-X(K + 1) TO TARGET-X(K)
+               MOVE TARGET-Y(K + 1) TO TARGET-Y(K)
+               MOVE TARGET-ANGLE(K + 1) TO TARGET-ANGLE(K)
+               MOVE TARGET-DIST(K + 1) TO TARGET-DIST(K)
+           END-PERFORM.
+           SUBTRACT 1 FROM TARGET-COUNT.
+
+       PRINT-RESULT.
+           IF VAPORIZED-COUNT >= 200
+               COMPUTE FINAL-RESULT = RESULT-X * 100 + RESULT-Y
+               DISPLAY FINAL-RESULT
+           ELSE
+               DISPLAY "Less than 200 asteroids were vaporized."
+           END-IF.
+
+       EOF-FLAG PIC X VALUE 'N'.
+       END-OF-FILE SECTION.
+       01 EOF-FLAG PIC X.
