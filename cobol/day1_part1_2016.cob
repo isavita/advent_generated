@@ -1,0 +1,136 @@
+
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ROBOT-NAV.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INPUT-FILE ASSIGN TO 'input.txt'.
+
+       DATA DIVISION.
+       FILE SECTION.
+       FD INPUT-FILE.
+       01 INPUT-RECORD PIC X(256).
+
+       WORKING-STORAGE SECTION.
+       01 WS-INPUT-LINE      PIC X(256).
+       01 WS-INSTRUCTION     PIC X(5).
+       01 WS-INSTRUCTION-LEN PIC 9(2).
+       01 WS-INSTRUCTION-PTR PIC 9(2).
+
+       01 WS-TURN            PIC X.
+       01 WS-BLOCKS-STR      PIC X(4).
+       01 WS-BLOCKS          PIC 9(4).
+
+       01 WS-POS-X           PIC S9(9) VALUE 0.
+       01 WS-POS-Y           PIC S9(9) VALUE 0.
+       01 WS-DIR-INDEX       PIC 9 VALUE 0.
+
+       01 WS-DIRECTIONS.
+          05 WS-DIRECTION OCCURS 4 TIMES.
+             10 WS-DIR-DX PIC S9 VALUE 0.
+             10 WS-DIR-DY PIC S9 VALUE 0.
+
+       01 WS-ABS-X           PIC S9(9).
+       01 WS-ABS-Y           PIC S9(9).
+       01 WS-TOTAL-DISTANCE  PIC S9(9).
+
+       PROCEDURE DIVISION.
+       MAIN-PROCEDURE.
+           PERFORM INITIALIZE-DIRECTIONS.
+           OPEN INPUT INPUT-FILE.
+           READ INPUT-FILE.
+           MOVE INPUT-RECORD TO WS-INPUT-LINE.
+           CLOSE INPUT-FILE.
+
+           PERFORM PROCESS-INSTRUCTIONS.
+
+           MOVE FUNCTION ABS(WS-POS-X) TO WS-ABS-X.
+           MOVE FUNCTION ABS(WS-POS-Y) TO WS-ABS-Y.
+           ADD WS-ABS-X, WS-ABS-Y GIVING WS-TOTAL-DISTANCE.
+
+           DISPLAY WS-TOTAL-DISTANCE.
+
+           STOP RUN.
+
+       INITIALIZE-DIRECTIONS.
+           MOVE 0 TO WS-DIR-DX(1). MOVE 1 TO WS-DIR-DY(1).
+           MOVE 1 TO WS-DIR-DX(2). MOVE 0 TO WS-DIR-DY(2).
+           MOVE 0 TO WS-DIR-DX(3). MOVE -1 TO WS-DIR-DY(3).
+           MOVE -1 TO WS-DIR-DX(4). MOVE 0 TO WS-DIR-DY(4).
+
+       PROCESS-INSTRUCTIONS.
+           INSPECT WS-INPUT-LINE REPLACING ALL ', ' BY SPACE.
+           UNSTRING WS-INPUT-LINE DELIMITED BY SPACE INTO
+               WS-INSTRUCTION(1:5)
+               WS-INSTRUCTION(6:5)
+               WS-INSTRUCTION(11:5)
+               WS-INSTRUCTION(16:5)
+               WS-INSTRUCTION(21:5)
+               WS-INSTRUCTION(26:5)
+               WS-INSTRUCTION(31:5)
+               WS-INSTRUCTION(36:5)
+               WS-INSTRUCTION(41:5)
+               WS-INSTRUCTION(46:5)
+               WS-INSTRUCTION(51:5)
+               WS-INSTRUCTION(56:5)
+               WS-INSTRUCTION(61:5)
+               WS-INSTRUCTION(66:5)
+               WS-INSTRUCTION(71:5)
+               WS-INSTRUCTION(76:5)
+               WS-INSTRUCTION(81:5)
+               WS-INSTRUCTION(86:5)
+               WS-INSTRUCTION(91:5)
+               WS-INSTRUCTION(96:5)
+               WS-INSTRUCTION(101:5)
+               WS-INSTRUCTION(106:5)
+               WS-INSTRUCTION(111:5)
+               WS-INSTRUCTION(116:5)
+               WS-INSTRUCTION(121:5)
+               WS-INSTRUCTION(126:5)
+               WS-INSTRUCTION(131:5)
+               WS-INSTRUCTION(136:5)
+               WS-INSTRUCTION(141:5)
+               WS-INSTRUCTION(146:5)
+               WS-INSTRUCTION(151:5)
+               WS-INSTRUCTION(156:5)
+               WS-INSTRUCTION(161:5)
+               WS-INSTRUCTION(166:5)
+               WS-INSTRUCTION(171:5)
+               WS-INSTRUCTION(176:5)
+               WS-INSTRUCTION(181:5)
+               WS-INSTRUCTION(186:5)
+               WS-INSTRUCTION(191:5)
+               WS-INSTRUCTION(196:5)
+               WS-INSTRUCTION(201:5)
+               WS-INSTRUCTION(206:5)
+               WS-INSTRUCTION(211:5)
+               WS-INSTRUCTION(216:5)
+               WS-INSTRUCTION(221:5)
+               WS-INSTRUCTION(226:5)
+               WS-INSTRUCTION(231:5)
+               WS-INSTRUCTION(236:5)
+               WS-INSTRUCTION(241:5)
+               WS-INSTRUCTION(246:5)
+               WS-INSTRUCTION(251:5)
+               END-UNSTRING.
+
+           PERFORM VARYING WS-INSTRUCTION-PTR FROM 1 BY 5
+               UNTIL WS-INSTRUCTION-PTR > FUNCTION LENGTH(WS-INPUT-LINE)
+               OR WS-INSTRUCTION(WS-INSTRUCTION-PTR:1) = SPACE
+               OR WS-INSTRUCTION-PTR > 250
+               MOVE WS-INSTRUCTION(WS-INSTRUCTION-PTR:1) TO WS-TURN
+               MOVE WS-INSTRUCTION(WS-INSTRUCTION-PTR + 1:4) TO WS-BLOCKS-STR
+               MOVE WS-BLOCKS-STR TO WS-BLOCKS
+               PERFORM UPDATE-POSITION
+           END-PERFORM.
+
+       UPDATE-POSITION.
+           IF WS-TURN = 'R'
+               COMPUTE WS-DIR-INDEX = FUNCTION MOD(WS-DIR-INDEX + 1, 4)
+           ELSE
+               COMPUTE WS-DIR-INDEX = FUNCTION MOD(WS-DIR-INDEX - 1 + 4, 4)
+           END-IF.
+
+           ADD WS-DIR-DX(WS-DIR-INDEX + 1) * WS-BLOCKS TO WS-POS-X.
+           ADD WS-DIR-DY(WS-DIR-INDEX + 1) * WS-BLOCKS TO WS-POS-Y.
