@@ -1,0 +1,24 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let left = ref [] in
+  let right_counts = Hashtbl.create 16 in
+  try
+    while true do
+      let line = input_line ic in
+      Scanf.sscanf line "%d %d" (fun l r ->
+          left := l :: !left;
+          Hashtbl.replace right_counts r
+            (match Hashtbl.find_opt right_counts r with
+             | None -> 1
+             | Some c -> c + 1))
+    done
+  with End_of_file -> close_in ic;
+  let score =
+    List.fold_left (fun acc l ->
+        match Hashtbl.find_opt right_counts l with
+        | None -> acc
+        | Some c -> acc + l * c) 0 !left
+  in
+  print_int score;
+  print_newline ()

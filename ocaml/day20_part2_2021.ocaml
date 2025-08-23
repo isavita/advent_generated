@@ -1,0 +1,64 @@
+
+let read_input filename =
+  let ic = open_in filename in
+  let algorithm = input_line ic in
+  ignore (input_line ic);
+  let rec read_lines acc =
+    try
+      let line = input_line ic in
+      read_lines (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let lines = read_lines [] in
+  close_in ic;
+  let lines_arr = Array.of_list lines in
+  let h = Array.length lines_arr in
+  let w = String.length lines_arr.(0) in
+  let image = Array.init h (fun i ->
+    Array.init w (fun j -> lines_arr.(i).[j] = '#')
+  ) in
+  (algorithm, image)
+
+let enhance algorithm image use_infinite_lit =
+  let old_h = Array.length image in
+  let old_w = Array.length image.(0) in
+  let new_h = old_h + 2 in
+  let new_w = old_w + 2 in
+  let new_image = Array.make_matrix new_h new_w false in
+  for new_y = 0 to new_h - 1 do
+    let y = new_y - 1 in
+    for new_x = 0 to new_w - 1 do
+      let x = new_x - 1 in
+      let idx = ref 0 in
+      for dy = -1 to 1 do
+        for dx = -1 to 1 do
+          let ny = y + dy in
+          let nx = x + dx in
+          let bit =
+            if ny >= 0 && ny < old_h && nx >= 0 && nx < old_w then
+              if image.(ny).(nx) then 1 else 0
+            else if use_infinite_lit then 1 else 0
+          in
+          idx := (!idx lsl 1) lor bit
+        done
+      done;
+      new_image.(new_y).(new_x) <- algorithm.[!idx] = '#'
+    done
+  done;
+  new_image
+
+let count_lit image =
+  Array.fold_left (fun acc row ->
+    acc + Array.fold_left (fun a v -> a + if v then 1 else 0) 0 row
+  ) 0 image
+
+let () =
+  let algorithm, image0 = read_input "input.txt" in
+  let algo0 = algorithm.[0] = '#' in
+  let image = ref image0 in
+  for i = 0 to 49 do
+    let use_infinite_lit = (i mod 2 = 1) && algo0 in
+    image := enhance algorithm !image use_infinite_lit
+  done;
+  let cnt = count_lit !image in
+  Printf.printf "%d\n" cnt
