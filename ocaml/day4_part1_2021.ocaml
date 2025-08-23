@@ -1,0 +1,94 @@
+
+let split_ws s =
+  let rec aux i j acc =
+    if j >= String.length s then
+      if i = j then List.rev acc
+      else List.rev (String.sub s i (j - i) :: acc)
+    else if s.[j] = ' ' || s.[j] = '\t' then
+      if i = j then aux (j + 1) (j + 1) acc
+      else aux (j + 1) (j + 1) (String.sub s i (j - i) :: acc)
+    else aux i (j + 1) acc
+  in
+  aux 0 0 []
+
+type board = {
+  numbers : int array array;
+  mutable marked : bool array array;
+}
+
+let mark b n =
+  for i = 0 to 4 do
+    for j = 0 to 4 do
+      if b.numbers.(i).(j) = n then b.marked.(i).(j) <- true
+    done
+  done
+
+let has_won b =
+  let rec check i =
+    if i = 5 then false
+    else
+      let row = b.marked.(i) in
+      if Array.for_all (fun x -> x) row then true
+      else
+        let col = Array.init 5 (fun r -> b.marked.(r).(i)) in
+        if Array.for_all (fun x -> x) col then true
+        else check (i + 1)
+  in
+  check 0
+
+let unmarked_sum b =
+  let s = ref 0 in
+  for i = 0 to 4 do
+    for j = 0 to 4 do
+      if not b.marked.(i).(j) then s := !s + b.numbers.(i).(j)
+    done
+  done;
+  !s
+
+let () =
+  let ic = open_in "input.txt" in
+  let first = input_line ic in
+  let draws = List.map int_of_string (String.split_on_char ',' first) in
+  let lines = ref [] in
+  (try
+     while true do
+       let l = input_line ic in
+       if String.trim l <> "" then lines := l :: !lines
+     done
+   with End_of_file -> ());
+  close_in ic;
+  let lines = List.rev !lines in
+  let rec make_boards lst acc =
+    match lst with
+    | [] -> List.rev acc
+    | a :: b :: c :: d :: e :: rest ->
+        let rows = [a; b; c; d; e] in
+        let nums =
+          Array.of_list
+            (List.map
+               (fun line ->
+                 Array.of_list
+                   (List.map int_of_string (split_ws line)))
+               rows)
+        in
+        let board = {
+          numbers = nums;
+          marked = Array.make_matrix 5 5 false;
+        } in
+        make_boards rest (board :: acc)
+    | _ -> List.rev acc
+  in
+  let boards = make_boards lines [] in
+  let result = ref None in
+  List.iter (fun n ->
+      if !result = None then
+        List.iter (fun b ->
+            if !result = None then (
+              mark b n;
+              if has_won b then
+                result := Some (unmarked_sum b * n)
+            )) boards
+    ) draws;
+  match !result with
+  | Some v -> print_int v; print_newline ()
+  | None -> ()
