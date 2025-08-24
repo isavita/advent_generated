@@ -1,0 +1,124 @@
+
+(*  OCaml translation of the given C++ solution.
+    Reads “input.txt”, processes each line and prints the final answer.
+    The implementation follows the original algorithm and uses a hash table
+    for memoisation.  No comments are added as requested. *)
+
+open Printf
+
+let max_robots = 26
+
+let key_pad = [|
+  "789";
+  "456";
+  "123";
+  " 0A";
+|]
+
+let robot_pad = [|
+  " ^A";
+  "<v>";
+|]
+
+(* find position of a character in a matrix *)
+let find_position mat ch =
+  let rows = Array.length mat in
+  let rec search i j =
+    if i >= rows then (-1, -1)
+    else if j >= String.length mat.(i) then search (i + 1) 0
+    else if mat.(i).[j] = ch then (i, j)
+    else search i (j + 1)
+  in
+  search 0 0
+
+(* check whether a sequence of moves stays inside the matrix and avoids spaces *)
+let ok mat (si, sj) seq =
+  let rows = Array.length mat in
+  if rows = 0 then false else
+  let cols = String.length mat.(0) in
+  let rec step i j = function
+    | [] -> true
+    | c :: rest ->
+        if i < 0 || i >= rows || j < 0 || j >= cols || mat.(i).[j] = ' '
+        then false
+        else
+          let (ni, nj) = match c with
+            | '^' -> (i - 1, j)
+            | 'v' -> (i + 1, j)
+            | '<' -> (i, j - 1)
+            | '>' -> (i, j + 1)
+            | _   -> (i, j)
+          in
+          step ni nj rest
+  in
+  step si sj (List.init (String.length seq) (String.get seq))
+
+(* generate a move string from a position to a target character on a pad *)
+let generate_moves pos obj pad =
+  let (pi, pj) = pos in
+  let (ti, tj) = find_position pad obj in
+  let attempt1 =
+    let buf = Buffer.create 16 in
+    if pj > tj then Buffer.add_string buf (String.make (pj - tj) '<');
+    if pi > ti then Buffer.add_string buf (String.make (pi - ti) '^');
+    if pi < ti then Buffer.add_string buf (String.make (ti - pi) 'v');
+    if pj < tj then Buffer.add_string buf (String.make (tj - pj) '>');
+    Buffer.contents buf
+  in
+  if ok pad pos attempt1 then attempt1 else
+  let attempt2 =
+    let buf = Buffer.create 16 in
+    if pj < tj then Buffer.add_string buf (String.make (tj - pj) '>');
+    if pi > ti then Buffer.add_string buf (String.make (pi - ti) '^');
+    if pi < ti then Buffer.add_string buf (String.make (ti - pi) 'v');
+    if pj > tj then Buffer.add_string buf (String.make (pj - tj) '<');
+    Buffer.contents buf
+  in
+  attempt2
+
+(* memoisation table: (code, robots) -> result *)
+let memo : (string * int, int64) Hashtbl.t = Hashtbl.create 1024
+
+let rec solve code robots =
+  match Hashtbl.find_opt memo (code, robots) with
+  | Some v -> v
+  | None ->
+      if robots <= 0 then Int64.of_int (String.length code)
+      else
+        let ret = ref Int64.zero in
+        let cur_pos = ref (if robots = max_robots then (3, 2) else (0, 2)) in
+        let pad = if robots = max_robots then key_pad else robot_pad in
+        String.iter (fun ch ->
+          let moves = generate_moves !cur_pos ch pad in
+          cur_pos := find_position pad ch;
+          let sub = solve (moves ^ "A") (robots - 1) in
+          ret := Int64.add !ret sub
+        ) code;
+        Hashtbl.add memo (code, robots) !ret;
+        !ret
+
+let numeric_part_of_line line =
+  let rec aux i acc =
+    if i >= String.length line then acc
+    else
+      let c = line.[i] in
+      if c >= '0' && c <= '9' then
+        aux (i + 1) (Int64.add (Int64.mul acc 10L) (Int64.of_int (Char.code c - Char.code '0')))
+      else aux (i + 1) acc
+  in
+  aux 0 0L
+
+let () =
+  let ic = open_in "input.txt" in
+  let total = ref 0L in
+  (try
+     while true do
+       let line = input_line ic |> String.trim in
+       if line <> "" then
+         let num = numeric_part_of_line line in
+         let res = solve line max_robots in
+         total := Int64.add !total (Int64.mul res num)
+     done
+   with End_of_file -> ());
+  close_in ic;
+  printf "%Ld\n" !total

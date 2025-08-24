@@ -1,0 +1,84 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let veins = ref [] in
+  let min_x = ref 501 in
+  let max_x = ref 499 in
+  let min_y = ref max_int in
+  let max_y = ref 0 in
+  (try
+     while true do
+       let line = input_line ic in
+       match line.[0] with
+       | 'x' ->
+           let c1, c2, c3 = Scanf.sscanf line "x=%d, y=%d..%d" (fun a b c -> a, b, c) in
+           min_x := min !min_x c1;
+           max_x := max !max_x c1;
+           min_y := min !min_y c2;
+           max_y := max !max_y c3;
+           veins := ('x', c1, c2, c3) :: !veins
+       | _ ->
+           let c1, c2, c3 = Scanf.sscanf line "y=%d, x=%d..%d" (fun a b c -> a, b, c) in
+           min_y := min !min_y c1;
+           max_y := max !max_y c1;
+           min_x := min !min_x c2;
+           max_x := max !max_x c3;
+           veins := ('y', c1, c2, c3) :: !veins
+     done
+   with End_of_file -> ());
+  close_in ic;
+  min_x := !min_x - 1;
+  max_x := !max_x + 1;
+  let offset_x = !min_x in
+  let rows = !max_y + 2 in
+  let cols = !max_x - !min_x + 1 in
+  let grid = Array.make_matrix rows cols '.' in
+  List.iter (fun (t, c1, c2, c3) ->
+      if t = 'x' then
+        for y = c2 to c3 do grid.(y).(c1 - offset_x) <- '#' done
+      else
+        for x = c2 to c3 do grid.(c1).(x - offset_x) <- '#' done
+    ) !veins;
+  let stack = ref [(500 - offset_x, 0)] in
+  while !stack <> [] do
+    let (x, y) = List.hd !stack in
+    stack := List.tl !stack;
+    let y = ref y in
+    while !y < !max_y && grid.(!y + 1).(x) = '.' do
+      grid.(!y).(x) <- '|';
+      incr y
+    done;
+    if !y >= !max_y || grid.(!y + 1).(x) = '|' then
+      (grid.(!y).(x) <- '|')
+    else
+      let rec spread y x =
+        let l = ref x and r = ref x in
+        let leak_left = ref false and leak_right = ref false in
+        while grid.(y).(!l - 1) <> '#' && (grid.(y + 1).(!l - 1) = '#' || grid.(y + 1).(!l - 1) = '~') do
+          decr l
+        done;
+        if grid.(y + 1).(!l - 1) <> '#' && grid.(y + 1).(!l - 1) <> '~' then leak_left := true;
+        while grid.(y).(!r + 1) <> '#' && (grid.(y + 1).(!r + 1) = '#' || grid.(y + 1).(!r + 1) = '~') do
+          incr r
+        done;
+        if grid.(y + 1).(!r + 1) <> '#' && grid.(y + 1).(!r + 1) <> '~' then leak_right := true;
+        let fill = if !leak_left || !leak_right then '|' else '~' in
+        for i = !l to !r do grid.(y).(i) <- fill done;
+        if fill = '|' then (
+          if !leak_left then stack := (!l - 1, y) :: !stack;
+          if !leak_right then stack := (!r + 1, y) :: !stack
+        ) else (
+          spread (y - 1) x
+        )
+      in
+      spread !y x
+  done;
+  let count = ref 0 in
+  for r = !min_y to !max_y do
+    for c = 0 to cols - 1 do
+      match grid.(r).(c) with
+      | '~' | '|' -> incr count
+      | _ -> ()
+    done
+  done;
+  Printf.printf "%d\n" !count

@@ -1,0 +1,87 @@
+
+type coord = { mutable x : int; mutable y : int; mutable z : int }
+
+type brick = {
+  mutable mini : coord;
+  mutable maxi : coord;
+  mutable based_on : brick list;
+  mutable support : brick list;
+}
+
+let read_input () =
+  In_channel.with_open_text "input.txt" (fun ic ->
+      let rec aux acc =
+        match input_line ic with
+        | line -> aux (line :: acc)
+        | exception End_of_file -> List.rev acc
+      in aux [])
+
+let parse_bricks lines =
+  List.map
+    (fun line ->
+      Scanf.sscanf line "%d,%d,%d~%d,%d,%d"
+        (fun x1 y1 z1 x2 y2 z2 ->
+           {
+             mini = { x = x1; y = y1; z = z1 };
+             maxi = { x = x2; y = y2; z = z2 };
+             based_on = [];
+             support = [];
+           }))
+    lines
+
+let max a b = if a > b then a else b
+let min a b = if a < b then a else b
+
+let settle bricks =
+  let bricks = Array.of_list (List.sort (fun a b -> compare a.maxi.z b.maxi.z) bricks) in
+  let n = Array.length bricks in
+  for i = 0 to n - 1 do
+    let b = bricks.(i) in
+    let support_z = ref 0 in
+    let based = ref [] in
+    for j = i - 1 downto 0 do
+      let o = bricks.(j) in
+      let ix = max b.mini.x o.mini.x <= min b.maxi.x o.maxi.x in
+      let iy = max b.mini.y o.mini.y <= min b.maxi.y o.maxi.y in
+      if ix && iy then
+        if o.maxi.z = !support_z then based := o :: !based
+        else if o.maxi.z > !support_z then (support_z := o.maxi.z; based := [o])
+    done;
+    b.based_on <- !based;
+    List.iter (fun d -> d.support <- b :: d.support) !based;
+    let delta = b.maxi.z - b.mini.z in
+    b.mini.z <- !support_z + 1;
+    b.maxi.z <- b.mini.z + delta
+  done;
+  Array.to_list bricks
+
+let solve lines =
+  let bricks = settle (parse_bricks lines) in
+  let total = ref 0 in
+  List.iter
+    (fun b ->
+      let falling = Hashtbl.create 16 in
+      List.iter
+        (fun s ->
+          if List.length s.based_on = 1 then
+            let queue = Queue.create () in
+            Queue.add s queue;
+            while not (Queue.is_empty queue) do
+              let cur = Queue.take queue in
+              let is_falling =
+                List.for_all
+                  (fun d ->
+                    d == b
+                    || Hashtbl.mem falling d)
+                  cur.based_on
+              in
+              if is_falling && not (Hashtbl.mem falling cur) then (
+                Hashtbl.add falling cur ();
+                List.iter (fun nxt -> Queue.add nxt queue) cur.support)
+            done)
+        b.support;
+      total := !total + Hashtbl.length falling)
+    bricks;
+  !total
+
+let () = Printf.printf "%d\n" (solve (read_input ()))
