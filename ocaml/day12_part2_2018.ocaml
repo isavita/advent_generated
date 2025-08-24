@@ -1,0 +1,75 @@
+open Printf
+
+module IntSet = Set.Make(struct type t = int let compare = compare end)
+module StrSet = Set.Make(String)
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read acc =
+    try
+      let line = input_line ic in
+      read (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let lines = read [] in
+  close_in ic;
+  let initial_line = List.find (fun s -> String.length s >= 15 && String.sub s 0 15 = "initial state: ") lines in
+  let initial_state = String.sub initial_line 15 (String.length initial_line - 15) in
+  let rule_lines = List.filter (fun s -> String.contains s '=') lines in
+  let rule_set =
+    List.fold_left (fun acc line ->
+      let parts = String.split_on_char ' ' line |> List.filter (fun s -> s <> "") in
+      let pattern = List.nth parts 0 in
+      let result = List.nth parts 2 in
+      if result = "#" then StrSet.add pattern acc else acc
+    ) StrSet.empty rule_lines
+  in
+  let init_state =
+    let rec aux i acc =
+      if i >= String.length initial_state then acc
+      else if String.get initial_state i = '#' then aux (i+1) (IntSet.add i acc)
+      else aux (i+1) acc
+    in
+    aux 0 IntSet.empty
+  in
+  let rec loop gen state prev_pat prev_sum =
+    if gen = 50000000000L then
+      let sum = IntSet.fold (fun x acc -> Int64.add acc (Int64.of_int x)) state 0L in
+      printf "%Ld\n" sum
+    else
+      let min = IntSet.min_elt state in
+      let max = IntSet.max_elt state in
+      let new_state = ref IntSet.empty in
+      for i = min - 2 to max + 2 do
+        let buf = Bytes.create 5 in
+        for j = 0 to 4 do
+          let pos = i - 2 + j in
+          Bytes.set buf j (if IntSet.mem pos state then '#' else '.')
+        done;
+        let pat = Bytes.to_string buf in
+        if StrSet.mem pat rule_set then
+          new_state := IntSet.add i !new_state
+      done;
+      let new_state = !new_state in
+      let pat_str =
+        if IntSet.is_empty new_state then ""
+        else
+          let min' = IntSet.min_elt new_state in
+          let max' = IntSet.max_elt new_state in
+          let len = max' - min' + 1 in
+          let buf = Bytes.create len in
+          for i = 0 to len - 1 do
+            Bytes.set buf i (if IntSet.mem (min' + i) new_state then '#' else '.')
+          done;
+          Bytes.to_string buf
+      in
+      let sum = IntSet.fold (fun x acc -> Int64.add acc (Int64.of_int x)) new_state 0L in
+      if prev_pat <> "" && pat_str = prev_pat then
+        let offset = Int64.sub sum prev_sum in
+        let remaining = Int64.sub 50000000000L (Int64.add gen 1L) in
+        let final_sum = Int64.add sum (Int64.mul offset remaining) in
+        printf "%Ld\n" final_sum
+      else
+        loop (Int64.add gen 1L) new_state pat_str sum
+  in
+  loop 0L init_state "" 0L

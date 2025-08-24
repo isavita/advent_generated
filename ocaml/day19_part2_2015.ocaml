@@ -1,0 +1,43 @@
+
+let strip_cr s =
+  if String.length s > 0 && s.[String.length s - 1] = '\r'
+  then String.sub s 0 (String.length s - 1)
+  else s
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec find_molecule () =
+    try
+      let line = strip_cr (input_line ic) in
+      if line = "" then
+        let mol = strip_cr (input_line ic) in
+        Some mol
+      else
+        find_molecule ()
+    with End_of_file -> None
+  in
+  match find_molecule () with
+  | None ->
+      prerr_endline "Could not find molecule string in input.";
+      exit 1
+  | Some molecule ->
+      let n = String.length molecule in
+      let rec count i total rn ar y =
+        if i >= n then (total, rn, ar, y)
+        else
+          let len =
+            if i + 1 < n &&
+               Char.code molecule.[i + 1] >= 97 && Char.code molecule.[i + 1] <= 122
+            then 2 else 1
+          in
+          let elem = String.sub molecule i len in
+          let total' = total + 1 in
+          let rn' = if elem = "Rn" then rn + 1 else rn in
+          let ar' = if elem = "Ar" then ar + 1 else ar in
+          let y'  = if elem = "Y"  then y + 1 else y in
+          count (i + len) total' rn' ar' y'
+      in
+      let total, rn, ar, y = count 0 0 0 0 0 in
+      let steps = total - rn - ar - 2 * y - 1 in
+      Printf.printf "%d\n" steps;
+      close_in ic
