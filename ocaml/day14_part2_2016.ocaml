@@ -1,0 +1,69 @@
+
+let md5 s = Digest.to_hex (Digest.string s)
+
+let stretched s =
+  let rec loop n acc = if n = 0 then acc else loop (n - 1) (md5 acc) in
+  loop 2016 (md5 s)
+
+let find_triple s =
+  let len = String.length s in
+  let rec aux i =
+    if i > len - 3 then None
+    else if s.[i] = s.[i + 1] && s.[i] = s.[i + 2] then Some s.[i] else aux (i + 1)
+  in
+  aux 0
+
+let has_quint s c =
+  let quint = String.make 5 c in
+  let len = String.length s in
+  let rec aux i =
+    if i > len - 5 then false
+    else if String.sub s i 5 = quint then true else aux (i + 1)
+  in
+  aux 0
+
+let () =
+  let ic = open_in "input.txt" in
+  let salt = input_line ic in
+  close_in ic;
+  let lookahead = 1000 in
+  let q = Queue.create () in
+  for k = 0 to lookahead do
+    Queue.add (stretched (salt ^ string_of_int k)) q
+  done;
+  let potential = Hashtbl.create 16 in
+  let confirmed = ref [] in
+  let keys_found = ref 0 in
+  let i = ref 0 in
+  while !keys_found < 64 do
+    let cur = Queue.take q in
+    Queue.add (stretched (salt ^ string_of_int (!i + lookahead + 1))) q;
+    let seen = Hashtbl.create 4 in
+    let len = String.length cur in
+    for pos = 0 to len - 5 do
+      if String.sub cur pos 5 = String.make 5 cur.[pos] then
+        let c = cur.[pos] in
+        if not (Hashtbl.mem seen c) then begin
+          Hashtbl.add seen c true;
+          if Hashtbl.mem potential c then
+            let lst = Hashtbl.find potential c in
+            List.iter (fun idx ->
+                if !i - idx <= lookahead then begin
+                  confirmed := idx :: !confirmed;
+                  incr keys_found
+                end) lst
+        end
+    done;
+    Hashtbl.iter (fun c lst ->
+        let filtered = List.filter (fun idx -> idx > !i - lookahead) lst in
+        if filtered = [] then Hashtbl.remove potential c else Hashtbl.replace potential c filtered
+      ) potential;
+    (match find_triple cur with
+     | Some c ->
+         let lst = try Hashtbl.find potential c with Not_found -> [] in
+         Hashtbl.replace potential c (lst @ [!i])
+     | None -> ());
+    incr i
+  done;
+  let sorted = List.sort compare !confirmed in
+  print_endline (string_of_int (List.nth sorted 63))
