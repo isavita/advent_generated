@@ -1,0 +1,108 @@
+
+let bits x = if x < 0 then failwith "neg" else
+  let rec go n c = if n = 0 then c else go (n lsr 1) (c + (n land 1)) in
+  go x 0
+
+let min_weight mat r c =
+  let a = Array.map Array.copy mat in
+  let col_pivot = Array.make c false in
+  let pr = ref 0 in
+  for col = 0 to c - 1 do
+    let sel = ref (-1) in
+    for row = !pr to r - 1 do
+      if a.(row).(col) <> 0 then (sel := row)
+    done;
+    if !sel <> -1 then
+      let sel = !sel in
+      let tmp = a.(sel) in a.(sel) <- a.(!pr); a.(!pr) <- tmp;
+      for row = 0 to r - 1 do
+        if row <> !pr && a.(row).(col) <> 0 then
+          for k = col to c do
+            a.(row).(k) <- a.(row).(k) lxor a.(!pr).(k)
+          done
+      done;
+      col_pivot.(col) <- true;
+      incr pr
+  done;
+  let ok = ref true in
+  for row = !pr to r - 1 do
+    if a.(row).(c) <> 0 then ok := false
+  done;
+  if not !ok then -1 else
+  let free = ref [] in
+  for i = 0 to c - 1 do if not col_pivot.(i) then free := i :: !free done;
+  let free = List.rev !free in
+  let nf = List.length free in
+  let best = ref max_int in
+  let limit = 1 lsl nf in
+  for mask = 0 to limit - 1 do
+    let x = Array.make c 0 in
+    let cw = ref (bits mask) in
+    List.iteri (fun j col ->
+      if (mask lsr j) land 1 = 1 then x.(col) <- 1) free;
+    let cur = ref 0 in
+    for col = 0 to c - 1 do
+      if col_pivot.(col) then
+        let v = ref a.(!cur).(c) in
+        for k = col + 1 to c - 1 do
+          if a.(!cur).(k) <> 0 then v := !v lxor x.(k)
+        done;
+        x.(col) <- !v;
+        cw := !cw + !v;
+        incr cur
+    done;
+    if !cw < !best then best := !cw
+  done;
+  !best
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let total = ref 0 in
+  try
+    while true do
+      let line = input_line ic in
+      let l = String.index_opt line '[' in
+      let r = match l with None -> None | Some l -> String.index_from_opt line (l+1) ']' in
+      match l, r with
+      | Some l, Some r ->
+        let target_str = String.sub line (l+1) (r - l - 1) in
+        let rows = String.length target_str in
+        let target = Array.init rows (fun i -> if String.get target_str i = '#' then 1 else 0) in
+        let rest = String.sub line (r+1) (String.length line - r - 1) in
+        let len = String.length rest in
+        let buttons = ref [] in
+        let i = ref 0 in
+        while !i < len do
+          if rest.[!i] = '(' then
+            let j = ref (!i+1) in
+            while !j < len && rest.[!j] <> ')' do incr j done;
+            let inside = String.sub rest (!i+1) (!j - !i - 1) in
+            let nums =
+              if String.trim inside = "" then []
+              else String.split_on_char ',' inside |>
+                   List.filter_map (fun s ->
+                     try Some (int_of_string (String.trim s)) with _ -> None)
+            in
+            buttons := nums :: !buttons;
+            i := !j + 1
+          else incr i
+        done;
+        let buttons = List.rev !buttons in
+        let cols = List.length buttons in
+        let matrix = Array.init rows (fun _ -> Array.make (cols + 1) 0) in
+        for i = 0 to rows - 1 do
+          let j = ref 0 in
+          List.iter (fun btn ->
+            matrix.(i).(!j) <- (if List.mem i btn then 1 else 0);
+            incr j) buttons;
+          matrix.(i).(cols) <- target.(i)
+        done;
+        let mw = min_weight matrix rows cols in
+        if mw <> -1 then total := !total + mw
+      | _ -> ()
+    done
+  with End_of_file ->
+    close_in ic;
+    Printf.printf "%d\n" !total
+
+let () = solve ()

@@ -1,0 +1,62 @@
+
+let read_points () =
+  let ic = open_in "input.txt" in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      let parts = String.split_on_char ',' line |>
+                  List.filter_map (fun s ->
+                    let t = String.trim s in
+                    if t = "" then None else Some t) in
+      match List.length parts with
+      | 3 ->
+          let x = int_of_string (List.nth parts 0)
+          and y = int_of_string (List.nth parts 1)
+          and z = int_of_string (List.nth parts 2) in
+          loop ((x,y,z)::acc)
+      | _ -> loop acc
+    with End_of_file -> List.rev acc in
+  let pts = loop [] in
+  close_in ic;
+  pts
+
+let dist2 (x1,y1,z1) (x2,y2,z2) =
+  let dx = x1 - x2 and dy = y1 - y2 and dz = z1 - z2 in
+  dx*dx + dy*dy + dz*dz
+
+let () =
+  let pts = read_points () in
+  let n = List.length pts in
+  if n < 2 then exit 0;
+  let edges =
+    let rec outer i acc =
+      if i >= n then acc else
+      let rec inner j acc =
+        if j >= n then acc else
+        let d = dist2 (List.nth pts i) (List.nth pts j) in
+        inner (j+1) ((d,i,j)::acc) in
+      outer (i+1) (inner (i+1) acc) in
+    outer 0 [] |> List.sort (fun (d1,_,_) (d2,_,_) -> compare d1 d2) |> List.to_seq |> Seq.take 1000 |> List.of_seq in
+  let parent = Array.init n (fun i -> i) in
+  let size = Array.make n 1 in
+  let find x =
+    let rec go x =
+      let p = parent.(x) in
+      if p = x then x else (parent.(x) <- parent.(p); go p) in
+    go x in
+  let union u v =
+    let ru = find u and rv = find v in
+    if ru = rv then () else
+    if size.(ru) < size.(rv) then (parent.(ru) <- rv; size.(rv) <- size.(rv) + size.(ru))
+    else (parent.(rv) <- ru; size.(ru) <- size.(ru) + size.(rv)) in
+  List.iter (fun (_,u,v) -> union u v) edges;
+  let comps = Hashtbl.create 100 in
+  for i = 0 to n-1 do
+    let r = find i in
+    Hashtbl.replace comps r size.(r)
+  done;
+  let tops =
+    Hashtbl.to_seq_values comps |> List.of_seq |>
+    List.sort (fun a b -> compare b a) |> List.to_seq |> Seq.take 3 |> List.of_seq in
+  let prod = List.fold_left ( * ) 1 tops in
+  Printf.printf "Product of three largest circuit sizes: %d\n" prod

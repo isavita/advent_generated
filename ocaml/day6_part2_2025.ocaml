@@ -1,0 +1,69 @@
+
+let () =
+  let lines =
+    try
+      let ic = open_in "input.txt" in
+      let rec loop acc =
+        try loop (input_line ic :: acc)
+        with End_of_file -> List.rev acc
+      in
+      let xs = loop [] in
+      close_in ic;
+      xs
+    with Sys_error _ -> []
+  in
+  if lines = [] then Printf.printf "Grand total: 0\n"
+  else
+    let max_w = List.fold_left (fun m s -> max m (String.length s)) 0 lines in
+    let is_sep =
+      Array.init max_w (fun col ->
+          List.for_all
+            (fun line ->
+               col >= String.length line ||
+               match line.[col] with ' ' | '\t' -> true | _ -> false)
+            lines)
+    in
+    let grand_total = ref 0 in
+    let in_block = ref false in
+    let block_op = ref '+' in
+    let block_numbers = ref [] in
+    let finish_block () =
+      match !block_numbers with
+      | [] -> ()
+      | ns ->
+          let res =
+            if !block_op = '*' then List.fold_left ( * ) 1 ns
+            else List.fold_left ( + ) 0 ns
+          in
+          grand_total := !grand_total + res;
+          block_numbers := []
+    in
+    for x = 0 to max_w - 1 do
+      if not is_sep.(x) then
+        begin
+          if not !in_block then
+            begin
+              in_block := true;
+              block_op := '+';
+              block_numbers := []
+            end;
+          let sb = Buffer.create 16 in
+          List.iter
+            (fun line ->
+               if x < String.length line then
+                 match line.[x] with
+                 | '0'..'9' as c -> Buffer.add_char sb c
+                 | ('+'|'*') as op -> block_op := op
+                 | _ -> ())
+            lines;
+          let s = Buffer.contents sb in
+          if s <> "" then block_numbers := int_of_string s :: !block_numbers
+        end
+      else if !in_block then
+        begin
+          finish_block ();
+          in_block := false
+        end
+    done;
+    if !in_block then finish_block ();
+    Printf.printf "Grand total: %d\n" !grand_total
