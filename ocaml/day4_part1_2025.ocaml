@@ -1,0 +1,28 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try read_lines (input_line ic :: acc) with End_of_file -> List.rev acc in
+  let lines = read_lines [] |> List.filter (fun s -> String.trim s <> "") in
+  if lines = [] then print_endline "Empty grid"
+  else
+    let grid = Array.of_list (List.map (fun s -> Array.init (String.length s) (String.get s)) lines) in
+    let rows = Array.length grid in
+    let cols = Array.length grid.(0) in
+    let count = ref 0 in
+    for y = 0 to rows - 1 do
+      for x = 0 to cols - 1 do
+        if grid.(y).(x) = '@' then
+          let neighbors = ref 0 in
+          for dy = -1 to 1 do
+            for dx = -1 to 1 do
+              if not (dx = 0 && dy = 0) then
+                let ny = y + dy and nx = x + dx in
+                if ny >= 0 && ny < rows && nx >= 0 && nx < cols && grid.(ny).(nx) = '@'
+                then incr neighbors
+            done
+          done;
+          if !neighbors < 4 then incr count
+      done
+    done;
+    Printf.printf "Number of accessible rolls of paper: %d\n" !count

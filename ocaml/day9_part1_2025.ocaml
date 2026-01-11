@@ -1,0 +1,28 @@
+
+let read_points fname =
+  let ic = open_in fname in
+  let rec loop acc =
+    try
+      let line = String.trim (input_line ic) in
+      if String.length line = 0 then loop acc else
+      match String.split_on_char ',' line with
+      | [a; b] ->
+          let x = int_of_string a and y = int_of_string b in
+          loop ((x, y) :: acc)
+      | _ -> loop acc
+    with End_of_file -> close_in ic; List.rev acc
+  in loop []
+
+let () =
+  let points = read_points "input.txt" in
+  let max_area = ref 0L in
+  List.iteri (fun i (x1, y1) ->
+    List.iteri (fun j (x2, y2) ->
+      if j >= i then
+        let dx = Int64.of_int (abs (x1 - x2) + 1) in
+        let dy = Int64.of_int (abs (y1 - y2) + 1) in
+        let area = Int64.mul dx dy in
+        if area > !max_area then max_area := area
+    ) points
+  ) points;
+  Printf.printf "Largest area: %Ld\n" !max_area

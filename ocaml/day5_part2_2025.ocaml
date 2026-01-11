@@ -1,0 +1,30 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let ranges = ref [] in
+  try
+    while true do
+      let line = String.trim (input_line ic) in
+      if String.length line > 0 then
+        match String.split_on_char '-' line with
+        | [a; b] ->
+            let x = int_of_string a and y = int_of_string b in
+            if x <= y then ranges := (x, y) :: !ranges else ranges := (y, x) :: !ranges
+        | _ -> ()
+    done
+  with End_of_file -> close_in ic;
+  match List.sort compare !ranges with
+  | [] -> print_endline "Total fresh IDs: 0"
+  | (h0, h1) :: t ->
+      let rec loop acc curMin curMax = function
+        | [] -> acc + curMax - curMin + 1
+        | (min, max) :: rest ->
+            if min <= curMax then
+              let newMax = if max > curMax then max else curMax in
+              loop acc curMin newMax rest
+            else
+              let newAcc = acc + curMax - curMin + 1 in
+              loop newAcc min max rest
+      in
+      let total = loop 0 h0 h1 t in
+      Printf.printf "Total fresh IDs: %d\n" total

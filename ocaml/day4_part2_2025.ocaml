@@ -1,0 +1,35 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try read_lines (input_line ic :: acc)
+    with End_of_file -> List.rev acc in
+  let lines = read_lines [] |> List.filter (fun s -> String.trim s <> "") in
+  if lines = [] then (print_endline "Total rolls removed: 0"; exit 0);
+  let rows = List.length lines in
+  let cols = String.length (List.hd lines) in
+  let grid = Array.make_matrix rows cols '.' in
+  List.iteri (fun i s ->
+    String.iteri (fun j c -> grid.(i).(j) <- c) s) lines;
+  let total = ref 0 in
+  while true do
+    let to_remove = ref [] in
+    for r = 0 to rows - 1 do
+      for c = 0 to cols - 1 do
+        if grid.(r).(c) = '@' then
+          let cnt = ref 0 in
+          for dr = -1 to 1 do
+            for dc = -1 to 1 do
+              if not (dr = 0 && dc = 0) then
+                let nr = r + dr and nc = c + dc in
+                if nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid.(nr).(nc) = '@' then
+                  incr cnt
+            done
+          done;
+          if !cnt < 4 then to_remove := (r, c) :: !to_remove
+      done
+    done;
+    if !to_remove = [] then (Printf.printf "Total rolls removed: %d\n" !total; exit 0);
+    total := !total + List.length !to_remove;
+    List.iter (fun (r, c) -> grid.(r).(c) <- '.') !to_remove
+  done
