@@ -1,0 +1,40 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let banks = really_input_string ic (in_channel_length ic) |>
+              String.split_on_char '\t' |>
+              List.filter (fun s -> String.length s > 0) |>
+              List.map int_of_string |>
+              Array.of_list in
+  close_in ic;
+
+  let seen = Hashtbl.create 10000 in
+  let n = Array.length banks in
+  let rec step count =
+    let key = Array.to_list banks |>
+              List.map string_of_int |>
+              String.concat "," in
+    if Hashtbl.mem seen key then
+      let first = Hashtbl.find seen key in
+      Printf.printf "%d\n%d\n" count (count - first)
+    else
+      begin
+        Hashtbl.add seen key count;
+        let max_val = ref (-1) and max_idx = ref 0 in
+        for i = 0 to n - 1 do
+          if banks.(i) > !max_val then (max_val := banks.(i); max_idx := i)
+        done;
+        let blocks = !max_val in
+        banks.(!max_idx) <- 0;
+        let rec redistribute b idx =
+          if b > 0 then
+            begin
+              banks.(idx) <- banks.(idx) + 1;
+              redistribute (b - 1) ((idx + 1) mod n)
+            end
+        in
+        redistribute blocks ((!max_idx + 1) mod n);
+        step (count + 1)
+      end
+  in
+  step 0
