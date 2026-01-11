@@ -1,0 +1,45 @@
+
+open Printf
+
+let read_input () =
+  let ic = open_in "input.txt" in
+  let tbl = Hashtbl.create 128 in
+  (try
+     while true do
+       let line = input_line ic |> String.trim in
+       if line <> "" then
+         match String.split_on_char ':' line with
+         | src :: dst :: _ ->
+             let src = String.trim src in
+             let dsts =
+               String.trim dst
+               |> String.split_on_char ' '
+               |> List.filter ((<>) "")
+             in
+             Hashtbl.replace tbl src dsts
+         | _ -> ()
+     done
+   with End_of_file -> ());
+  close_in ic;
+  tbl
+
+let count_paths adj =
+  let memo = Hashtbl.create 128 in
+  let rec dfs node =
+    if node = "out" then 1
+    else if Hashtbl.mem memo node then Hashtbl.find memo node
+    else
+      let total =
+        match Hashtbl.find_opt adj node with
+        | Some nbrs -> List.fold_left (fun acc n -> acc + dfs n) 0 nbrs
+        | None -> 0
+      in
+      Hashtbl.add memo node total;
+      total
+  in
+  dfs "you"
+
+let () =
+  let adj = read_input () in
+  let result = count_paths adj in
+  printf "%d\n" result

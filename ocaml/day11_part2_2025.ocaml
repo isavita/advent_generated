@@ -1,0 +1,54 @@
+
+open Printf
+
+let read_adj filename =
+  let ic = open_in filename in
+  let tbl = Hashtbl.create 256 in
+  try
+    while true do
+      let line = input_line ic |> String.trim in
+      if line <> "" then
+        match String.split_on_char ':' line with
+        | src :: dst :: [] ->
+            let src = String.trim src in
+            let dsts =
+              String.trim dst
+              |> String.split_on_char ' '
+              |> List.filter (fun s -> s <> "")
+            in
+            Hashtbl.replace tbl src dsts
+        | _ -> ()
+    done;
+    tbl
+  with End_of_file ->
+    close_in ic;
+    tbl
+
+let count_paths start target adj =
+  let memo = Hashtbl.create 256 in
+  let rec dfs cur =
+    if cur = target then 1
+    else if Hashtbl.mem memo cur then Hashtbl.find memo cur
+    else
+      let total =
+        match Hashtbl.find_opt adj cur with
+        | None -> 0
+        | Some neigh ->
+            List.fold_left (fun acc n -> acc + dfs n) 0 neigh
+      in
+      Hashtbl.add memo cur total;
+      total
+  in
+  dfs start
+
+let () =
+  let adj = read_adj "input.txt" in
+  let s1 = count_paths "svr" "dac" adj
+           * count_paths "dac" "fft" adj
+           * count_paths "fft" "out" adj in
+  let s2 = count_paths "svr" "fft" adj
+           * count_paths "fft" "dac" adj
+           * count_paths "dac" "out" adj in
+  printf "Paths (svr->dac->fft->out): %d\n" s1;
+  printf "Paths (svr->fft->dac->out): %d\n" s2;
+  printf "Total paths visiting both: %d\n" (s1 + s2)
