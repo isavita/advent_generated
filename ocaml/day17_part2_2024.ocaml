@@ -1,0 +1,92 @@
+
+open Printf
+open Int64
+
+type program = {
+  a : int64;
+  b : int64;
+  c : int64;
+  prog : int array;
+}
+
+let compute_operand v a b c =
+  match v with
+  | 0 | 1 | 2 | 3 -> of_int v
+  | 4 -> a
+  | 5 -> b
+  | 6 -> c
+  | _ -> failwith "invalid operand"
+
+let simulate {a; b; c; prog} =
+  let outs = ref [] in
+  let a = ref a and b = ref b and c = ref c in
+  let n = Array.length prog in
+  let i = ref 0 in
+  while !i < n do
+    let cmd = prog.(!i) in
+    let arg = prog.(!i + 1) in
+    (match cmd with
+     | 0 -> a := shift_right !a (to_int (compute_operand arg !a !b !c))
+     | 1 -> b := logxor !b (of_int arg)
+     | 2 -> b := rem (compute_operand arg !a !b !c) 8L
+     | 3 -> if !a <> 0L then i := arg - 2
+     | 4 -> b := logxor !b !c
+     | 5 -> outs := (to_int (rem (compute_operand arg !a !b !c) 8L)) :: !outs
+     | 6 -> b := shift_right !a (to_int (compute_operand arg !a !b !c))
+     | 7 -> c := shift_right !a (to_int (compute_operand arg !a !b !c))
+     | _ -> failwith "invalid opcode");
+    i := !i + 2
+  done;
+  List.rev !outs
+
+let check p =
+  let prog = p.prog in
+  let len = Array.length prog in
+  let stack = Stack.create () in
+  Stack.push (0, 0L) stack;
+  let seen = Hashtbl.create 1024 in
+  let valids = ref [] in
+  while not (Stack.is_empty stack) do
+    let depth, score = Stack.pop stack in
+    if Hashtbl.mem seen (depth, score) then ()
+    else begin
+      Hashtbl.add seen (depth, score) ();
+      if depth = len then valids := score :: !valids
+      else
+        for i = 0 to 7 do
+          let new_score = add (of_int i) (shift_left score 3) in
+          let test = {p with a = new_score} in
+          match simulate test with
+          | r :: _ when r = prog.(len - 1 - depth) ->
+              Stack.push (depth + 1, new_score) stack
+          | _ -> ()
+        done
+    end
+  done;
+  !valids
+
+let () =
+  let ic = open_in "input.txt" in
+  let a = ref 0L and b = ref 0L and c = ref 0L and prog = ref [] in
+  try
+    while true do
+      let line = input_line ic |> String.trim in
+      if String.length line = 0 then ()
+      else if String.sub line 0 9 = "Register " then
+        let parts = String.split_on_char ':' line in
+        match String.trim (List.hd parts) with
+        | "Register A" -> a := of_string (String.trim (List.nth parts 1))
+        | "Register B" -> b := of_string (String.trim (List.nth parts 1))
+        | "Register C" -> c := of_string (String.trim (List.nth parts 1))
+        | _ -> ()
+      else if String.sub line 0 8 = "Program:" then
+        let parts = String.split_on_char ':' line in
+        let nums = String.split_on_char ',' (String.trim (List.nth parts 1)) in
+        prog := List.map (fun s -> int_of_string (String.trim s)) nums
+    done
+  with End_of_file -> close_in ic;
+  let prog_arr = Array.of_list !prog in
+  let p = {a = !a; b = !b; c = !c; prog = prog_arr} in
+  let vals = check p in
+  let min = List.fold_left min (List.hd vals) vals in
+  printf "%Ld\n" min

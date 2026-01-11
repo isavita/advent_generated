@@ -1,0 +1,66 @@
+
+type point = {id:int; x:int; y:int; z:int}
+type edge = {u:int; v:int; d:int}
+
+let dist_sq p1 p2 =
+  let dx = p1.x - p2.x in
+  let dy = p1.y - p2.y in
+  let dz = p1.z - p2.z in
+  dx*dx + dy*dy + dz*dz
+
+let find parent i =
+  let rec aux i =
+    if parent.(i) = i then i else
+      let r = aux parent.(i) in
+      parent.(i) <- r; r
+  in aux i
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_points id acc =
+    try
+      let line = input_line ic |> String.trim in
+      if line = "" then read_points id acc else
+        match String.split_on_char ',' line with
+        | [xs; ys; zs] ->
+            let x = int_of_string xs in
+            let y = int_of_string ys in
+            let z = int_of_string zs in
+            let pt = {id; x; y; z} in
+            read_points (id+1) (pt::acc)
+        | _ -> read_points id acc
+    with End_of_file -> close_in ic; List.rev acc
+  in
+  let points = read_points 0 [] in
+  let n = List.length points in
+  if n < 2 then
+    print_endline "Not enough points to form a circuit."
+  else
+    let pts = Array.of_list points in
+    let edges = ref [] in
+    for i = 0 to n-2 do
+      for j = i+1 to n-1 do
+        edges := {u=i; v=j; d=dist_sq pts.(i) pts.(j)} :: !edges
+      done
+    done;
+    let edges = List.sort (fun e1 e2 -> compare e1.d e2.d) !edges in
+    let parent = Array.init n (fun i -> i) in
+    let components = ref n in
+    let rec process = function
+      | [] -> ()
+      | e::es ->
+          let ru = find parent e.u in
+          let rv = find parent e.v in
+          if ru <> rv then begin
+            parent.(rv) <- ru;
+            decr components;
+            if !components = 1 then
+              let p1 = pts.(e.u) in
+              let p2 = pts.(e.v) in
+              Printf.printf "Connected %d,%d,%d and %d,%d,%d\n%!"
+                p1.x p1.y p1.z p2.x p2.y p2.z;
+              Printf.printf "Product of X coordinates: %d\n%!" (p1.x * p2.x)
+            else process es
+          end else process es
+    in
+    process edges

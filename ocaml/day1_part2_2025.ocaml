@@ -1,0 +1,33 @@
+
+let floor_div a b =
+  let q = a / b in
+  if a < 0 && a mod b <> 0 then q - 1 else q
+
+let () =
+  let ic = open_in "input.txt" in
+  let dial_size = 100 in
+  let cur = ref 50 in
+  let total = ref 0 in
+  try
+    while true do
+      let line = input_line ic |> String.trim in
+      if line <> "" then (
+        let dir = line.[0] in
+        let amt = String.sub line 1 (String.length line - 1) |> int_of_string in
+        if dir = 'R' then (
+          let hits = (!cur + amt) / dial_size in
+          total := !total + hits;
+          cur := (!cur + amt) mod dial_size
+        ) else (
+          let hits =
+            floor_div (!cur - 1) dial_size - floor_div (!cur - amt - 1) dial_size
+          in
+          total := !total + hits;
+          cur := (!cur - amt) mod dial_size;
+          if !cur < 0 then cur := !cur + dial_size
+        )
+      )
+    done
+  with End_of_file ->
+    close_in ic;
+    Printf.printf "The password is: %d\n" !total

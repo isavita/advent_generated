@@ -1,0 +1,23 @@
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec loop pos zero =
+    try
+      let line = input_line ic |> String.trim in
+      if line = "" then loop pos zero
+      else
+        let dir = line.[0] in
+        let amt = int_of_string (String.sub line 1 (String.length line - 1)) in
+        let pos' =
+          match dir with
+          | 'R' -> (pos + amt) mod 100
+          | 'L' -> ((pos - amt) mod 100 + 100) mod 100
+          | _ -> pos
+        in
+        let zero' = if pos' = 0 then zero + 1 else zero in
+        loop pos' zero'
+    with End_of_file ->
+      close_in ic;
+      Printf.printf "The password is: %d\n" zero
+  in
+  loop 50 0

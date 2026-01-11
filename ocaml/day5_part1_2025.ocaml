@@ -1,0 +1,47 @@
+
+let read_lines filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    match input_line ic with
+    | line -> aux (line :: acc)
+    | exception End_of_file -> close_in ic; List.rev acc
+  in
+  aux []
+
+let merge ranges =
+  let sorted = List.sort (fun (a, _) (b, _) -> compare a b) ranges in
+  let rec aux cur = function
+    | [] -> [cur]
+    | (mn, mx) :: rest ->
+        let (cmin, cmax) = cur in
+        if mn <= cmax + 1 then aux (cmin, max cmax mx) rest
+        else cur :: aux (mn, mx) rest
+  in
+  match sorted with
+  | [] -> []
+  | h :: t -> aux h t
+
+let () =
+  let lines = read_lines "input.txt" in
+  let (_, ranges_rev, ids_rev) =
+    List.fold_left
+      (fun (parsing, rs, is) line ->
+         if line = "" then (false, rs, is)
+         else if parsing then
+           match String.split_on_char '-' line with
+           | [a; b] -> (parsing, (int_of_string a, int_of_string b) :: rs, is)
+           | _ -> failwith "invalid range"
+         else (parsing, rs, (int_of_string line) :: is))
+      (true, [], []) lines
+  in
+  let ranges = List.rev ranges_rev in
+  let ids = List.rev ids_rev in
+  let merged = merge ranges in
+  let fresh =
+    List.fold_left
+      (fun cnt id ->
+         if List.exists (fun (mn, mx) -> id >= mn && id <= mx) merged then cnt + 1
+         else cnt)
+      0 ids
+  in
+  Printf.printf "Number of fresh ingredients: %d\n" fresh

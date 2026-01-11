@@ -1,0 +1,53 @@
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec aux acc =
+      try
+        let l = input_line ic in
+        if l = "" then aux acc else aux (l :: acc)
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    aux []
+  in
+  if lines = [] then (print_endline "Empty grid"; exit 0);
+  let grid = Array.of_list lines in
+  let height = Array.length grid in
+  let width = String.length grid.(0) in
+  let start_x, start_y =
+    let found = ref false in
+    let sx = ref 0 in
+    let sy = ref 0 in
+    for y = 0 to height - 1 do
+      if not !found then
+        let row = grid.(y) in
+        for x = 0 to width - 1 do
+          if row.[x] = 'S' then (sx := x; sy := y; found := true)
+        done
+    done;
+    if not !found then (prerr_endline "Start point 'S' not found"; exit 1);
+    (!sx, !sy)
+  in
+  let cur = Array.make width false in
+  cur.(start_x) <- true;
+  let total = ref 0 in
+  for y = start_y to height - 1 do
+    let next = Array.make width false in
+    let any = ref false in
+    for x = 0 to width - 1 do
+      if cur.(x) then
+        let cell = grid.(y).[x] in
+        if cell = '^' then (
+          incr total;
+          if x > 0 then (next.(x - 1) <- true; any := true);
+          if x + 1 < width then (next.(x + 1) <- true; any := true))
+        else (
+          next.(x) <- true;
+          any := true)
+    done;
+    if not !any then raise Exit;
+    Array.blit next 0 cur 0 width
+  done;
+  Printf.printf "Total times the beam is split: %d\n" !total
