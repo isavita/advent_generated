@@ -1,0 +1,487 @@
+
+(* Day 17 - Set and Forget (OCaml)
+   Reads the Intcode program from input.txt and prints:
+     <alignment-sum>
+     <dust-collected>
+*)
+
+open Printf
+
+(* ---------- Intcode machine using Int64 for values ---------- *)
+
+module Mem = struct
+  type t = (int, int64) Hashtbl.t
+  let create n = Hashtbl.create n
+  let of_list lst =
+    let h = create (List.length lst * 2 + 10) in
+    List.iteri (fun i v -> Hashtbl.add h i v) lst;
+    h
+  let get h idx =
+    try Hashtbl.find h idx with Not_found -> Int64.zero
+  let set h idx v =
+    Hashtbl.replace h idx v
+end
+
+let parse_program s =
+  s
+  |> String.trim
+  |> String.split_on_char ','
+  |> List.map (fun tok -> Int64.of_string (String.trim tok))
+
+(* run Intcode with given inputs (as int64 ASCII codes) and return outputs list *)
+let run_intcode program ~inputs ~modify0 =
+  let mem = Mem.of_list program in
+  if modify0 then Mem.set mem 0 (Int64.of_int 2);
+  let pc = ref 0 in
+  let rb = ref 0 in
+  let outputs = ref [] in
+  let input_idx = ref 0 in
+  let get i = Mem.get mem i in
+  let set i v = Mem.set mem i v in
+  let get_i64_at i = get i in
+  let get_int_at i = Int64.to_int (get_i64_at i) in
+  let read_param mode offset =
+    let raw = get_i64_at (!pc + offset) in
+    match mode with
+    | 0 -> get (Int64.to_int raw)
+    | 1 -> raw
+    | 2 -> get (Int64.to_int (Int64.add raw (Int64.of_int !rb)))
+    | _ -> failwith "invalid mode"
+  in
+  let write_addr mode offset =
+    let raw = get_i64_at (!pc + offset) in
+    match mode with
+    | 0 -> Int64.to_int raw
+    | 2 -> Int64.to_int (Int64.add raw (Int64.of_int !rb))
+    | _ -> failwith "invalid write mode"
+  in
+  let rec step () =
+    let op = Int64.to_int (get_i64_at !pc) in
+    let opcode = op mod 100 in
+    let m1 = (op / 100) mod 10 in
+    let m2 = (op / 1000) mod 10 in
+    let m3 = (op / 10000) mod 10 in
+    begin match opcode with
+    | 1 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        let dst = write_addr m3 3 in
+        set dst (Int64.add a b);
+        pc := !pc + 4; step ()
+    | 2 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        let dst = write_addr m3 3 in
+        set dst (Int64.mul a b);
+        pc := !pc + 4; step ()
+    | 3 ->
+        let dst = write_addr m1 1 in
+        if !input_idx >= List.length inputs then
+          failwith "No more inputs available for opcode 3"
+        else
+          let v = List.nth inputs !input_idx in
+          incr input_idx;
+          set dst v;
+          pc := !pc + 2; step ()
+    | 4 ->
+        let v = read_param m1 1 in
+        outputs := v :: !outputs;
+        pc := !pc + 2; step ()
+    | 5 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        if not (Int64.equal a Int64.zero) then pc := Int64.to_int b else pc := !pc + 3;
+        step ()
+    | 6 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        if Int64.equal a Int64.zero then pc := Int64.to_int b else pc := !pc + 3;
+        step ()
+    | 7 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        let dst = write_addr m3 3 in
+        if Int64.compare a b < 0 then set dst Int64.one else set dst Int64.zero;
+        pc := !pc + 4; step ()
+    | 8 ->
+        let a = read_param m1 1 in
+        let b = read_param m2 2 in
+        let dst = write_addr m3 3 in
+        if Int64.equal a b then set dst Int64.one else set dst Int64.zero;
+        pc := !pc + 4; step ()
+    | 9 ->
+        let a = read_param m1 1 in
+        rb := !rb + (Int64.to_int a);
+        pc := !pc + 2; step ()
+    | 99 ->
+        List.rev !outputs
+    | _ -> failwith (sprintf "Unknown opcode %d at pc=%d" opcode !pc)
+    end
+  in
+  step ()
+
+(* ---------- Build map from ASCII output ---------- *)
+
+let outputs_to_lines outputs =
+  let buf = Buffer.create 4096 in
+  List.iter (fun v -> Buffer.add_char buf (Char.chr (Int64.to_int v))) outputs;
+  let s = Buffer.contents buf in
+  String.split_on_char '\n' s
+  |> List.filter (fun line -> String.length line > 0)
+
+let build_grid lines =
+  let h = List.length lines in
+  let w = if h = 0 then 0 else String.length (List.hd lines) in
+  let grid = Hashtbl.create (w * h) in
+  List.iteri (fun y line ->
+    for x = 0 to String.length line - 1 do
+      Hashtbl.add grid (x,y) line.[x]
+    done
+  ) lines;
+  (grid, w, h)
+
+let get_cell grid x y =
+  try Hashtbl.find grid (x,y) with Not_found -> '.'
+
+let is_scaffold grid x y =
+  let c = get_cell grid x y in
+  c = '#' || c = '^' || c = 'v' || c = '<' || c = '>'
+
+(* compute sum of alignment parameters *)
+let sum_alignment grid w h =
+  let sum = ref 0 in
+  for y = 0 to h - 1 do
+    for x = 0 to w - 1 do
+      if is_scaffold grid x y then
+        if is_scaffold grid (x-1) y && is_scaffold grid (x+1) y &&
+           is_scaffold grid x (y-1) && is_scaffold grid x (y+1)
+        then sum := !sum + (x * y)
+    done
+  done;
+  !sum
+
+(* find robot starting position and direction *)
+let find_robot grid w h =
+  let dirs = ['^'; 'v'; '<'; '>'] in
+  let found = ref None in
+  for y = 0 to h - 1 do
+    for x = 0 to w - 1 do
+      let c = get_cell grid x y in
+      if List.mem c dirs then found := Some (x,y,c)
+    done
+  done;
+  match !found with
+  | Some x -> x
+  | None -> failwith "Robot not found"
+
+(* produce movement tokens by following scaffolds *)
+let derive_path_tokens grid w h =
+  let (sx, sy, sc) = find_robot grid w h in
+  let dir =
+    match sc with
+    | '^' -> 0
+    | '>' -> 1
+    | 'v' -> 2
+    | '<' -> 3
+    | _ -> failwith "bad robot char"
+  in
+  let dx = [|0; 1; 0; -1|] in
+  let dy = [|-1; 0; 1; 0|] in
+  let steps = ref [] in
+  let x = ref sx and y = ref sy and d = ref dir in
+  let try_ahead dd =
+    let nx = !x + dx.(dd) in
+    let ny = !y + dy.(dd) in
+    is_scaffold grid nx ny
+  in
+  let rec loop () =
+    let left = (!d + 3) mod 4 in
+    let right = (!d + 1) mod 4 in
+    if try_ahead left then begin
+      (* turn L *)
+      d := left;
+      (* count steps forward *)
+      let count = ref 0 in
+      while try_ahead !d do
+        x := !x + dx.(!d);
+        y := !y + dy.(!d);
+        incr count
+      done;
+      steps := !steps @ ["L"; string_of_int !count];
+      loop ()
+    end else if try_ahead right then begin
+      d := right;
+      let count = ref 0 in
+      while try_ahead !d do
+        x := !x + dx.(!d);
+        y := !y + dy.(!d);
+        incr count
+      done;
+      steps := !steps @ ["R"; string_of_int !count];
+      loop ()
+    end else begin
+      (* no left or right - finished *)
+      ()
+    end
+  in
+  loop ();
+  !steps
+
+(* helpers for matching slices and computing string length *)
+let slice tokens i len =
+  let rec aux acc j =
+    if j >= i + len then List.rev acc
+    else aux (List.nth tokens j :: acc) (j+1)
+  in aux [] i
+
+let join_with_comma lst =
+  String.concat "," lst
+
+let pattern_len_chars tokens =
+  String.length (join_with_comma tokens)
+
+let tokens_match_at tokens i pat =
+  let len = List.length pat in
+  if i + len > List.length tokens then false
+  else
+    let rec cmp j =
+      if j >= len then true
+      else if List.nth tokens (i + j) = List.nth pat j then cmp (j+1) else false
+    in
+    cmp 0
+
+(* attempt to find A,B,C decomposition *)
+let find_abc tokens =
+  let n = List.length tokens in
+  let max_token_len = 20 in
+  let rec try_la la =
+    if la = 0 then None else
+    if la > n then None else
+    let a = slice tokens 0 la in
+    if pattern_len_chars a > max_token_len then None else
+    (* build function that attempts B and C *)
+    let rec try_lb lb =
+      if lb = 0 then None else
+      let b_start =
+        (* find first index not consumed by A replacements *)
+        let i = ref 0 in
+        while !i < n && tokens_match_at tokens !i a do
+          i := !i + la
+        done;
+        !i
+      in
+      if b_start >= n then
+        (* everything can be A -> main would be As only (but we still need B and C maybe empty) *)
+        None
+      else
+      let b = slice tokens b_start lb in
+      if pattern_len_chars b > max_token_len then None else
+      (* Now try to deduce C by scanning *)
+      let rec build_main i acc c_opt =
+        if i >= n then Some (List.rev acc, c_opt)
+        else if tokens_match_at tokens i a then build_main (i+la) ('A'::acc) c_opt
+        else if tokens_match_at tokens i b then build_main (i+lb) ('B'::acc) c_opt
+        else
+          (* need to pick/validate C here *)
+          (match c_opt with
+           | None ->
+               (* choose a C length such that string length <= 20 *)
+               let rec try_lc lc =
+                 if lc = 0 || i + lc > n then None
+                 else
+                   let cpat = slice tokens i lc in
+                   if pattern_len_chars cpat > max_token_len then None
+                   else
+                     (* attempt to use this cpat consistently *)
+                     let rec scan j =
+                       if j >= n then true
+                       else if tokens_match_at tokens j a then scan (j+la)
+                       else if tokens_match_at tokens j b then scan (j+lb)
+                       else if tokens_match_at tokens j cpat then scan (j+lc)
+                       else false
+                     in
+                     if not (scan i) then try_lc (lc-1) else
+                       (* cpat is valid; now build main using it *)
+                       let rec build j acc2 =
+                         if j >= n then Some (List.rev acc2)
+                         else if tokens_match_at tokens j a then build (j+la) ('A'::acc2)
+                         else if tokens_match_at tokens j b then build (j+lb) ('B'::acc2)
+                         else if tokens_match_at tokens j cpat then build (j+lc) ('C'::acc2)
+                         else None
+                       in
+                       match build i [] with
+                       | None -> try_lc (lc-1)
+                       | Some main -> Some (main, Some cpat)
+               in
+               (* reasonable LC max is remaining tokens count *)
+               let max_lc = n - i in
+               (match try_lc max_lc with
+                | None -> None
+                | Some (main, cpat_opt) -> Some (main, cpat_opt))
+           | Some cpat ->
+               if tokens_match_at tokens i cpat then build_main (i + List.length cpat) ('C'::acc) (Some cpat)
+               else None)
+      in
+      match build_main 0 [] None with
+      | None -> None
+      | Some (main, c_opt) ->
+          (* Validate sizes *)
+          let main_str = String.concat "," (List.map (String.make 1) main) in
+          let main_len = String.length (String.concat "," (List.map (String.make 1) main)) in
+          let main_len = (* correct length: labels A,B,C separated by commas *)
+            let labels = List.map (String.make 1) main in
+            String.length (String.concat "," labels)
+          in
+          (match c_opt with
+           | None -> None
+           | Some cpat ->
+               let cstr = join_with_comma cpat in
+               if pattern_len_chars a <= 20 && pattern_len_chars b <= 20 && pattern_len_chars cpat <= 20
+                  && main_len <= 20 then
+                 Some (a, b, cpat, main)
+               else None)
+    in
+    (* Try different lb sizes starting from 1 up to reasonable *)
+    let rec loop_lb lb =
+      if lb > n then None else
+      match try_lb lb with
+      | None -> loop_lb (lb+1)
+      | s -> s
+    in
+    match loop_lb 1 with
+    | None -> try_la (la+1)
+    | res -> res
+  in
+  try_la 1
+
+(* Improved and more robust splitting search:
+   We'll try lengths la from 1..10 tokens, lb from 1..10 tokens, and lc from 1..10 tokens,
+   and check if scanning tokens yields complete representation.
+*)
+let find_abc_search tokens =
+  let n = List.length tokens in
+  let max_chars = 20 in
+  let token_len_slice tokens i len =
+    if i + len > List.length tokens then max_int
+    else pattern_len_chars (slice tokens i len)
+  in
+  let rec try_la la =
+    if la > n then None else
+    let a = slice tokens 0 la in
+    if pattern_len_chars a > max_chars then None else
+    let rec try_lb lb =
+      if lb > n then None else
+      (* find first position not matching A when scanning from start *)
+      let rec first_not_a idx =
+        if idx >= n then idx
+        else if tokens_match_at tokens idx a then first_not_a (idx + la)
+        else idx
+      in
+      let start_b = first_not_a 0 in
+      if start_b >= n then None else
+      let b = slice tokens start_b lb in
+      if pattern_len_chars b > max_chars then None else
+      (* try lc various lengths *)
+      let rec try_lc lc =
+        if lc > n then None else
+        (* choose c slice from first position where neither A nor B matches *)
+        let rec find_first idx =
+          if idx >= n then None
+          else if tokens_match_at tokens idx a then find_first (idx + la)
+          else if tokens_match_at tokens idx b then find_first (idx + lb)
+          else Some idx
+        in
+        match find_first 0 with
+        | None -> (* everything covered by A/B *) None
+        | Some idx ->
+            if idx + lc > n then None else
+            let c = slice tokens idx lc in
+            if pattern_len_chars c > max_chars then None else
+            (* now validate full coverage *)
+            let rec build i acc =
+              if i >= n then Some (List.rev acc)
+              else if tokens_match_at tokens i a then build (i+la) ('A'::acc)
+              else if tokens_match_at tokens i b then build (i+lb) ('B'::acc)
+              else if tokens_match_at tokens i c then build (i+lc) ('C'::acc)
+              else None
+            in
+            match build 0 [] with
+            | None -> try_lc (lc+1)
+            | Some main ->
+                let main_str = String.concat "," (List.map (String.make 1) main) in
+                if String.length main_str <= max_chars then
+                  Some (a,b,c,main)
+                else try_lc (lc+1)
+      in
+      try_lc 1 |> function
+      | None -> try_lb (lb+1)
+      | s -> s
+    in
+    try_lb 1 |> function
+    | None -> try_la (la+1)
+    | s -> s
+  in
+  try_la 1
+
+(* Build ASCII input vector from strings with newline appended *)
+let ascii_of_line s =
+  let rec chars i acc =
+    if i >= String.length s then List.rev acc else
+    chars (i+1) (Int64.of_int (Char.code s.[i]) :: acc)
+  in
+  (chars 0 []) @ [Int64.of_int 10]
+
+let prepare_inputs main a b c =
+  let flat = (ascii_of_line main) @ (ascii_of_line a) @ (ascii_of_line b) @ (ascii_of_line c) @ [Int64.of_int (Char.code 'n'); Int64.of_int 10] in
+  flat
+
+(* ---------- Main ---------- *)
+
+let () =
+  let content = ref "" in
+  (try
+     let ic = open_in "input.txt" in
+     let b = Buffer.create 4096 in
+     try
+       while true do Buffer.add_string b (input_line ic); Buffer.add_char b '\n' done
+     with End_of_file -> close_in ic; content := Buffer.contents b
+   with Sys_error _ ->
+     eprintf "Failed to open input.txt\n"; exit 1);
+  let program = parse_program !content in
+
+  (* Part 1: run program to get camera output *)
+  let outputs = run_intcode program ~inputs:[] ~modify0:false in
+  let lines = outputs_to_lines outputs in
+  let grid, w, h = build_grid lines in
+  let part1 = sum_alignment grid w h in
+
+  (* Derive path tokens *)
+  let tokens = derive_path_tokens grid w h in
+
+  (* Find functions A,B,C and main routine *)
+  let result_opt = find_abc_search tokens in
+  let (a,b,c,main_labels) =
+    match result_opt with
+    | None ->
+        eprintf "Failed to find A/B/C decomposition automatically. Falling back to manual (not provided).\n";
+        exit 1
+    | Some (a,b,c,main) -> (a,b,c,main)
+  in
+
+  let main_str = String.concat "," (List.map (String.make 1) main_labels) in
+  let a_str = join_with_comma a in
+  let b_str = join_with_comma b in
+  let c_str = join_with_comma c in
+
+  (* Prepare inputs for modified program (set address 0 to 2) and run *)
+  let inputs = prepare_inputs main_str a_str b_str c_str in
+  let outputs2 = run_intcode program ~inputs ~modify0:true in
+
+  (* The last output is the dust collected (may be >255). *)
+  let dust =
+    match List.rev outputs2 with
+    | [] -> Int64.zero
+    | x::_ -> x
+  in
+
+  printf "%d\n%Ld\n" part1 dust

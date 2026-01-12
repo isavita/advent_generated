@@ -1,0 +1,159 @@
+open Printf
+
+let read_file name =
+  let ic = open_in name in
+  let n = in_channel_length ic in
+  let s = really_input_string ic n in
+  close_in ic;
+  s
+
+let split_blocks s =
+  let lines = String.split_on_char '\n' s in
+  let buf = ref [] in
+  let blocks = ref [] in
+  let push_block () =
+    if !buf <> [] then begin
+      let b = String.concat "\n" (List.rev !buf) in
+      blocks := b :: !blocks;
+      buf := []
+    end
+  in
+  List.iter (fun l ->
+    let line =
+      if String.length l > 0 && l.[String.length l - 1] = '\r' then
+        String.sub l 0 (String.length l - 1)
+      else l
+    in
+    if line = "" then push_block () else buf := line :: !buf
+  ) lines;
+  push_block ();
+  List.rev !blocks
+
+let parse_tile block =
+  let lines = String.split_on_char '\n' block in
+  let header = List.hd lines in
+  let id =
+    Scanf.sscanf header "Tile %d:" (fun x -> x)
+  in
+  let rows = List.tl lines in
+  let grid =
+    Array.of_list (List.map (fun r -> Array.init (String.length r) (fun i -> r.[i])) rows)
+  in
+  (id, grid)
+
+let rotate grid =
+  let rows = Array.length grid in
+  let cols = Array.length grid.(0) in
+  let r = Array.init cols (fun _ -> Array.make rows ' ') in
+  for i = 0 to rows - 1 do
+    for j = 0 to cols - 1 do
+      r.(cols - 1 - j).(i) <- grid.(i).(j)
+    done
+  done;
+  r
+
+let mirror grid =
+  Array.map (fun row ->
+    let n = Array.length row in
+    let a = Array.make n row.(0) in
+    for i = 0 to n - 1 do a.(i) <- row.(n - 1 - i) done;
+    a
+  ) grid
+
+let row_string grid first =
+  let r = if first then 0 else Array.length grid - 1 in
+  let cols = Array.length grid.(0) in
+  String.init cols (fun j -> grid.(r).(j))
+
+let col_string grid first =
+  let c = if first then 0 else Array.length grid.(0) - 1 in
+  let rows = Array.length grid in
+  String.init rows (fun i -> grid.(i).(c))
+
+let orientations grid =
+  let rec build k cur acc =
+    if k = 4 then acc
+    else
+      let next = rotate cur in
+      build (k+1) next (cur :: acc)
+  in
+  let base_rev = build 0 grid [] in
+  let base = List.rev base_rev in
+  let mirrored = List.map mirror base in
+  let all = base @ mirrored in
+  let uniq = all in
+  List.map (fun g ->
+    let t = row_string g true in
+    let b = row_string g false in
+    let l = col_string g true in
+    let r = col_string g false in
+    (g, t, b, l, r)
+  ) uniq
+
+let solve input =
+  let blocks = split_blocks input in
+  let tiles = Array.of_list (List.map parse_tile blocks) in
+  let n = Array.length tiles in
+  let edge = int_of_float (sqrt (float_of_int n)) in
+  let tile_orients = Array.init n (fun i ->
+    orientations (snd tiles.(i))
+  ) in
+  let chosen_idx = Array.init edge (fun _ -> Array.make edge (-1)) in
+  let chosen_or = Array.init edge (fun _ -> Array.make edge (-1)) in
+  let used = Array.make n false in
+  let rec dfs pos =
+    if pos = edge * edge then true else
+    let row = pos / edge in
+    let col = pos mod edge in
+    let rec try_tiles i =
+      if i >= n then false else
+      if used.(i) then try_tiles (i+1) else
+      let orients = tile_orients.(i) in
+      let rec try_or o =
+        if o >= List.length orients then false else
+        let (_, t, b, l, r) = List.nth orients o in
+        let ok_top =
+          if row = 0 then true
+          else
+            let pi = chosen_idx.(row-1).(col) in
+            let po = chosen_or.(row-1).(col) in
+            let (_, _, pb, _, _) = List.nth tile_orients.(pi) po in
+            pb = t
+        in
+        if not ok_top then try_or (o+1) else
+        let ok_left =
+          if col = 0 then true
+          else
+            let pi = chosen_idx.(row).(col-1) in
+            let po = chosen_or.(row).(col-1) in
+            let (_, _, _, _, pr) = List.nth tile_orients.(pi) po in
+            pr = l
+        in
+        if not ok_left then try_or (o+1) else
+        begin
+          chosen_idx.(row).(col) <- i;
+          chosen_or.(row).(col) <- o;
+          used.(i) <- true;
+          if dfs (pos+1) then true
+          else (used.(i) <- false; chosen_idx.(row).(col) <- -1; chosen_or.(row).(col) <- -1; try_or (o+1))
+        end
+      in
+      if try_or 0 then true else try_tiles (i+1)
+    in
+    try_tiles 0
+  in
+  let _ = dfs 0 in
+  let a = chosen_idx.(0).(0) in
+  let b = chosen_idx.(0).(edge-1) in
+  let c = chosen_idx.(edge-1).(0) in
+  let d = chosen_idx.(edge-1).(edge-1) in
+  let id_a = fst tiles.(a) |> Int64.of_int in
+  let id_b = fst tiles.(b) |> Int64.of_int in
+  let id_c = fst tiles.(c) |> Int64.of_int in
+  let id_d = fst tiles.(d) |> Int64.of_int in
+  Int64.mul id_a (Int64.mul id_b (Int64.mul id_c id_d))
+
+let () =
+  let s = read_file "input.txt" in
+  let res = solve s in
+  printf "%Ld\n" res

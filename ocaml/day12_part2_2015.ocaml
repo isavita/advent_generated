@@ -1,0 +1,211 @@
+
+(* solution.ml *)
+open Stdlib
+
+type jval =
+  | JNull
+  | JBool of bool
+  | JNum of Int64.t
+  | JString of string
+  | JArray of jval list
+  | JObject of (string * jval) list
+
+exception Parse_error of string
+
+let is_ws = function
+  | ' ' | '\n' | '\r' | '\t' -> true
+  | _ -> false
+
+let skip_ws s i =
+  let n = String.length s in
+  let rec loop j =
+    if j >= n then j
+    else if is_ws s.[j] then loop (j + 1)
+    else j
+  in
+  loop i
+
+let parse_string s i =
+  (* s.[i] should be '"' *)
+  let n = String.length s in
+  if i >= n || s.[i] <> '"' then raise (Parse_error "parse_string: expected '\"'");
+  let b = Buffer.create 32 in
+  let rec loop j =
+    if j >= n then raise (Parse_error "parse_string: unterminated string")
+    else
+      match s.[j] with
+      | '"' -> (Buffer.contents b, j + 1)
+      | '\\' ->
+        if j + 1 >= n then raise (Parse_error "parse_string: bad escape");
+        let c = s.[j+1] in
+        let add ch = Buffer.add_char b ch; loop (j + 2) in
+        begin match c with
+        | '"' -> add '"'
+        | '\\' -> add '\\'
+        | '/' -> add '/'
+        | 'b' -> add '\b'
+        | 'f' -> add '\012'
+        | 'n' -> add '\n'
+        | 'r' -> add '\r'
+        | 't' -> add '\t'
+        | 'u' ->
+          (* minimal handling: parse \uXXXX as hex, convert to UTF-8 *)
+          if j + 6 > n then raise (Parse_error "parse_string: bad \\u escape");
+          let hex = String.sub s (j+2) 4 in
+          let code =
+            try int_of_string ("0x" ^ hex)
+            with _ -> raise (Parse_error "parse_string: invalid \\u hex")
+          in
+          let utf8 =
+            if code <= 0x7F then String.make 1 (Char.chr code)
+            else if code <= 0x7FF then
+              let b1 = 0xC0 lor (code lsr 6) in
+              let b2 = 0x80 lor (code land 0x3F) in
+              Printf.sprintf "%c%c" (Char.chr b1) (Char.chr b2)
+            else
+              let b1 = 0xE0 lor (code lsr 12) in
+              let b2 = 0x80 lor ((code lsr 6) land 0x3F) in
+              let b3 = 0x80 lor (code land 0x3F) in
+              Printf.sprintf "%c%c%c" (Char.chr b1) (Char.chr b2) (Char.chr b3)
+          in
+          Buffer.add_string b utf8;
+          loop (j + 6)
+        | _ -> raise (Parse_error "parse_string: unknown escape")
+        end
+      | c ->
+        Buffer.add_char b c;
+        loop (j + 1)
+  in
+  loop (i + 1)
+
+let parse_number s i =
+  let n = String.length s in
+  let j = ref i in
+  if !j < n && s.[!j] = '-' then incr j;
+  let at_least_one_digit = ref false in
+  while !j < n && s.[!j] >= '0' && s.[!j] <= '9' do
+    at_least_one_digit := true;
+    incr j
+  done;
+  if not !at_least_one_digit then raise (Parse_error "parse_number: expected digits");
+  (* ignore fraction/exponent for this problem; but allow them to be part of token for correctness *)
+  if !j < n && s.[!j] = '.' then
+    begin
+      incr j;
+      while !j < n && s.[!j] >= '0' && s.[!j] <= '9' do incr j done
+    end;
+  if !j < n && (s.[!j] = 'e' || s.[!j] = 'E') then
+    begin
+      incr j;
+      if !j < n && (s.[!j] = '+' || s.[!j] = '-') then incr j;
+      while !j < n && s.[!j] >= '0' && s.[!j] <= '9' do incr j done
+    end;
+  let tok = String.sub s i (!j - i) in
+  (* Convert to int64 if possible; ignore fraction part by using float->int64 if needed.
+     For this problem numbers are integers. *)
+  let num =
+    try Int64.of_string tok
+    with _ ->
+      (* fallback: parse as float then convert *)
+      let f = float_of_string tok in
+      Int64.of_float f
+  in
+  (JNum num, !j)
+
+let rec parse_value s i =
+  let i = skip_ws s i in
+  if i >= String.length s then raise (Parse_error "parse_value: unexpected end");
+  match s.[i] with
+  | '{' -> parse_object s (i + 1)
+  | '[' -> parse_array s (i + 1)
+  | '"' ->
+    let (str, j) = parse_string s i in
+    (JString str, j)
+  | 't' ->
+    let len = String.length s in
+    if i + 4 <= len && String.sub s i 4 = "true" then (JBool true, i + 4)
+    else raise (Parse_error "parse_value: invalid token")
+  | 'f' ->
+    let len = String.length s in
+    if i + 5 <= len && String.sub s i 5 = "false" then (JBool false, i + 5)
+    else raise (Parse_error "parse_value: invalid token")
+  | 'n' ->
+    let len = String.length s in
+    if i + 4 <= len && String.sub s i 4 = "null" then (JNull, i + 4)
+    else raise (Parse_error "parse_value: invalid token")
+  | '-' | '0' .. '9' -> parse_number s i
+  | c -> raise (Parse_error (Printf.sprintf "parse_value: unexpected char '%c' at %d" c i))
+
+and parse_array s i =
+  let rec loop j acc =
+    let j = skip_ws s j in
+    if j >= String.length s then raise (Parse_error "parse_array: unexpected end")
+    else if s.[j] = ']' then (JArray (List.rev acc), j + 1)
+    else
+      let (v, k) = parse_value s j in
+      let k = skip_ws s k in
+      if k < String.length s && s.[k] = ',' then loop (k + 1) (v :: acc)
+      else if k < String.length s && s.[k] = ']' then (JArray (List.rev (v :: acc)), k + 1)
+      else raise (Parse_error "parse_array: expected ',' or ']'")
+  in
+  loop i []
+
+and parse_object s i =
+  let rec loop j acc =
+    let j = skip_ws s j in
+    if j >= String.length s then raise (Parse_error "parse_object: unexpected end")
+    else if s.[j] = '}' then (JObject (List.rev acc), j + 1)
+    else
+      let (key, k) = parse_string s j in
+      let k = skip_ws s k in
+      if k >= String.length s || s.[k] <> ':' then raise (Parse_error "parse_object: expected ':'");
+      let (v, m) = parse_value s (k + 1) in
+      let m = skip_ws s m in
+      if m < String.length s && s.[m] = ',' then loop (m + 1) ((key, v) :: acc)
+      else if m < String.length s && s.[m] = '}' then (JObject (List.rev ((key, v) :: acc)), m + 1)
+      else raise (Parse_error "parse_object: expected ',' or '}'")
+  in
+  loop i []
+
+let rec sum_all j =
+  match j with
+  | JNum n -> n
+  | JArray lst -> List.fold_left (fun acc v -> Int64.add acc (sum_all v)) Int64.zero lst
+  | JObject pairs -> List.fold_left (fun acc (_, v) -> Int64.add acc (sum_all v)) Int64.zero pairs
+  | _ -> Int64.zero
+
+let rec has_red_value pairs =
+  List.exists (fun (_k, v) -> match v with JString s when s = "red" -> true | _ -> false) pairs
+
+let rec sum_without_red j =
+  match j with
+  | JNum n -> n
+  | JArray lst -> List.fold_left (fun acc v -> Int64.add acc (sum_without_red v)) Int64.zero lst
+  | JObject pairs ->
+    if has_red_value pairs then Int64.zero
+    else List.fold_left (fun acc (_, v) -> Int64.add acc (sum_without_red v)) Int64.zero pairs
+  | _ -> Int64.zero
+
+let read_file filename =
+  let ch = open_in_bin filename in
+  let len = in_channel_length ch in
+  let s = really_input_string ch len in
+  close_in ch;
+  s
+
+let () =
+  try
+    let s = read_file "input.txt" in
+    let (j, pos) = parse_value s 0 in
+    let _pos = skip_ws s pos in
+    (* ignore trailing content after top-level value *)
+    let part1 = sum_all j in
+    let part2 = sum_without_red j in
+    Printf.printf "%s\n%s\n" (Int64.to_string part1) (Int64.to_string part2)
+  with
+  | Parse_error msg ->
+    prerr_endline ("Parse error: " ^ msg);
+    exit 2
+  | Sys_error msg ->
+    prerr_endline ("System error: " ^ msg);
+    exit 2
