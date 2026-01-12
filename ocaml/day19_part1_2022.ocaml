@@ -1,0 +1,72 @@
+type blueprint = {
+  id : int;
+  ore_cost : int;
+  clay_cost : int;
+  obsidian_ore : int;
+  obsidian_clay : int;
+  geode_ore : int;
+  geode_obsidian : int;
+  max_ore : int;
+}
+
+let parse_line line =
+  try
+    Scanf.sscanf line "Blueprint %d: Each ore robot costs %d ore. Each clay robot costs %d ore. Each obsidian robot costs %d ore and %d clay. Each geode robot costs %d ore and %d obsidian."
+      (fun id ore_cost clay_cost obsidian_ore obsidian_clay geode_ore geode_obsidian ->
+        let max_ore = max ore_cost (max clay_cost (max obsidian_ore geode_ore)) in
+        Some { id; ore_cost; clay_cost; obsidian_ore; obsidian_clay; geode_ore; geode_obsidian; max_ore })
+  with _ -> None
+
+let solve_blueprint b time =
+  let max_geodes = ref 0 in
+  let memo = Hashtbl.create 100000 in
+  let rec dfs t ore clay obs r_ore r_clay r_obs geode =
+    if t = 0 then (
+      max_geodes := max !max_geodes geode;
+      geode
+    ) else if geode + (t * (t - 1) / 2) <= !max_geodes then 
+      0
+    else
+      let state = (t, ore, clay, obs, r_ore, r_clay, r_obs, geode) in
+      match Hashtbl.find_opt memo state with
+      | Some v -> v
+      | None ->
+        let res =
+          if ore >= b.geode_ore && obs >= b.geode_obsidian then
+            dfs (t - 1) (ore + r_ore - b.geode_ore) (clay + r_clay) (obs + r_obs - b.geode_obsidian) r_ore r_clay r_obs (geode + t - 1)
+          else
+            let m = ref geode in
+            if r_obs < b.geode_obsidian && ore >= b.obsidian_ore && clay >= b.obsidian_clay then
+              m := max !m (dfs (t - 1) (ore + r_ore - b.obsidian_ore) (clay + r_clay - b.obsidian_clay) (obs + r_obs) r_ore r_clay (r_obs + 1) geode);
+            if r_clay < b.obsidian_clay && ore >= b.clay_cost then
+              m := max !m (dfs (t - 1) (ore + r_ore - b.clay_cost) (clay + r_clay) (obs + r_obs) r_ore (r_clay + 1) r_obs geode);
+            if r_ore < b.max_ore && ore >= b.ore_cost then
+              m := max !m (dfs (t - 1) (ore + r_ore - b.ore_cost) (clay + r_clay) (obs + r_obs) (r_ore + 1) r_clay r_obs geode);
+            let wait_ore = min (ore + r_ore) (t * b.max_ore - r_ore * (t - 1)) in
+            m := max !m (dfs (t - 1) wait_ore (clay + r_clay) (obs + r_obs) r_ore r_clay r_obs geode);
+            !m
+        in
+        max_geodes := max !max_geodes res;
+        Hashtbl.add memo state res;
+        res
+  in
+  dfs time 0 0 0 1 0 0 0
+
+let () =
+  let blueprints =
+    let ic = open_in "input.txt" in
+    let rec loop acc =
+      try
+        let line = input_line ic in
+        match parse_line line with
+        | Some b -> loop (b :: acc)
+        | None -> loop acc
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in loop []
+  in
+  let total_quality = List.fold_left (fun acc b ->
+    acc + (b.id * solve_blueprint b 24)
+  ) 0 blueprints in
+  Printf.printf "The sum of the quality levels of all blueprints is: %d\n" total_quality

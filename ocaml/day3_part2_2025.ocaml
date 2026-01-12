@@ -1,0 +1,35 @@
+
+let target = 12
+
+let solve () =
+  let ic = open_in "input.txt" in
+  let total = ref 0L in
+  try
+    while true do
+      let line = input_line ic in
+      let n = String.length line in
+      let e = ref n in
+      while !e > 0 && (let c = line.[!e - 1] in c < '0' || c > '9') do
+        decr e
+      done;
+      if !e >= target then
+        let rem = ref (!e - target) in
+        let stack = Bytes.create !e in
+        let top = ref 0 in
+        for i = 0 to !e - 1 do
+          let c = line.[i] in
+          while !rem > 0 && !top > 0 && Bytes.get stack (!top - 1) < c do
+            top := !top - 1;
+            rem := !rem - 1
+          done;
+          Bytes.set stack !top c;
+          top := !top + 1
+        done;
+        total := Int64.add !total (Int64.of_string (Bytes.sub_string stack 0 target))
+    done
+  with End_of_file ->
+    close_in ic;
+    Printf.printf "%Ld\n" !total
+
+let () = solve ()
+

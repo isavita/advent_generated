@@ -1,0 +1,37 @@
+
+type prog = { w : int; h : string list }
+module SS = Set.Make(String)
+
+let solve () =
+  let pr = Hashtbl.create 2000 in
+  let ic = open_in "input.txt" in
+  let rec ps () =
+    match (try Some (input_line ic) with _ -> None) with
+    | Some l ->
+      let ts = String.split_on_char ' ' (String.map (fun c -> if c=','||c='('||c=')' then ' ' else c) l)
+               |> List.filter (fun s -> s <> "" && s <> "->") in
+      (match ts with n::w::h -> Hashtbl.add pr n {w=int_of_string w; h} | _ -> ()); ps ()
+    | _ -> close_in ic in
+  ps ();
+  let ns = Hashtbl.fold (fun k _ s -> SS.add k s) pr SS.empty in
+  let cs = Hashtbl.fold (fun _ p s -> List.fold_left (fun s' c -> SS.add c s') s p.h) pr SS.empty in
+  let rt = SS.choose (SS.diff ns cs) in
+  let rec dfs n =
+    let p = Hashtbl.find pr n in
+    let rs = List.map (fun c -> (c, dfs c)) p.h in
+    match List.find_opt (fun (_, (_, b)) -> not b) rs with
+    | Some (_, r) -> r
+    | None ->
+      let cw = List.map (fun (c, (w, _)) -> (c, w)) rs in
+      let ct = Hashtbl.create 10 in
+      List.iter (fun (_, w) -> let c = try Hashtbl.find ct w with _ -> 0 in Hashtbl.replace ct w (c+1)) cw;
+      if Hashtbl.length ct <= 1 then
+        (p.w + List.fold_left (fun a (_, w) -> a + w) 0 cw, true)
+      else
+        let wu, wb = ref 0, ref 0 in
+        Hashtbl.iter (fun w c -> if c = 1 then wu := w else wb := w) ct;
+        let (un, _) = List.find (fun (_, w) -> w = !wu) cw in
+        Printf.printf "%d\n" ((Hashtbl.find pr un).w + (!wb - !wu)); (0, false)
+  in ignore (dfs rt)
+
+let () = solve ()

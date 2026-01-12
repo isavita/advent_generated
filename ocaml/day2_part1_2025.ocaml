@@ -1,0 +1,45 @@
+
+module S = Hashtbl
+
+let () =
+  let p = Array.make 11 1L in
+  for i = 1 to 10 do p.(i) <- Int64.mul p.(i-1) 10L done;
+  let data =
+    try
+      let ic = open_in_bin "input.txt" in
+      let n = in_channel_length ic in
+      let s = really_input_string ic n in
+      close_in ic; s
+    with _ -> ""
+  in
+  let tokens =
+    let s = String.map (fun c -> if c <= ' ' || c = ',' then ' ' else c) data in
+    String.split_on_char ' ' s |> List.filter (fun t -> t <> "" && String.contains t '-')
+  in
+  let ids = S.create 1024 in
+  List.iter (fun t ->
+    try
+      let i = String.index t '-' in
+      let a_s = String.sub t 0 i in
+      let b_s = String.sub t (i + 1) (String.length t - i - 1) in
+      let a = Int64.of_string a_s in
+      let b = Int64.of_string b_s in
+      let lo, hi = if a <= b then a, b else b, a in
+      for k = 1 to 10 do
+        let mul = Int64.add p.(k) 1L in
+        let s_min = Int64.div (Int64.add lo p.(k)) mul in
+        let s_max = Int64.div hi mul in
+        let start_s = if s_min < p.(k-1) then p.(k-1) else s_min in
+        let end_s = if s_max > Int64.sub p.(k) 1L then Int64.sub p.(k) 1L else s_max in
+        let s = ref start_s in
+        while !s <= end_s do
+          S.replace ids (Int64.mul !s mul) ();
+          s := Int64.add !s 1L
+        done
+      done
+    with _ -> ()
+  ) tokens;
+  let sum = ref 0L in
+  S.iter (fun k _ -> sum := Int64.add !sum k) ids;
+  Printf.printf "%Ld\n" !sum
+

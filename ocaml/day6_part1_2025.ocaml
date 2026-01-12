@@ -1,0 +1,33 @@
+
+let int_of_string_opt s = try Some (int_of_string s) with _ -> None
+
+let main () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec loop acc = try loop (input_line ic :: acc) with _ -> close_in ic; List.rev acc in
+    loop [] in
+  let max_w = List.fold_left (fun a l -> max a (String.length l)) 0 lines in
+  let is_sep_arr = Array.init max_w (fun x ->
+    List.for_all (fun ln -> x >= String.length ln || ln.[x] <= ' ') lines) in
+  let block_res sc ec =
+    let nums, op = ref [], ref 0 in
+    List.iter (fun ln ->
+      let len = String.length ln in
+      if sc < len then
+        let slen = min (ec + 1) len - sc in
+        if slen > 0 then match String.trim (String.sub ln sc slen) with
+          | "" -> () | "+" -> op := 1 | "*" -> op := 2
+          | s -> match int_of_string_opt s with Some v -> nums := v :: !nums | _ -> ()
+    ) lines;
+    match List.rev !nums with
+    | [] -> 0
+    | ns -> if !op = 1 then List.fold_left (+) 0 ns else if !op = 2 then List.fold_left ( * ) 1 ns else List.hd ns in
+  let grand, in_b, start = ref 0, ref false, ref 0 in
+  for x = 0 to max_w - 1 do
+    if not is_sep_arr.(x) then (if not !in_b then (in_b := true; start := x))
+    else if !in_b then (grand := !grand + block_res !start (x - 1); in_b := false)
+  done;
+  if !in_b then grand := !grand + block_res !start (max_w - 1);
+  Printf.printf "Grand total: %d\n" !grand
+
+let () = main ()

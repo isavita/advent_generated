@@ -1,0 +1,74 @@
+
+type valve = { id : string; flow : int; neighbors : string list }
+
+let read_lines file =
+  let ic = open_in file in
+  let rec loop acc =
+    try loop (input_line ic :: acc) with End_of_file -> close_in ic; List.rev acc
+  in loop []
+
+let parse_line line =
+  let parts = String.split_on_char ';' line in
+  let left = List.hd parts in
+  let right = List.nth parts 1 in
+  let id, flow = Scanf.sscanf left "Valve %s has flow rate=%d" (fun i f -> i, f) in
+  let words = String.split_on_char ' ' (String.trim right) in
+  let rec skip = function
+    | "valve" :: t | "valves" :: t -> t
+    | _ :: t -> skip t
+    | [] -> []
+  in
+  let neighbors = List.map (fun s -> String.sub s 0 2) (skip words) in
+  { id; flow; neighbors }
+
+let main () =
+  let lines = read_lines "input.txt" in
+  let valves_list = List.map parse_line lines in
+  let n = List.length valves_list in
+  let name_to_idx = Hashtbl.create n in
+  List.iteri (fun i v -> Hashtbl.add name_to_idx v.id i) valves_list;
+  
+  let flows = Array.of_list (List.map (fun v -> v.flow) valves_list) in
+  let dist = Array.make_matrix n n 100 in
+  for i = 0 to n - 1 do dist.(i).(i) <- 0 done;
+  
+  List.iteri (fun i v ->
+    List.iter (fun nb ->
+      let j = Hashtbl.find name_to_idx nb in
+      dist.(i).(j) <- 1
+    ) v.neighbors
+  ) valves_list;
+  
+  for k = 0 to n - 1 do
+    for i = 0 to n - 1 do
+      for j = 0 to n - 1 do
+        dist.(i).(j) <- min dist.(i).(j) (dist.(i).(k) + dist.(k).(j))
+      done
+    done
+  done;
+  
+  let open_valves = 
+    List.mapi (fun i v -> (i, v.flow)) valves_list
+    |> List.filter (fun (_, f) -> f > 0)
+    |> List.map fst
+  in
+  
+  let aa_idx = Hashtbl.find name_to_idx "AA" in
+  
+  let rec max_pressure curr minute pressure remaining =
+    List.fold_left (fun acc next_v ->
+      let d = dist.(curr).(next_v) in
+      let time_left = minute - d - 1 in
+      if time_left > 0 then
+        let new_pressure = pressure + time_left * flows.(next_v) in
+        let new_remaining = List.filter (fun v -> v <> next_v) remaining in
+        max acc (max_pressure next_v time_left new_pressure new_remaining)
+      else acc
+    ) pressure remaining
+  in
+  
+  let result = max_pressure aa_idx 30 0 open_valves in
+  Printf.printf "%d\n" result
+
+let () = main ()
+

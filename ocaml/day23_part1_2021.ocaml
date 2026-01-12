@@ -1,0 +1,101 @@
+
+module StateSet = Set.Make(struct
+  type t = int * string
+  let compare (e1, s1) (e2, s2) =
+    if e1 <> e2 then compare e1 e2 else String.compare s1 s2
+end)
+
+let target_char rid = char_of_int (65 + rid)
+let room_entrances = [| 2; 4; 6; 8 |]
+let stop_indices = [0; 1; 3; 5; 7; 9; 10]
+
+let is_settled layout r_idx =
+  let rid = (r_idx - 11) / 2 in
+  let char = layout.[r_idx] in
+  if char = '.' || char <> target_char rid then false
+  else
+    let r_bottom = 11 + rid * 2 + 1 in
+    if r_idx = r_bottom then true else layout.[r_bottom] = target_char rid
+
+let is_room_path_clear layout r_idx =
+  let depth = (r_idx - 11) mod 2 in
+  if depth = 0 then true else layout.[r_idx - 1] = '.'
+
+let is_hallway_path_clear layout h_idx entrance skip_h =
+  let lo, hi = min h_idx entrance, max h_idx entrance in
+  let ok = ref true in
+  for i = lo to hi do
+    if (not (skip_h && i = h_idx)) && layout.[i] <> '.' then ok := false
+  done;
+  !ok
+
+let room_ready_to_enter layout rid char =
+  let r0, r1 = 11 + rid * 2, 11 + rid * 2 + 1 in
+  layout.[r0] = '.' && (layout.[r1] = '.' || layout.[r1] = char)
+
+let get_deepest_empty_spot layout rid =
+  let r0, r1 = 11 + rid * 2, 11 + rid * 2 + 1 in
+  if layout.[r1] = '.' then r1 else r0
+
+let move_dist h_idx r_idx =
+  let rid, depth = (r_idx - 11) / 2, (r_idx - 11) mod 2 in
+  abs (h_idx - room_entrances.(rid)) + depth + 1
+
+let cost char d =
+  match char with 'A' -> d | 'B' -> 10 * d | 'C' -> 100 * d | 'D' -> 1000 * d | _ -> 0
+
+let next_moves layout cur_e =
+  let res = ref [] in
+  for r_idx = 11 to 18 do
+    let char = layout.[r_idx] in
+    if char <> '.' && not (is_settled layout r_idx) && is_room_path_clear layout r_idx then
+      let entrance = room_entrances.((r_idx - 11) / 2) in
+      List.iter (fun h_idx ->
+        if is_hallway_path_clear layout h_idx entrance false then
+          let nl = Bytes.of_string layout in
+          Bytes.set nl h_idx char; Bytes.set nl r_idx '.';
+          res := (cur_e + cost char (move_dist h_idx r_idx), Bytes.to_string nl) :: !res
+      ) stop_indices
+  done;
+  for h_idx = 0 to 10 do
+    let char = layout.[h_idx] in
+    if char <> '.' then
+      let rid = match char with 'A' -> 0 | 'B' -> 1 | 'C' -> 2 | 'D' -> 3 | _ -> -1 in
+      if room_ready_to_enter layout rid char && is_hallway_path_clear layout h_idx room_entrances.(rid) true then
+        let r_idx = get_deepest_empty_spot layout rid in
+        let nl = Bytes.of_string layout in
+        Bytes.set nl r_idx char; Bytes.set nl h_idx '.';
+        res := (cur_e + cost char (move_dist h_idx r_idx), Bytes.to_string nl) :: !res
+  done;
+  !res
+
+let solve start =
+  let target = "...........AABBCCDD" in
+  let dists = Hashtbl.create 10000 in
+  Hashtbl.add dists start 0;
+  let rec loop pq =
+    match try Some (StateSet.min_elt pq) with Not_found -> None with
+    | None -> -1
+    | Some (e, l) ->
+        if l = target then e else
+        let pq = StateSet.remove (e, l) pq in
+        if e > (Hashtbl.find_opt dists l |> Option.value ~default:Int.max_int) then loop pq
+        else
+          let pq = List.fold_left (fun acc (ne, nl) ->
+            let oe = Hashtbl.find_opt dists nl |> Option.value ~default:Int.max_int in
+            if ne < oe then (Hashtbl.replace dists nl ne; StateSet.add (ne, nl) acc) else acc
+          ) pq (next_moves l e) in
+          loop pq
+  in loop (StateSet.singleton (0, start))
+
+let parse_input filename =
+  let ic = open_in filename in
+  let rec read lines = try read (input_line ic :: lines) with _ -> List.rev lines in
+  let grid = read [] in close_in ic;
+  let get r c = try (List.nth grid r).[c] with _ -> ' ' in
+  let b = Bytes.make 19 '.' in
+  List.iteri (fun i (r, c) -> Bytes.set b (11 + i) (get r c))
+    [(2, 3); (3, 3); (2, 5); (3, 5); (2, 7); (3, 7); (2, 9); (3, 9)];
+  Bytes.to_string b
+
+let () = print_int (solve (parse_input "input.txt")); print_newline ()

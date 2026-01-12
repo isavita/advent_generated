@@ -1,0 +1,67 @@
+
+type board = { 
+  g : int array; 
+  m : bool array; 
+  mutable w : bool 
+}
+
+let mark_check b n =
+  let res = ref false in
+  for i = 0 to 24 do
+    if b.g.(i) = n then (
+      b.m.(i) <- true;
+      let r = i / 5 and c = i mod 5 in
+      let rw, cw = ref true, ref true in
+      for k = 0 to 4 do
+        if not b.m.(r * 5 + k) then rw := false;
+        if not b.m.(k * 5 + c) then cw := false
+      done;
+      if !rw || !cw then res := true
+    )
+  done; 
+  !res
+
+let score b =
+  let s = ref 0 in
+  for i = 0 to 24 do
+    if not b.m.(i) then s := !s + b.g.(i)
+  done; 
+  !s
+
+let main () =
+  let content =
+    let ic = open_in "input.txt" in
+    let len = in_channel_length ic in
+    let s = really_input_string ic len in
+    close_in ic; s
+  in
+  let lines = String.split_on_char '\n' content |> List.map String.trim |> List.filter (fun s -> s <> "") in
+  match lines with
+  | first :: rest ->
+      let nums = String.split_on_char ',' first |> List.filter (fun s -> s <> "") |> List.map int_of_string in
+      let tokens = String.concat " " rest |> String.split_on_char ' ' |> List.filter (fun s -> s <> "") |> List.map int_of_string in
+      let rec group l = match l with
+        | [] -> []
+        | _ ->
+            let rec take n l acc =
+              if n = 0 then List.rev acc, l
+              else match l with h :: t -> take (n - 1) t (h :: acc) | [] -> List.rev acc, []
+            in
+            let bn, rem = take 25 l [] in
+            if List.length bn < 25 then []
+            else { g = Array.of_list bn; m = Array.make 25 false; w = false } :: group rem
+      in
+      let boards = group tokens in
+      let last_res = ref 0 in
+      List.iter (fun n ->
+        List.iter (fun b ->
+          if not b.w && mark_check b n then (
+            b.w <- true;
+            last_res := score b * n
+          )
+        ) boards
+      ) nums;
+      Printf.printf "%d\n" !last_res
+  | [] -> ()
+
+let () = main ()
