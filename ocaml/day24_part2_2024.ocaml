@@ -1,0 +1,77 @@
+
+module StringMap = Map.Make(String)
+
+type gate = { a : string; op : string; b : string }
+
+let key a op b =
+  let u, v = if a < b then a, b else b, a in
+  u ^ "_" ^ op ^ "_" ^ v
+
+let create_lookups gates =
+  let lookup = List.fold_left (fun acc (g, out) -> StringMap.add out g acc) StringMap.empty gates in
+  let rev_lookup = List.fold_left (fun acc (g, out) -> StringMap.add (key g.a g.op g.b) out acc) StringMap.empty gates in
+  (lookup, rev_lookup)
+
+let swap_gates gates a b =
+  List.map (fun (g, out) ->
+    if out = a then (g, b)
+    else if out = b then (g, a)
+    else (g, out)
+  ) gates
+
+let rec solve_swaps gates pairs =
+  if List.length pairs = 8 then pairs
+  else
+    let lookup, rev_lookup = create_lookups gates in
+    let num_z = List.length (List.filter (fun (_, out) -> String.length out > 0 && out.[0] = 'z') gates) in
+    let rec find_error i carry =
+      if i >= num_z - 1 then None
+      else
+        let xi, yi, zi = Printf.sprintf "x%02d" i, Printf.sprintf "y%02d" i, Printf.sprintf "z%02d" i in
+        let bit, adder, next_carry =
+          if i = 0 then
+            ("", (match StringMap.find_opt (key xi "XOR" yi) rev_lookup with Some s -> s | _ -> ""),
+             (match StringMap.find_opt (key xi "AND" yi) rev_lookup with Some s -> s | _ -> ""))
+          else
+            let b = (match StringMap.find_opt (key xi "XOR" yi) rev_lookup with Some s -> s | _ -> "") in
+            let a = if b = "" then "" else (match StringMap.find_opt (key b "XOR" carry) rev_lookup with Some s -> s | _ -> "") in
+            let nc = if a = "" then "" else
+              let c1 = (match StringMap.find_opt (key xi "AND" yi) rev_lookup with Some s -> s | _ -> "") in
+              let c2 = (match StringMap.find_opt (key b "AND" carry) rev_lookup with Some s -> s | _ -> "") in
+              (match StringMap.find_opt (key c1 "OR" c2) rev_lookup with Some s -> s | _ -> "")
+            in (b, a, nc)
+        in
+        if i > 0 && adder = "" then
+          match StringMap.find_opt zi lookup with
+          | Some gate ->
+            if StringMap.mem (key gate.a "XOR" carry) rev_lookup then Some (bit, gate.a)
+            else Some (bit, gate.b)
+          | None -> None
+        else if adder <> zi then Some (adder, zi)
+        else find_error (i + 1) next_carry
+    in 
+    match find_error 0 "" with
+    | Some (a, b) -> solve_swaps (swap_gates gates a b) (a :: b :: pairs)
+    | None -> pairs
+
+let main () =
+  let ic = open_in "input.txt" in
+  let n = in_channel_length ic in
+  let s = really_input_string ic n in
+  close_in ic;
+  let lines = String.split_on_char '\n' (String.trim s) in
+  let rec get_gate_lines = function
+    | "" :: rest -> rest
+    | _ :: rest -> get_gate_lines rest
+    | [] -> []
+  in
+  let gates = List.filter_map (fun line ->
+    match String.split_on_char ' ' (String.trim line) with
+    | [a; op; b; "->"; out] -> Some ({a; op; b}, out)
+    | _ -> None
+  ) (get_gate_lines lines) in
+  let res = solve_swaps gates [] in
+  print_endline (String.concat "," (List.sort String.compare res))
+
+let () = main ()
+

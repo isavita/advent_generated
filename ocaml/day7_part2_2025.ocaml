@@ -1,0 +1,39 @@
+
+module M = Map.Make(Int)
+
+let rec read ic acc =
+  try
+    let l = input_line ic in
+    read ic (if l = "" then acc else l :: acc)
+  with _ ->
+    close_in ic;
+    List.rev acc
+
+let () =
+  let lines = try read (open_in "input.txt") [] with _ -> [] in
+  match lines with
+  | [] -> print_endline "0"
+  | l ->
+      let g = Array.of_list l in
+      let h, w = Array.length g, String.length g.(0) in
+      let r = ref (-1, -1) in
+      for y = 0 to h - 1 do
+        for x = 0 to w - 1 do
+          if g.(y).[x] = 'S' then r := (y, x)
+        done
+      done;
+      let sy, sx = !r in
+      if sy = -1 then print_endline "0"
+      else
+        let rec lp y d =
+          if y = h then d
+          else
+            lp (y + 1) (M.fold (fun x c acc ->
+              let f o = Some (Int64.add (Option.value o ~default:0L) c) in
+              if x >= 0 && x < w && g.(y).[x] = '^' then
+                M.update (x - 1) f (M.update (x + 1) f acc)
+              else M.update x f acc) d M.empty)
+        in
+        let res = lp sy (M.singleton sx 1L) in
+        Printf.printf "%Ld\n" (M.fold (fun _ v a -> Int64.add v a) res 0L)
+

@@ -1,0 +1,74 @@
+
+let uint64_of_string s =
+  let res = ref 0L in
+  String.iter (fun c ->
+    let d = Int64.of_int (Char.code c - 48) in
+    res := Int64.add (Int64.mul !res 10L) d
+  ) s;
+  !res
+
+let is_invalid x =
+  let s = Printf.sprintf "%Lu" x in
+  let n = String.length s in
+  if n <= 1 then false
+  else
+    let res = ref false in
+    for p = 1 to n / 2 do
+      if n mod p = 0 && not !res then
+        let ok = ref true in
+        for k = p to n - 1 do
+          if s.[k] <> s.[k - p] then ok := false
+        done;
+        if !ok then res := true
+    done;
+    !res
+
+let main () =
+  let content =
+    try
+      let ch = open_in_bin "input.txt" in
+      let len = in_channel_length ch in
+      let s = really_input_string ch len in
+      close_in ch;
+      s
+    with _ -> ""
+  in
+  let n = String.length content in
+  let sum = ref 0L in
+  let i = ref 0 in
+  while !i < n do
+    while !i < n && (match content.[!i] with ' ' | '\n' | '\r' | '\t' | ',' -> true | _ -> false) do
+      i := !i + 1
+    done;
+    if !i >= n then ()
+    else
+      let start_a = !i in
+      while !i < n && content.[!i] >= '0' && content.[!i] <= '9' do
+        i := !i + 1
+      done;
+      if !i >= n || content.[!i] <> '-' then i := n
+      else begin
+        let a = uint64_of_string (String.sub content start_a (!i - start_a)) in
+        i := !i + 1;
+        let start_b = !i in
+        while !i < n && content.[!i] >= '0' && content.[!i] <= '9' do
+          i := !i + 1
+        done;
+        if start_b = !i then i := n
+        else begin
+          let b = uint64_of_string (String.sub content start_b (!i - start_b)) in
+          let lo, hi = if Int64.unsigned_compare a b <= 0 then a, b else b, a in
+          let x = ref lo in
+          let stop = ref false in
+          while not !stop do
+            if is_invalid !x then sum := Int64.add !sum !x;
+            if !x = hi then stop := true
+            else if !x = -1L then stop := true
+            else x := Int64.add !x 1L
+          done
+        end
+      end
+  done;
+  Printf.printf "%Lu\n" !sum
+
+let () = main ()

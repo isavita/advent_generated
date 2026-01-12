@@ -1,0 +1,176 @@
+module MinHeap = struct
+  type 'a t = {
+    mutable data: 'a array;
+    mutable size: int;
+    compare: 'a -> 'a -> int;
+  }
+  let create capacity cmp = { data = Array.make capacity (Obj.magic 0); size = 0; compare = cmp }
+  let push h x =
+    if h.size = Array.length h.data then (
+      let new_data = Array.make (h.size * 2) (Obj.magic 0) in
+      Array.blit h.data 0 new_data 0 h.size;
+      h.data <- new_data
+    );
+    let rec sift_up i =
+      if i = 0 then ()
+      else
+        let p = (i - 1) / 2 in
+        if h.compare h.data.(i) h.data.(p) < 0 then (
+          let tmp = h.data.(i) in
+          h.data.(i) <- h.data.(p);
+          h.data.(p) <- tmp;
+          sift_up p
+        )
+    in
+    h.data.(h.size) <- x;
+    sift_up h.size;
+    h.size <- h.size + 1
+  let pop h =
+    if h.size = 0 then None
+    else (
+      let res = h.data.(0) in
+      h.size <- h.size - 1;
+      if h.size > 0 then (
+        h.data.(0) <- h.data.(h.size);
+        let rec sift_down i =
+          let l = 2 * i + 1 in
+          let r = 2 * i + 2 in
+          let smallest = ref i in
+          if l < h.size && h.compare h.data.(l) h.data.(!smallest) < 0 then smallest := l;
+          if r < h.size && h.compare h.data.(r) h.data.(!smallest) < 0 then smallest := r;
+          if !smallest <> i then (
+            let tmp = h.data.(i) in
+            h.data.(i) <- h.data.(!smallest);
+            h.data.(!smallest) <- tmp;
+            sift_down !smallest
+          )
+        in
+        sift_down 0
+      );
+      Some res
+    )
+  let is_empty h = h.size = 0
+end
+
+let is_lower c = c >= 'a' && c <= 'z'
+let is_upper c = c >= 'A' && c <= 'Z'
+let to_lower c = Char.lowercase_ascii c
+
+let read_lines file =
+  let ic = open_in file in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (line :: acc)
+    with End_of_file ->
+      close_in ic;
+      List.rev acc
+  in
+  loop []
+
+let get_reachable grid start_x start_y =
+  let height = Array.length grid in
+  let width = Array.length grid.(0) in
+  let q = Queue.create () in
+  Queue.add (start_x, start_y, 0, 0) q;
+  let visited = Hashtbl.create 256 in
+  Hashtbl.add visited (start_x, start_y) true;
+  let res = ref [] in
+  while not (Queue.is_empty q) do
+    let x, y, dist, mask = Queue.take q in
+    let cell = grid.(y).(x) in
+    let next_req_mask = 
+      if is_lower cell && dist > 0 then (
+        res := (cell, dist, mask) :: !res;
+        mask lor (1 lsl (Char.code cell - Char.code 'a'))
+      ) else if is_upper cell then (
+        mask lor (1 lsl (Char.code (to_lower cell) - Char.code 'a'))
+      ) else mask
+    in
+    List.iter (fun (dx, dy) ->
+      let nx, ny = x + dx, y + dy in
+      if ny >= 0 && ny < height && nx >= 0 && nx < width &&
+         grid.(ny).(nx) <> '#' && not (Hashtbl.mem visited (nx, ny)) then (
+        Hashtbl.add visited (nx, ny) true;
+        Queue.add (nx, ny, dist + 1, next_req_mask) q
+      )
+    ) [(0,1); (0,-1); (1,0); (-1,0)]
+  done;
+  !res
+
+type state = { positions : string; mask : int }
+
+let main () =
+  let lines = read_lines "input.txt" in
+  if lines = [] then exit 0;
+  let grid = Array.of_list (List.map (fun s -> Array.init (String.length s) (fun i -> s.[i])) lines) in
+  let height, width = Array.length grid, Array.length grid.(0) in
+  let found_special = ref false in
+  for y = 1 to height - 2 do
+    for x = 1 to width - 2 do
+      if grid.(y).(x) = '@' && not !found_special &&
+         grid.(y-1).(x) = '.' && grid.(y+1).(x) = '.' &&
+         grid.(y).(x-1) = '.' && grid.(y).(x+1) = '.' then (
+           grid.(y-1).(x-1) <- '0'; grid.(y-1).(x) <- '#'; grid.(y-1).(x+1) <- '1';
+           grid.(y).(x-1) <- '#'; grid.(y).(x) <- '#'; grid.(y).(x+1) <- '#';
+           grid.(y+1).(x-1) <- '2'; grid.(y+1).(x) <- '#'; grid.(y+1).(x+1) <- '3';
+           found_special := true
+      )
+    done
+  done;
+  let robots_found = ref 0 in
+  if not !found_special then (
+    for y = 0 to height - 1 do
+      for x = 0 to width - 1 do
+        if grid.(y).(x) = '@' then (
+          grid.(y).(x) <- Char.chr (Char.code '0' + !robots_found);
+          incr robots_found
+        )
+      done
+    done
+  ) else robots_found := 4;
+  let key_coords, all_keys_mask = Hashtbl.create 30, ref 0 in
+  for y = 0 to height - 1 do
+    for x = 0 to width - 1 do
+      let c = grid.(y).(x) in
+      if is_lower c then (
+        Hashtbl.add key_coords c (x, y);
+        all_keys_mask := !all_keys_mask lor (1 lsl (Char.code c - Char.code 'a'))
+      ) else if c >= '0' && c < Char.chr (Char.code '0' + !robots_found) then
+        Hashtbl.add key_coords c (x, y)
+    done
+  done;
+  let keyGraph = Hashtbl.create 30 in
+  Hashtbl.iter (fun c (x, y) -> Hashtbl.add keyGraph c (get_reachable grid x y)) key_coords;
+  let start_positions = String.init !robots_found (fun i -> Char.chr (Char.code '0' + i)) in
+  let visited, pq = Hashtbl.create 100000, MinHeap.create 10000 (fun (d1, _) (d2, _) -> compare d1 d2) in
+  MinHeap.push pq (0, { positions = start_positions; mask = 0 });
+  let result, finished = ref (-1), ref false in
+  while not (MinHeap.is_empty pq) && not !finished do
+    match MinHeap.pop pq with
+    | None -> finished := true
+    | Some (d, state) ->
+        if state.mask = !all_keys_mask then (result := d; finished := true)
+        else match Hashtbl.find_opt visited state with
+        | Some d' when d' <= d -> ()
+        | _ ->
+            Hashtbl.replace visited state d;
+            for i = 0 to String.length state.positions - 1 do
+              let current_key = state.positions.[i] in
+              List.iter (fun (next_key, dist, req_mask) ->
+                if (state.mask land (1 lsl (Char.code next_key - Char.code 'a'))) = 0 &&
+                   (req_mask land state.mask) = req_mask then (
+                  let next_mask = state.mask lor (1 lsl (Char.code next_key - Char.code 'a')) in
+                  let next_pos = Bytes.of_string state.positions in
+                  Bytes.set next_pos i next_key;
+                  let next_state = { positions = Bytes.to_string next_pos; mask = next_mask } in
+                  match Hashtbl.find_opt visited next_state with
+                  | Some d' when d' <= d + dist -> ()
+                  | _ -> MinHeap.push pq (d + dist, next_state)
+                )
+              ) (Hashtbl.find keyGraph current_key)
+            done
+  done;
+  Printf.printf "%d\n" !result
+
+let () = main ()

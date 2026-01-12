@@ -1,0 +1,83 @@
+
+type monkey = {
+  items : int64 Queue.t;
+  op : int64 -> int64;
+  divisor : int;
+  if_true : int;
+  if_false : int;
+  mutable inspected : int;
+}
+
+let parse_monkey block =
+  let lines = List.map String.trim block in
+  let items_q = Queue.create () in
+  let items_str = List.nth (String.split_on_char ':' (List.nth lines 1)) 1 in
+  String.split_on_char ',' items_str 
+  |> List.map (fun s -> Int64.of_string (String.trim s))
+  |> List.iter (fun i -> Queue.add i items_q);
+  
+  let op_parts = 
+    let expr = List.nth (String.split_on_char '=' (List.nth lines 2)) 1 in
+    String.split_on_char ' ' (String.trim expr) 
+  in
+  let op = match op_parts with
+    | ["old"; "+"; x] -> (fun old -> Int64.add old (Int64.of_string x))
+    | ["old"; "*"; "old"] -> (fun old -> Int64.mul old old)
+    | ["old"; "*"; x] -> (fun old -> Int64.mul old (Int64.of_string x))
+    | _ -> failwith "Unknown op"
+  in
+  let get_last s = List.rev (String.split_on_char ' ' s) |> List.hd |> int_of_string in
+  {
+    items = items_q;
+    op = op;
+    divisor = get_last (List.nth lines 3);
+    if_true = get_last (List.nth lines 4);
+    if_false = get_last (List.nth lines 5);
+    inspected = 0;
+  }
+
+let read_input filename =
+  let ic = open_in filename in
+  let rec read_blocks acc current =
+    match input_line ic with
+    | line ->
+        if String.trim line = "" then
+          read_blocks (List.rev current :: acc) []
+        else
+          read_blocks acc (line :: current)
+    | exception End_of_file ->
+        close_in ic;
+        List.rev (List.rev current :: acc)
+  in
+  List.map parse_monkey (read_blocks [] [])
+
+let simulate monkeys rounds =
+  let monkeys_arr = Array.of_list monkeys in
+  for _ = 1 to rounds do
+    Array.iter (fun m ->
+      while not (Queue.is_empty m.items) do
+        m.inspected <- m.inspected + 1;
+        let item = Queue.take m.items in
+        let worry = Int64.div (m.op item) 3L in
+        let target = 
+          if Int64.rem worry (Int64.of_int m.divisor) = 0L then m.if_true else m.if_false 
+        in
+        Queue.add worry monkeys_arr.(target).items
+      done
+    ) monkeys_arr
+  done;
+  monkeys_arr
+
+let () =
+  let monkeys = read_input "input.txt" in
+  let final_monkeys = simulate monkeys 20 in
+  let inspected = 
+    Array.map (fun m -> m.inspected) final_monkeys 
+    |> Array.to_list 
+    |> List.sort (fun a b -> compare b a) 
+  in
+  match inspected with
+  | a :: b :: _ -> 
+      Printf.printf "Level of monkey business: %Ld\n" (Int64.mul (Int64.of_int a) (Int64.of_int b))
+  | _ -> ()
+

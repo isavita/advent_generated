@@ -1,0 +1,95 @@
+
+let read_file filename =
+  let ic = open_in filename in
+  let rec aux acc =
+    try let line = input_line ic in aux (line :: acc)
+    with End_of_file -> List.rev acc
+  in
+  let lines = aux [] in close_in ic; lines
+
+let split_twice lines =
+  let rec aux acc = function
+    | "" :: t -> (List.rev acc, t)
+    | h :: t when String.trim h = "" -> (List.rev acc, t)
+    | h :: t -> aux (h :: acc) t
+    | [] -> (List.rev acc, [])
+  in aux [] lines
+
+let rec can_move grid x y dx dy =
+  match grid.(y).(x) with
+  | '.' -> true
+  | '#' -> false
+  | 'O' | '@' -> can_move grid (x + dx) (y + dy) dx dy
+  | '[' ->
+      if dy = 0 then can_move grid (x + dx) (y + dy) dx dy
+      else can_move grid x (y + dy) dx dy && can_move grid (x + 1) (y + dy) dx dy
+  | ']' ->
+      if dy = 0 then can_move grid (x + dx) (y + dy) dx dy
+      else can_move grid (x - 1) (y + dy) dx dy && can_move grid x (y + dy) dx dy
+  | _ -> true
+
+let rec move_obj grid x y dx dy =
+  let c = grid.(y).(x) in
+  if c = '.' then ()
+  else match c with
+  | 'O' | '@' ->
+      move_obj grid (x + dx) (y + dy) dx dy;
+      grid.(y + dy).(x + dx) <- c;
+      grid.(y).(x) <- '.'
+  | '[' when dy = 0 ->
+      move_obj grid (x + dx) (y + dy) dx dy;
+      grid.(y + dy).(x + dx) <- '[';
+      grid.(y).(x) <- '.'
+  | ']' when dy = 0 ->
+      move_obj grid (x + dx) (y + dy) dx dy;
+      grid.(y + dy).(x + dx) <- ']';
+      grid.(y).(x) <- '.'
+  | '[' ->
+      move_obj grid x (y + dy) dx dy;
+      move_obj grid (x + 1) (y + dy) dx dy;
+      grid.(y + dy).(x) <- '[';
+      grid.(y + dy).(x + 1) <- ']';
+      grid.(y).(x) <- '.';
+      grid.(y).(x + 1) <- '.'
+  | ']' -> move_obj grid (x - 1) y dx dy
+  | _ -> ()
+
+let score grid =
+  let s = ref 0 in
+  for y = 0 to Array.length grid - 1 do
+    for x = 0 to Array.length grid.(y) - 1 do
+      if grid.(y).(x) = 'O' || grid.(y).(x) = '[' then s := !s + (100 * y + x)
+    done
+  done; !s
+
+let solve grid_lines moves_str =
+  let grid = Array.of_list (List.map (fun s -> Array.init (String.length s) (fun i -> s.[i])) grid_lines) in
+  let rx, ry =
+    let x, y = ref 0, ref 0 in
+    Array.iteri (fun i row -> Array.iteri (fun j cell -> if cell = '@' then (x := j; y := i)) row) grid;
+    (!x, !y)
+  in
+  let cx, cy = ref rx, ref ry in
+  String.iter (fun c ->
+    let dx, dy = match c with '^' -> (0, -1) | 'v' -> (0, 1) | '<' -> (-1, 0) | '>' -> (1, 0) | _ -> (0, 0) in
+    if dx <> 0 || dy <> 0 then
+      if can_move grid !cx !cy dx dy then (move_obj grid !cx !cy dx dy; cx := !cx + dx; cy := !cy + dy)
+  ) moves_str; score grid
+
+let scale_up grid_lines =
+  List.map (fun s ->
+    let b = Buffer.create (String.length s * 2) in
+    String.iter (function
+      | '#' -> Buffer.add_string b "##"
+      | '.' -> Buffer.add_string b ".."
+      | 'O' -> Buffer.add_string b "[]"
+      | '@' -> Buffer.add_string b "@."
+      | c -> Buffer.add_char b c; Buffer.add_char b c) s;
+    Buffer.contents b) grid_lines
+
+let () =
+  let lines = try read_file "input.txt" with _ -> [] in
+  if lines <> [] then
+    let gl, ml = split_twice lines in
+    let ms = String.concat "" (List.map String.trim ml) in
+    Printf.printf "%d\n%d\n" (solve gl ms) (solve (scale_up gl) ms)

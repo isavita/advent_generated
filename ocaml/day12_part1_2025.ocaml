@@ -1,0 +1,234 @@
+open Printf
+
+type piece = (int * int) list
+
+let normalize p =
+  if p = [] then [] else
+  let min_r = List.fold_left (fun m (r, _) -> min m r) 1000000 p in
+  let min_c = List.fold_left (fun m (_, c) -> min m c) 1000000 p in
+  List.sort compare (List.map (fun (r, c) -> (r - min_r, c - min_c)) p)
+
+let rotate p = List.map (fun (r, c) -> (c, -r)) p
+let flip p = List.map (fun (r, c) -> (r, -c)) p
+
+let generate_variations pts =
+  if pts = [] then [||] else
+  let res = ref [] in
+  let add p = if not (List.mem p !res) then res := p :: !res in
+  let cur = ref pts in
+  for _ = 1 to 4 do
+    add (normalize !cur);
+    add (normalize (flip !cur));
+    cur := rotate !cur
+  done;
+  Array.of_list !res
+
+let can_place rows cols grid pts r c =
+  let rec loop = function
+    | [] -> true
+    | (pr, pc) :: rest ->
+      let nr = r + pr in
+      let nc = c + pc in
+      if nr >= 0 && nr < rows && nc >= 0 && nc < cols && not grid.(nr * cols + nc) then
+        loop rest
+      else
+        false
+  in loop pts
+
+let place cols grid pts r c v =
+  List.iter (fun (pr, pc) -> grid.((r + pr) * cols + (c + pc)) <- v) pts
+
+let check_islands rows cols grid counts shapes_n slack_idx =
+  let arr_size = Array.length counts in
+  let min_real = ref 1_000_000_000 in
+  let any = ref false in
+  for i = 0 to arr_size - 1 do
+    if i <> slack_idx && counts.(i) > 0 then (
+      if shapes_n.(i) < !min_real then min_real := shapes_n.(i);
+      any := true
+    )
+  done;
+  if not !any then true
+  else
+    let slack = ref counts.(slack_idx) in
+    let vis = Array.make (rows * cols) false in
+    let q = Array.make (rows * cols) 0 in
+    let ok = ref true in
+    let i = ref 0 in
+    while !i < rows * cols && !ok do
+      if not grid.(!i) && not vis.(!i) then (
+        let qs = ref 0 in
+        let qe = ref 0 in
+        q.(!qe) <- !i; qe := !qe + 1;
+        vis.(!i) <- true;
+        let size = ref 0 in
+        while !qs < !qe do
+          let cur = q.(!qs) in qs := !qs + 1;
+          incr size;
+          let r = cur / cols in
+          let c = cur mod cols in
+          let add nr nc =
+            let idx = nr * cols + nc in
+            if nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+               not grid.(idx) && not vis.(idx) then (
+              vis.(idx) <- true;
+              q.(!qe) <- idx; qe := !qe + 1
+            )
+          in
+          add (r-1) c; add (r+1) c; add (r) (c-1); add (r) (c+1)
+        done;
+        if !size < !min_real then (
+          if !slack >= !size then slack := !slack - !size
+          else ok := false
+        )
+      );
+      incr i
+    done;
+    !ok
+
+let rec solve_rec rows cols grid counts ids idc varr var_cnt slack_idx shapes_n =
+  let rec find_empty idx =
+    if idx = Array.length grid then -1
+    else if not grid.(idx) then idx
+    else find_empty (idx + 1)
+  in
+  let empty = find_empty 0 in
+  if empty = -1 then true
+  else if not (check_islands rows cols grid counts shapes_n slack_idx) then false
+  else
+    let r = empty / cols in
+    let c = empty mod cols in
+    let found = ref false in
+    let i = ref 0 in
+    while !i < idc && not !found do
+      let id = ids.(!i) in
+      if counts.(id) > 0 then (
+        counts.(id) <- counts.(id) - 1;
+        let j = ref 0 in
+        while !j < var_cnt.(id) && not !found do
+          let p = varr.(id).(!j) in
+          if can_place rows cols grid p r c then (
+            place cols grid p r c true;
+            if solve_rec rows cols grid counts ids idc varr var_cnt slack_idx shapes_n then
+              found := true;
+            place cols grid p r c false
+          );
+          incr j
+        done;
+        counts.(id) <- counts.(id) + 1
+      );
+      incr i
+    done;
+    !found
+
+let split_ws s =
+  let rec loop i acc =
+    if i >= String.length s then List.rev acc
+    else if s.[i] = ' ' || s.[i] = '\t' || s.[i] = '\r' || s.[i] = '\n' then
+      loop (i + 1) acc
+    else
+      let j = ref i in
+      while !j < String.length s && not (s.[!j] = ' ' || s.[!j] = '\t' || s.[!j] = '\r' || s.[!j] = '\n') do
+        incr j
+      done;
+      loop !j (String.sub s i (!j - i) :: acc)
+  in loop 0 []
+
+let int_of_string_opt s = try Some (int_of_string s) with _ -> None
+
+let main () =
+  let raw_lines =
+    try
+      let ic = open_in "input.txt" in
+      let rec loop acc =
+        try loop (input_line ic :: acc)
+        with End_of_file -> close_in ic; List.rev acc
+      in loop []
+    with _ -> []
+  in
+  let max_id = ref (-1) in
+  List.iter (fun line ->
+    let s = String.trim line in
+    if s <> "" && s.[String.length s - 1] = ':' then
+      match int_of_string_opt (String.sub s 0 (String.length s - 1)) with
+      | Some id -> if id > !max_id then max_id := id
+      | None -> ()
+  ) raw_lines;
+  let arr_size = !max_id + 2 in
+  let slack_idx = !max_id + 1 in
+  let shapes = Array.make arr_size [] in
+  let cur_id = ref (-1) in
+  let cur_shape = ref [] in
+  let region_lines = ref [] in
+  let parsing_shapes = ref true in
+  let process_shape () =
+    if !cur_id <> -1 && !cur_shape <> [] then (
+      let pts = ref [] in
+      List.iteri (fun r row ->
+        for c = 0 to String.length row - 1 do
+          if row.[c] = '#' then pts := (r, c) :: !pts
+        done
+      ) (List.rev !cur_shape);
+      shapes.(!cur_id) <- normalize !pts;
+      cur_id := -1;
+      cur_shape := []
+    )
+  in
+  List.iter (fun line ->
+    let s = String.trim line in
+    if s <> "" then (
+      if !parsing_shapes && String.contains s 'x' && String.contains s ':' then
+        (process_shape (); parsing_shapes := false);
+      if !parsing_shapes then (
+        if s.[String.length s - 1] = ':' then (
+          process_shape ();
+          cur_id := int_of_string (String.sub s 0 (String.length s - 1))
+        ) else cur_shape := s :: !cur_shape
+      ) else region_lines := s :: !region_lines
+    )
+  ) raw_lines;
+  process_shape ();
+  shapes.(slack_idx) <- [(0, 0)];
+  let variations = Array.map generate_variations shapes in
+  let var_cnt = Array.map Array.length variations in
+  let shapes_n = Array.map List.length shapes in
+  let solved = ref 0 in
+  List.iter (fun line ->
+    let parts = String.split_on_char ':' line in
+    if List.length parts = 2 then (
+      let dims = String.trim (List.nth parts 0) in
+      let counts_str = String.trim (List.nth parts 1) in
+      match String.split_on_char 'x' dims with
+      | [ws_s; h_s] ->
+        let wx = int_of_string ws_s in
+        let h = int_of_string h_s in
+        let grid_size = wx * h in
+        let piece_cnt = Array.make arr_size 0 in
+        let total_area = ref 0 in
+        let toks = split_ws counts_str in
+        List.iteri (fun idx count_s ->
+          match int_of_string_opt count_s with
+          | Some c -> if c > 0 && idx < arr_size - 1 then (
+              piece_cnt.(idx) <- c;
+              total_area := !total_area + c * shapes_n.(idx)
+            )
+          | None -> ()
+        ) toks;
+        if !total_area <= grid_size then (
+          let slack = grid_size - !total_area in
+          if slack > 0 then piece_cnt.(slack_idx) <- slack;
+          let ids_tmp = ref [] in
+          for i = 0 to arr_size - 1 do
+            if piece_cnt.(i) > 0 then ids_tmp := i :: !ids_tmp
+          done;
+          let ids = Array.of_list (List.sort (fun a b -> compare shapes_n.(b) shapes_n.(a)) !ids_tmp) in
+          let grid = Array.make grid_size false in
+          if solve_rec h wx grid piece_cnt ids (Array.length ids) variations var_cnt slack_idx shapes_n then
+            incr solved
+        )
+      | _ -> ()
+    )
+  ) (List.rev !region_lines);
+  printf "Number of regions that fit all presents: %d\n" !solved
+
+let () = main ()

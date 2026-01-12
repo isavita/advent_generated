@@ -1,0 +1,89 @@
+
+open List
+
+type m_kind = Broadcaster | FlipFlop | Conjunction
+
+type node = {
+  name : string;
+  kind : m_kind;
+  outputs : string list;
+  mutable ff_state : bool;
+  inputs : (string, bool) Hashtbl.t;
+}
+
+let rec gcd a b = if b = 0L then a else gcd b (Int64.rem a b)
+let lcm a b = if a = 0L || b = 0L then 0L else Int64.div (Int64.abs (Int64.mul a b)) (gcd a b)
+
+let solve () =
+  let modules = Hashtbl.create 100 in
+  let ic = try open_in "input.txt" with _ -> exit 0 in
+  let rec read_lines () =
+    try
+      let line = String.trim (input_line ic) in
+      if line <> "" then (
+        let left = hd (String.split_on_char ' ' line) in
+        let arrow_parts = String.split_on_char '>' line in
+        let right = nth arrow_parts 1 in
+        let outs = String.split_on_char ',' right |> map String.trim in
+        let kind, name =
+          if left = "broadcaster" then Broadcaster, "broadcaster"
+          else if left.[0] = '%' then FlipFlop, String.sub left 1 (String.length left - 1)
+          else Conjunction, String.sub left 1 (String.length left - 1)
+        in
+        Hashtbl.add modules name { name; kind; outputs = outs; ff_state = false; inputs = Hashtbl.create 10 }
+      );
+      read_lines ()
+    with End_of_file -> close_in ic
+  in
+  read_lines ();
+  Hashtbl.iter (fun name m ->
+    iter (fun out ->
+      match Hashtbl.find_opt modules out with
+      | Some target -> Hashtbl.replace target.inputs name false
+      | None -> ()
+    ) m.outputs
+  ) modules;
+  let rx_src = ref "" in
+  Hashtbl.iter (fun name m ->
+    iter (fun out -> if out = "rx" then rx_src := name) m.outputs
+  ) modules;
+  let watch = Hashtbl.create 10 in
+  if !rx_src <> "" then
+    Hashtbl.iter (fun name m ->
+      iter (fun out -> if out = !rx_src then Hashtbl.add watch name 0L) m.outputs
+    ) modules;
+  let q = Queue.create () in
+  let count = ref 0L in
+  let done_flag = ref false in
+  while not !done_flag do
+    count := Int64.add !count 1L;
+    Queue.push ("button", "broadcaster", false) q;
+    while not (Queue.is_empty q) do
+      let from_nm, to_nm, pulse = Queue.pop q in
+      if to_nm = "rx" && not pulse then done_flag := true;
+      match Hashtbl.find_opt modules to_nm with
+      | Some m ->
+          let send = ref false in
+          let p_val = ref false in
+          (match m.kind with
+          | Broadcaster -> send := true; p_val := pulse
+          | FlipFlop -> if not pulse then (m.ff_state <- not m.ff_state; send := true; p_val := m.ff_state)
+          | Conjunction ->
+              Hashtbl.replace m.inputs from_nm pulse;
+              let all_h = Hashtbl.fold (fun _ v acc -> acc && v) m.inputs true in
+              send := true; p_val := not all_h;
+              if Hashtbl.mem watch m.name && not all_h then
+                if Hashtbl.find watch m.name = 0L then Hashtbl.replace watch m.name !count) ;
+          if !send then iter (fun out -> Queue.push (m.name, out, !p_val) q) m.outputs
+      | None -> ()
+    done;
+    if Hashtbl.length watch > 0 then (
+      let all = ref true in
+      Hashtbl.iter (fun _ v -> if v = 0L then all := false) watch;
+      if !all then done_flag := true
+    )
+  done;
+  let ans = Hashtbl.fold (fun _ v acc -> lcm acc v) watch 1L in
+  Printf.printf "%Ld\n" (if ans = 1L then !count else ans)
+
+let () = solve ()

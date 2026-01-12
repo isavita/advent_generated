@@ -1,0 +1,54 @@
+open Int64
+
+let parse_chem s =
+  match String.split_on_char ' ' (String.trim s) with
+  | [q; n] -> (of_string q, n)
+  | _ -> (0L, "")
+
+let calculate_ore fuel_amount reactions =
+  let surplus = Hashtbl.create 128 in
+  let rec aux qty name =
+    if name = "ORE" then qty
+    else
+      let s = match Hashtbl.find_opt surplus name with Some v -> v | None -> 0L in
+      if s >= qty then (Hashtbl.replace surplus name (sub s qty); 0L)
+      else
+        let () = Hashtbl.replace surplus name 0L in
+        let needed = sub qty s in
+        let (out_q, ins) = Hashtbl.find reactions name in
+        let times = div (add needed (sub out_q 1L)) out_q in
+        let ore = List.fold_left (fun acc (iq, in_n) -> 
+          add acc (aux (mul iq times) in_n)
+        ) 0L ins in
+        let rem = sub (mul times out_q) needed in
+        let current_s = match Hashtbl.find_opt surplus name with Some v -> v | None -> 0L in
+        Hashtbl.replace surplus name (add current_s rem);
+        ore
+  in aux fuel_amount "FUEL"
+
+let main () =
+  let reactions = Hashtbl.create 128 in
+  let ic = open_in "input.txt" in
+  (try
+    while true do
+      let line = input_line ic in
+      match String.split_on_char '=' line with
+      | [left; right] ->
+        let (oq, on) = parse_chem (String.sub right 1 (String.length right - 1)) in
+        let ins = String.split_on_char ',' left |> List.map parse_chem in
+        Hashtbl.add reactions on (oq, ins)
+      | _ -> ()
+    done
+  with End_of_file -> ());
+  close_in ic;
+  let limit = 1000000000000L in
+  let rec bin_search low high =
+    if low >= high then low
+    else
+      let mid = div (add (add low high) 1L) 2L in
+      if calculate_ore mid reactions <= limit then bin_search mid high
+      else bin_search low (sub mid 1L)
+  in
+  Printf.printf "%Ld\n" (bin_search 0L limit)
+
+let () = main ()

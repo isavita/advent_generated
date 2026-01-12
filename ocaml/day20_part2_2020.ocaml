@@ -1,0 +1,127 @@
+
+open Stdlib
+
+type tile = { id : int; data : string array }
+
+let rotate data =
+  let n = Array.length data in
+  Array.init n (fun r ->
+      let s = Bytes.create n in
+      for c = 0 to n - 1 do
+        Bytes.set s c data.(n - 1 - c).[r]
+      done;
+      Bytes.to_string s)
+
+let flip data =
+  let n = Array.length data in
+  Array.init n (fun i -> data.(n - 1 - i))
+
+let get_variants data =
+  let rec aux d acc n =
+    if n = 0 then acc
+    else
+      let r = rotate d in
+      aux r (r :: flip r :: acc) (n - 1)
+  in
+  let res = data :: flip data :: (aux data [] 3) in
+  let tbl = Hashtbl.create 8 in
+  List.filter (fun d -> if Hashtbl.mem tbl d then false else (Hashtbl.add tbl d (); true)) res
+
+let parse_input filename =
+  let ic = open_in filename in
+  let rec read_tiles acc =
+    try
+      let line = input_line ic in
+      if String.length line < 5 then read_tiles acc
+      else
+        let id = int_of_string (String.sub line 5 (String.length line - 6)) in
+        let rec read_data l =
+          if List.length l = 10 then List.rev l |> Array.of_list
+          else read_data (input_line ic :: l)
+        in
+        let data = read_data [] in
+        ignore (try ignore (input_line ic) with _ -> ());
+        read_tiles ({ id; data } :: acc)
+    with End_of_file -> close_in ic; acc
+  in
+  read_tiles []
+
+let get_edges d =
+  let n = Array.length d in
+  let left = Bytes.create n in
+  let right = Bytes.create n in
+  for i = 0 to n - 1 do
+    Bytes.set left i d.(i).[0];
+    Bytes.set right i d.(i).[n - 1]
+  done;
+  (d.(0), d.(n - 1), Bytes.to_string left, Bytes.to_string right)
+
+let solve tiles =
+  let size = int_of_float (sqrt (float_of_int (List.length tiles))) in
+  let grid = Array.make_matrix size size { id = 0; data = [||] } in
+  let used = Hashtbl.create (List.length tiles) in
+  let variants = List.map (fun t -> (t.id, get_variants t.data)) tiles in
+  let rec backtrack idx =
+    if idx = size * size then true
+    else
+      let x, y = idx mod size, idx / size in
+      let rec try_tiles = function
+        | [] -> false
+        | (id, vars) :: rest ->
+            if Hashtbl.mem used id then try_tiles rest
+            else
+              let rec try_vars = function
+                | [] -> try_tiles rest
+                | v :: v_rest ->
+                    let top, _, left, _ = get_edges v in
+                    let ok_top = if y = 0 then true else (let _, bot, _, _ = get_edges grid.(y - 1).(x).data in bot = top) in
+                    let ok_left = if x = 0 then true else (let _, _, _, r = get_edges grid.(y).(x - 1).data in r = left) in
+                    if ok_top && ok_left then (
+                      grid.(y).(x) <- { id; data = v };
+                      Hashtbl.add used id ();
+                      if backtrack (idx + 1) then true
+                      else (Hashtbl.remove used id; try_vars v_rest))
+                    else try_vars v_rest
+              in
+              try_vars vars
+      in
+      try_tiles variants
+  in
+  if backtrack 0 then Some (grid, size) else None
+
+let monster = [|
+  (0, 18); (1, 0); (1, 5); (1, 6); (1, 11); (1, 12); (1, 17); (1, 18); (1, 19); (2, 1); (2, 4); (2, 7); (2, 10); (2, 13); (2, 16)
+|]
+
+let count_monsters image =
+  let h = Array.length image in
+  let w = String.length image.(0) in
+  let count = ref 0 in
+  for y = 0 to h - 3 do
+    for x = 0 to w - 20 do
+      if Array.for_all (fun (dy, dx) -> image.(y + dy).[x + dx] = '#') monster then incr count
+    done
+  done;
+  !count
+
+let () =
+  let tiles = parse_input "input.txt" in
+  match solve tiles with
+  | None -> ()
+  | Some (grid, size) ->
+      let p1 = Int64.mul (Int64.mul (Int64.of_int grid.(0).(0).id) (Int64.of_int grid.(0).(size - 1).id))
+                         (Int64.mul (Int64.of_int grid.(size - 1).(0).id) (Int64.of_int grid.(size - 1).(size - 1).id)) in
+      Printf.printf "Part 1: %Ld\n" p1;
+      let tile_size = Array.length grid.(0).(0).data - 2 in
+      let full_img = Array.init (size * tile_size) (fun y ->
+          let row = y / tile_size in
+          let sub_y = y mod tile_size + 1 in
+          let line = ref "" in
+          for col = 0 to size - 1 do
+            line := !line ^ String.sub grid.(row).(col).data.(sub_y) 1 tile_size
+          done;
+          !line) in
+      let total_hashes = Array.fold_left (fun acc s -> acc + (String.fold_left (fun a c -> if c = '#' then a + 1 else a) 0 s)) 0 full_img in
+      let orientations = get_variants full_img in
+      let monster_count = List.fold_left (fun acc img -> max acc (count_monsters img)) 0 orientations in
+      Printf.printf "Part 2: %d\n" (total_hashes - monster_count * 15)

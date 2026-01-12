@@ -1,0 +1,122 @@
+
+open Scanf
+
+let read_pts filename =
+  let ic = open_in filename in
+  let pts = ref [] in
+  try
+    while true do
+      let line = input_line ic in
+      try sscanf line " %d , %d " (fun x y -> pts := (x, y) :: !pts)
+      with _ -> ()
+    done; []
+  with End_of_file -> close_in ic; List.rev !pts
+
+let main () =
+  let pts = read_pts "input.txt" in
+  if pts = [] then (
+    Printf.printf "Largest valid area: 0\n";
+    exit 0
+  );
+
+  let xs = List.sort_uniq compare (List.map fst pts) in
+  let ys = List.sort_uniq compare (List.map snd pts) in
+  let xs_arr = Array.of_list xs in
+  let ys_arr = Array.of_list ys in
+  let x_idx = Hashtbl.create (List.length xs) in
+  List.iteri (fun i x -> Hashtbl.add x_idx x i) xs;
+  let y_idx = Hashtbl.create (List.length ys) in
+  List.iteri (fun i y -> Hashtbl.add y_idx y i) ys;
+
+  let w = 2 * List.length xs + 1 in
+  let h = 2 * List.length ys + 1 in
+  let col_w = Array.make w 1L in
+  for i = 0 to Array.length xs_arr - 1 do
+    col_w.(2 * i + 1) <- 1L;
+    if i + 1 < Array.length xs_arr then
+      col_w.(2 * i + 2) <- Int64.of_int (max 0 (xs_arr.(i + 1) - xs_arr.(i) - 1))
+  done;
+
+  let row_h = Array.make h 1L in
+  for i = 0 to Array.length ys_arr - 1 do
+    row_h.(2 * i + 1) <- 1L;
+    if i + 1 < Array.length ys_arr then
+      row_h.(2 * i + 2) <- Int64.of_int (max 0 (ys_arr.(i + 1) - ys_arr.(i) - 1))
+  done;
+
+  let grid = Array.make_matrix h w 0 in
+  let pts_arr = Array.of_list pts in
+  let n = Array.length pts_arr in
+  for i = 0 to n - 1 do
+    let ax, ay = pts_arr.(i) in
+    let bx, by = pts_arr.((i + 1) mod n) in
+    let gx1 = 2 * Hashtbl.find x_idx ax + 1 in
+    let gy1 = 2 * Hashtbl.find y_idx ay + 1 in
+    let gx2 = 2 * Hashtbl.find x_idx bx + 1 in
+    let gy2 = 2 * Hashtbl.find y_idx by + 1 in
+    if gx1 = gx2 then
+      let y0, y1 = if gy1 < gy2 then gy1, gy2 else gy2, gy1 in
+      for y = y0 to y1 do
+        if row_h.(y) > 0L then grid.(y).(gx1) <- 1
+      done
+    else
+      let x0, x1 = if gx1 < gx2 then gx1, gx2 else gx2, gx1 in
+      for x = x0 to x1 do
+        if col_w.(x) > 0L then grid.(gy1).(x) <- 1
+      done
+  done;
+
+  let q = Queue.create () in
+  Queue.push (0, 0) q;
+  grid.(0).(0) <- 2;
+  let dirs = [|(0, 1); (0, -1); (1, 0); (-1, 0)|] in
+  while not (Queue.is_empty q) do
+    let cx, cy = Queue.pop q in
+    for i = 0 to 3 do
+      let dx, dy = dirs.(i) in
+      let nx, ny = cx + dx, cy + dy in
+      if nx >= 0 && nx < w && ny >= 0 && ny < h && grid.(ny).(nx) = 0 then (
+        grid.(ny).(nx) <- 2;
+        Queue.push (nx, ny) q
+      )
+    done
+  done;
+
+  let p = Array.make_matrix h w 0L in
+  for y = 0 to h - 1 do
+    for x = 0 to w - 1 do
+      let v = if grid.(y).(x) <> 2 then Int64.mul col_w.(x) row_h.(y) else 0L in
+      let left = if x > 0 then p.(y).(x - 1) else 0L in
+      let up = if y > 0 then p.(y - 1).(x) else 0L in
+      let diag = if x > 0 && y > 0 then p.(y - 1).(x - 1) else 0L in
+      p.(y).(x) <- Int64.(add v (sub (add left up) diag))
+    done
+  done;
+
+  let max_area = ref 0L in
+  for i = 0 to n - 1 do
+    for j = i to n - 1 do
+      let ax, ay = pts_arr.(i) in
+      let bx, by = pts_arr.(j) in
+      let w_len = Int64.of_int (abs (ax - bx) + 1) in
+      let h_len = Int64.of_int (abs (ay - by) + 1) in
+      let area = Int64.mul w_len h_len in
+      if area > !max_area then (
+        let gx1 = 2 * Hashtbl.find x_idx ax + 1 in
+        let gy1 = 2 * Hashtbl.find y_idx ay + 1 in
+        let gx2 = 2 * Hashtbl.find x_idx bx + 1 in
+        let gy2 = 2 * Hashtbl.find y_idx by + 1 in
+        let x_min, x_max = if gx1 < gx2 then gx1, gx2 else gx2, gx1 in
+        let y_min, y_max = if gy1 < gy2 then gy1, gy2 else gy2, gy1 in
+        let get_p y x = if x < 0 || y < 0 then 0L else p.(y).(x) in
+        let valid =
+          Int64.(
+            add (sub (sub (get_p y_max x_max) (get_p y_max (x_min - 1))) (get_p (y_min - 1) x_max))
+              (get_p (y_min - 1) (x_min - 1)))
+        in
+        if valid = area then max_area := area)
+    done
+  done;
+  Printf.printf "Largest valid area: %Ld\n" !max_area
+
+let () = main ()

@@ -1,0 +1,78 @@
+
+type node = { cost: int; x: int; y: int; d: int }
+
+module MinHeap = struct
+  type t = { mutable size: int; data: node array }
+  let create n = { size = 0; data = Array.make n { cost = 0; x = 0; y = 0; d = 0 } }
+  let push h v =
+    let i = ref h.size in
+    h.data.(!i) <- v;
+    h.size <- h.size + 1;
+    while !i > 0 do
+      let p = (!i - 1) / 2 in
+      if h.data.(!i).cost < h.data.(p).cost then (
+        let tmp = h.data.(!i) in h.data.(!i) <- h.data.(p); h.data.(p) <- tmp;
+        i := p
+      ) else i := 0
+    done
+  let pop h =
+    let res = h.data.(0) in
+    h.size <- h.size - 1;
+    h.data.(0) <- h.data.(h.size);
+    let i = ref 0 in
+    while !i * 2 + 1 < h.size do
+      let l = !i * 2 + 1 in
+      let r = l + 1 in
+      let child = if r < h.size && h.data.(r).cost < h.data.(l).cost then r else l in
+      if h.data.(child).cost < h.data.(!i).cost then (
+        let tmp = h.data.(!i) in h.data.(!i) <- h.data.(child); h.data.(child) <- tmp;
+        i := child
+      ) else i := h.size
+    done;
+    res
+end
+
+let () =
+  let ic = open_in "input.txt" in
+  let rec read_lines acc =
+    try read_lines (input_line ic :: acc) with End_of_file -> close_in ic; List.rev acc
+  in
+  let grid = Array.of_list (read_lines []) in
+  let n, m = Array.length grid, String.length grid.(0) in
+  let sx, sy, ex, ey = ref 0, ref 0, ref 0, ref 0 in
+  for i = 0 to n - 1 do
+    for j = 0 to m - 1 do
+      if grid.(i).[j] = 'S' then (sx := i; sy := j)
+      else if grid.(i).[j] = 'E' then (ex := i; ey := j)
+    done
+  done;
+  let dist = Array.init n (fun _ -> Array.init m (fun _ -> Array.make 4 max_int)) in
+  let dx, dy = [|-1; 0; 1; 0|], [|0; 1; 0; -1|] in
+  let pq = MinHeap.create 1000000 in
+  dist.(!sx).(!sy).(1) <- 0;
+  MinHeap.push pq { cost = 0; x = !sx; y = !sy; d = 1 };
+  let rec solve () =
+    if pq.size = 0 then () else
+      let u = MinHeap.pop pq in
+      if u.x = !ex && u.y = !ey then Printf.printf "%d\n" u.cost
+      else if u.cost > dist.(u.x).(u.y).(u.d) then solve ()
+      else (
+        let turns = [|(u.d + 1) mod 4; (u.d + 3) mod 4|] in
+        Array.iter (fun ndir ->
+          let nc = u.cost + 1000 in
+          if nc < dist.(u.x).(u.y).(ndir) then (
+            dist.(u.x).(u.y).(ndir) <- nc;
+            MinHeap.push pq { cost = nc; x = u.x; y = u.y; d = ndir }
+          )
+        ) turns;
+        let nx, ny = u.x + dx.(u.d), u.y + dy.(u.d) in
+        if nx >= 0 && nx < n && ny >= 0 && ny < m && grid.(nx).[ny] <> '#' then (
+          let nc = u.cost + 1 in
+          if nc < dist.(nx).(ny).(u.d) then (
+            dist.(nx).(ny).(u.d) <- nc;
+            MinHeap.push pq { cost = nc; x = nx; y = ny; d = u.d }
+          )
+        );
+        solve ()
+      )
+  in solve ()

@@ -1,0 +1,58 @@
+
+type p = I of int | L of p list
+
+let parse s =
+  let i = ref 0 in
+  let rec aux () =
+    if s.[!i] = '[' then (
+      incr i;
+      let acc = ref [] in
+      while s.[!i] <> ']' do
+        acc := aux () :: !acc;
+        if s.[!i] = ',' then incr i
+      done;
+      incr i;
+      L (List.rev !acc)
+    ) else (
+      let st = !i in
+      while !i < String.length s && s.[!i] >= '0' && s.[!i] <= '9' do
+        incr i
+      done;
+      I (int_of_string (String.sub s st (!i - st)))
+    )
+  in aux ()
+
+let rec cmp a b =
+  match a, b with
+  | I x, I y -> compare x y
+  | L x, L y ->
+      let rec loop l1 l2 =
+        match l1, l2 with
+        | [], [] -> 0
+        | [], _ -> -1
+        | _, [] -> 1
+        | h1 :: t1, h2 :: t2 ->
+            let r = cmp h1 h2 in
+            if r <> 0 then r else loop t1 t2
+      in loop x y
+  | I x, _ -> cmp (L [I x]) b
+  | _, I y -> cmp a (L [I y])
+
+let main () =
+  let ic = open_in "input.txt" in
+  let rec get_lines acc =
+    match (try Some (input_line ic) with End_of_file -> None) with
+    | Some l -> get_lines (if l = "" then acc else l :: acc)
+    | None -> List.rev acc in
+  let lines = get_lines [] in
+  let rec solve idx acc = function
+    | a :: b :: tl -> 
+        let score = if cmp (parse a) (parse b) < 0 then idx else 0 in
+        solve (idx + 1) (acc + score) tl
+    | _ -> acc in
+  let ans = solve 1 0 lines in
+  Printf.printf "Sum of indices of pairs in the right order: %d\n" ans;
+  close_in ic
+
+let () = main ()
+

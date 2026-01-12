@@ -1,0 +1,155 @@
+
+let parse_line line =
+  let n = String.length line in
+  let i = ref 0 in
+  let buttons = ref [] in
+  let targets = ref [] in
+  while !i < n do
+    if line.[!i] = '(' then (
+      incr i;
+      let current = ref [] in
+      while !i < n && line.[!i] <> ')' do
+        if line.[!i] >= '0' && line.[!i] <= '9' then (
+          let start = !i in
+          while !i < n && line.[!i] >= '0' && line.[!i] <= '9' do incr i done;
+          current := int_of_string (String.sub line start (!i - start)) :: !current
+        ) else incr i
+      done;
+      if !i < n && line.[!i] = ')' then incr i;
+      buttons := List.rev !current :: !buttons
+    ) else if line.[!i] = '{' then (
+      incr i;
+      while !i < n && line.[!i] <> '}' do
+        if line.[!i] >= '0' && line.[!i] <= '9' then (
+          let start = !i in
+          while !i < n && line.[!i] >= '0' && line.[!i] <= '9' do incr i done;
+          targets := int_of_string (String.sub line start (!i - start)) :: !targets
+        ) else incr i
+      done;
+      if !i < n && line.[!i] = '}' then incr i
+    ) else incr i
+  done;
+  (List.rev !buttons, Array.of_list (List.rev !targets))
+
+let solve buttons_list targets =
+  let num_counters = Array.length targets in
+  let num_buttons = List.length buttons_list in
+  let buttons_arr = Array.of_list (List.map Array.of_list buttons_list) in
+  let matrix = Array.make_matrix num_counters (num_buttons + 1) 0.0 in
+  for r = 0 to num_counters - 1 do
+    matrix.(r).(num_buttons) <- float_of_int targets.(r)
+  done;
+  List.iteri (fun b_idx b_indices ->
+    List.iter (fun c_idx ->
+      if c_idx < num_counters then matrix.(c_idx).(b_idx) <- 1.0
+    ) b_indices
+  ) buttons_list;
+  let pivot_col = Array.make num_counters (-1) in
+  let row = ref 0 in
+  for col = 0 to num_buttons - 1 do
+    if !row < num_counters then (
+      let max_row = ref !row in
+      for r = !row + 1 to num_counters - 1 do
+        if abs_float matrix.(r).(col) > abs_float matrix.(!max_row).(col) then max_row := r
+      done;
+      if abs_float matrix.(!max_row).(col) > 1e-9 then (
+        let tmp = matrix.(!row) in
+        matrix.(!row) <- matrix.(!max_row);
+        matrix.(!max_row) <- tmp;
+        let scale = matrix.(!row).(col) in
+        for c = col to num_buttons do matrix.(!row).(c) <- matrix.(!row).(c) /. scale done;
+        for r = 0 to num_counters - 1 do
+          if r <> !row && abs_float matrix.(r).(col) > 1e-9 then (
+            let factor = matrix.(r).(col) in
+            for c = col to num_buttons do
+              matrix.(r).(c) <- matrix.(r).(c) -. factor *. matrix.(!row).(c)
+            done
+          )
+        done;
+        pivot_col.(!row) <- col;
+        incr row
+      )
+    )
+  done;
+  let rank = !row in
+  let is_pivot = Array.make num_buttons false in
+  for r = 0 to rank - 1 do if pivot_col.(r) >= 0 then is_pivot.(pivot_col.(r)) <- true done;
+  let free_vars = ref [] in
+  for i = 0 to num_buttons - 1 do if not is_pivot.(i) then free_vars := i :: !free_vars done;
+  let free_vars_arr = Array.of_list (List.rev !free_vars) in
+  let num_free = Array.length free_vars_arr in
+  let max_presses = Array.make num_buttons 0 in
+  for i = 0 to num_buttons - 1 do
+    let limit = ref 2147483647 in
+    Array.iter (fun c_idx -> if c_idx < num_counters && targets.(c_idx) < !limit then limit := targets.(c_idx)) buttons_arr.(i);
+    max_presses.(i) <- (if !limit = 2147483647 then 0 else !limit)
+  done;
+  for i = 0 to num_free - 1 do
+    for j = i + 1 to num_free - 1 do
+      if max_presses.(free_vars_arr.(i)) > max_presses.(free_vars_arr.(j)) then (
+        let tmp = free_vars_arr.(i) in free_vars_arr.(i) <- free_vars_arr.(j); free_vars_arr.(j) <- tmp
+      )
+    done
+  done;
+  let best_result = ref 2147483647 in
+  let free_values = Array.make num_free 0 in
+  let presses = Array.make num_buttons 0 in
+  let compute_pivots () =
+    for i = 0 to num_free - 1 do presses.(free_vars_arr.(i)) <- free_values.(i) done;
+    let ok = ref true in
+    for r = rank - 1 downto 0 do
+      if !ok then (
+        let col = pivot_col.(r) in
+        if col >= 0 then (
+          let v = ref matrix.(r).(num_buttons) in
+          for c = col + 1 to num_buttons - 1 do v := !v -. matrix.(r).(c) *. float_of_int presses.(c) done;
+          let int_val = int_of_float (floor (!v +. 0.5)) in
+          if abs_float (!v -. float_of_int int_val) > 1e-6 || int_val < 0 || int_val > max_presses.(col) then ok := false
+          else presses.(col) <- int_val
+        )
+      )
+    done;
+    if !ok then (
+      let s = ref 0 in
+      for i = 0 to num_buttons - 1 do s := !s + presses.(i) done;
+      !s
+    ) else -1
+  in
+  let rec enumerate idx cur_sum =
+    if cur_sum < !best_result then (
+      if idx = num_free then (
+        let res = compute_pivots () in
+        if res > 0 && res < !best_result then best_result := res
+      ) else (
+        let fv = free_vars_arr.(idx) in
+        for v = 0 to max_presses.(fv) do
+          free_values.(idx) <- v;
+          enumerate (idx + 1) (cur_sum + v)
+        done
+      )
+    )
+  in
+  enumerate 0 0;
+  if !best_result = 2147483647 then -1 else !best_result
+
+let () =
+  let total = ref 0 in
+  let file = "input.txt" in
+  if Sys.file_exists file then (
+    let ic = open_in file in
+    try
+      while true do
+        let line = input_line ic in
+        let trimmed = String.trim line in
+        if trimmed <> "" then (
+          let (b, t) = parse_line trimmed in
+          if b <> [] && Array.length t > 0 then (
+            let res = solve b t in
+            if res > 0 then total := !total + res
+          )
+        )
+      done
+    with End_of_file ->
+      close_in ic;
+      Printf.printf "%d\n" !total
+  )

@@ -1,0 +1,61 @@
+
+open Scanf
+
+type target = Bot of int | Output of int
+type bot = {
+  mutable chips : int list;
+  mutable low_to : target option;
+  mutable high_to : target option;
+}
+
+let get_bot bots id =
+  match Hashtbl.find_opt bots id with
+  | Some b -> b
+  | None ->
+      let b = { chips = []; low_to = None; high_to = None } in
+      Hashtbl.add bots id b;
+      b
+
+let () =
+  let bots = Hashtbl.create 256 in
+  let outputs = Hashtbl.create 256 in
+  let ic = open_in "input.txt" in
+  try
+    while true do
+      let line = input_line ic in
+      try
+        sscanf line "value %d goes to bot %d" (fun v id ->
+          let b = get_bot bots id in
+          b.chips <- v :: b.chips)
+      with _ ->
+        sscanf line "bot %d gives low to %s %d and high to %s %d" (fun id s1 v1 s2 v2 ->
+          let b = get_bot bots id in
+          let t1 = if s1 = "bot" then Bot v1 else Output v1 in
+          let t2 = if s2 = "bot" then Bot v2 else Output v2 in
+          b.low_to <- Some t1;
+          b.high_to <- Some t2)
+    done
+  with End_of_file -> close_in ic;
+
+  let ready = Queue.create () in
+  Hashtbl.iter (fun id b -> if List.length b.chips = 2 then Queue.add id ready) bots;
+
+  while not (Queue.is_empty ready) do
+    let id = Queue.take ready in
+    let b = Hashtbl.find bots id in
+    if List.length b.chips = 2 then
+      let low, high = match b.chips with [x; y] -> if x < y then x, y else y, x | _ -> (0, 0) in
+      b.chips <- [];
+      let give v = function
+        | Bot tid ->
+            let tb = get_bot bots tid in
+            tb.chips <- v :: tb.chips;
+            if List.length tb.chips = 2 then Queue.add tid ready
+        | Output oid -> Hashtbl.replace outputs oid v
+      in
+      Option.iter (give low) b.low_to;
+      Option.iter (give high) b.high_to
+  done;
+
+  let res = Hashtbl.find outputs 0 * Hashtbl.find outputs 1 * Hashtbl.find outputs 2 in
+  Printf.printf "%d\n" res

@@ -1,0 +1,80 @@
+let get_nums s =
+  let rec loop i acc =
+    if i >= String.length s then List.rev acc
+    else match s.[i] with
+      | '0'..'9' ->
+        let j = ref i in
+        while !j < String.length s && s.[!j] >= '0' && s.[!j] <= '9' do incr j done;
+        loop !j (int_of_string (String.sub s i (!j - i)) :: acc)
+      | _ -> loop (i + 1) acc
+  in Array.of_list (loop 0 [])
+
+let ops = [|
+  (fun r a b c -> r.(c) <- r.(a) + r.(b));
+  (fun r a b c -> r.(c) <- r.(a) + b);
+  (fun r a b c -> r.(c) <- r.(a) * r.(b));
+  (fun r a b c -> r.(c) <- r.(a) * b);
+  (fun r a b c -> r.(c) <- r.(a) land r.(b));
+  (fun r a b c -> r.(c) <- r.(a) land b);
+  (fun r a b c -> r.(c) <- r.(a) lor r.(b));
+  (fun r a b c -> r.(c) <- r.(a) lor b);
+  (fun r a b c -> r.(c) <- r.(a));
+  (fun r a b c -> r.(c) <- a);
+  (fun r a b c -> r.(c) <- if a > r.(b) then 1 else 0);
+  (fun r a b c -> r.(c) <- if r.(a) > b then 1 else 0);
+  (fun r a b c -> r.(c) <- if r.(a) > r.(b) then 1 else 0);
+  (fun r a b c -> r.(c) <- if a = r.(b) then 1 else 0);
+  (fun r a b c -> r.(c) <- if r.(a) = b then 1 else 0);
+  (fun r a b c -> r.(c) <- if r.(a) = r.(b) then 1 else 0);
+|]
+
+let rec process lines triplets =
+  match lines with
+  | l1 :: l2 :: l3 :: rest when String.length l1 >= 6 && String.sub l1 0 6 = "Before" ->
+      let bef = get_nums l1 in
+      let ins = get_nums l2 in
+      let aft = get_nums l3 in
+      process rest ((bef, ins, aft) :: triplets)
+  | "" :: rest -> process rest triplets
+  | rest -> List.rev triplets, rest
+
+let main () =
+  let ic = open_in "input.txt" in
+  let rec read_all acc =
+    try read_all (input_line ic :: acc)
+    with End_of_file -> close_in ic; List.rev acc
+  in
+  let lines = read_all [] in
+  let triplets, rest = process lines [] in
+  let possible = Array.make_matrix 16 16 true in
+  List.iter (fun (bef, ins, aft) ->
+    for i = 0 to 15 do
+      let r = Array.copy bef in
+      ops.(i) r ins.(1) ins.(2) ins.(3);
+      if r <> aft then possible.(ins.(0)).(i) <- false
+    done
+  ) triplets;
+  let mapping = Array.make 16 (-1) in
+  let solved = ref 0 in
+  while !solved < 16 do
+    for i = 0 to 15 do
+      if mapping.(i) = -1 then
+        let p = ref [] in
+        for j = 0 to 15 do if possible.(i).(j) then p := j :: !p done;
+        match !p with
+        | [j] ->
+            mapping.(i) <- j;
+            incr solved;
+            for k = 0 to 15 do if k <> i then possible.(k).(j) <- false done
+        | _ -> ()
+    done
+  done;
+  let regs = Array.make 4 0 in
+  List.iter (fun line ->
+    let ins = get_nums line in
+    if Array.length ins = 4 then
+      ops.(mapping.(ins.(0))) regs ins.(1) ins.(2) ins.(3)
+  ) rest;
+  Printf.printf "%d\n" regs.(0)
+
+let () = main ()
