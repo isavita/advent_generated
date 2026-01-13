@@ -1,0 +1,531 @@
+(* day25_part1_2019.ml
+   OCaml solver for AoC 2019 Day 25 (Intcode text adventure).
+
+   Build:
+     ocamlopt -O3 -o day25 day25_part1_2019.ml
+   Run:
+     ./day25 input.txt
+*)
+
+module Emulator = struct
+  type status =
+    | Halted
+    | Output of int
+    | Waiting_for_input
+
+  type t = {
+    mem : (int, int) Hashtbl.t;
+    input : int Queue.t;
+    mutable ip : int;
+    mutable rb : int;
+  }
+
+  let new_ (program : int list) : t =
+    let mem = Hashtbl.create (List.length program * 2 + 16) in
+    List.iteri (fun i v -> Hashtbl.replace mem i v) program;
+    { mem; input = Queue.create (); ip = 0; rb = 0 }
+
+  let write_string (t : t) (s : string) : unit =
+    String.iter (fun ch -> Queue.add (Char.code ch) t.input) s
+
+  let mem_get (t : t) (addr : int) : int =
+    match Hashtbl.find_opt t.mem addr with
+    | Some v -> v
+    | None -> 0
+
+  let mem_set (t : t) (addr : int) (v : int) : unit =
+    Hashtbl.replace t.mem addr v
+
+  let int_pow10 =
+    function
+    | 0 -> 1 | 1 -> 10 | 2 -> 100 | 3 -> 1000 | 4 -> 10000
+    | n ->
+        let rec loop acc k = if k = 0 then acc else loop (acc * 10) (k - 1) in
+        loop 1 n
+
+  let emulate (t : t) : status =
+    let rec loop () =
+      let instruction = mem_get t t.ip in
+      let opcode = instruction mod 100 in
+
+      let mode (offset : int) : int =
+        (instruction / int_pow10 (offset + 1)) mod 10
+      in
+      let param (offset : int) : int =
+        mem_get t (t.ip + offset)
+      in
+
+      let get_parameter (offset : int) : int =
+        let p = param offset in
+        match mode offset with
+        | 0 -> mem_get t p
+        | 1 -> p
+        | 2 -> mem_get t (t.rb + p)
+        | m -> failwith (Printf.sprintf "Unknown parameter mode: %d" m)
+      in
+
+      let get_write_address (offset : int) : int =
+        let p = param offset in
+        match mode offset with
+        | 0 -> p
+        | 2 -> t.rb + p
+        | m -> failwith (Printf.sprintf "Invalid mode for writing: %d" m)
+      in
+
+      match opcode with
+      | 1 ->
+          let a = get_parameter 1 and b = get_parameter 2 and c = get_write_address 3 in
+          mem_set t c (a + b);
+          t.ip <- t.ip + 4;
+          loop ()
+      | 2 ->
+          let a = get_parameter 1 and b = get_parameter 2 and c = get_write_address 3 in
+          mem_set t c (a * b);
+          t.ip <- t.ip + 4;
+          loop ()
+      | 3 ->
+          if Queue.is_empty t.input then
+            Waiting_for_input
+          else (
+            let addr = get_write_address 1 in
+            let v = Queue.take t.input in
+            mem_set t addr v;
+            t.ip <- t.ip + 2;
+            loop ()
+          )
+      | 4 ->
+          let a = get_parameter 1 in
+          t.ip <- t.ip + 2;
+          Output a
+      | 5 ->
+          let a = get_parameter 1 and b = get_parameter 2 in
+          t.ip <- (if a <> 0 then b else t.ip + 3);
+          loop ()
+      | 6 ->
+          let a = get_parameter 1 and b = get_parameter 2 in
+          t.ip <- (if a = 0 then b else t.ip + 3);
+          loop ()
+      | 7 ->
+          let a = get_parameter 1 and b = get_parameter 2 and c = get_write_address 3 in
+          mem_set t c (if a < b then 1 else 0);
+          t.ip <- t.ip + 4;
+          loop ()
+      | 8 ->
+          let a = get_parameter 1 and b = get_parameter 2 and c = get_write_address 3 in
+          mem_set t c (if a = b then 1 else 0);
+          t.ip <- t.ip + 4;
+          loop ()
+      | 9 ->
+          let a = get_parameter 1 in
+          t.rb <- t.rb + a;
+          t.ip <- t.ip + 2;
+          loop ()
+      | 99 -> Halted
+      | _ -> failwith (Printf.sprintf "Unknown opcode: %d at position %d" opcode t.ip)
+    in
+    loop ()
+end
+
+type room = {
+  name : string;
+  connections : (string, string option) Hashtbl.t; (* dir -> destination room name *)
+}
+
+type mode = Explore | Navigate | Test
+
+type state = {
+  emulator : Emulator.t;
+  world : (string, room) Hashtbl.t;
+  inventory : (string, bool) Hashtbl.t;
+
+  mutable mode : mode;
+  mutable current_room : string option;
+
+  (* stack (head = most recent previous room) *)
+  mutable path : string list;
+
+  mutable checkpoint : string option;
+  mutable floor : string option;
+  mutable test_dir : string;
+
+  mutable available_items : string list;
+  mutable item_mask : int;
+
+  mutable last_room : string option;
+  mutable last_items : string list;
+  mutable last_dir : string;
+
+  output : Buffer.t;
+}
+
+let max_actions = 20000
+
+let starts_with s prefix =
+  let ls = String.length s and lp = String.length prefix in
+  ls >= lp && String.sub s 0 lp = prefix
+
+let ends_with s suffix =
+  let ls = String.length s and lf = String.length suffix in
+  ls >= lf && String.sub s (ls - lf) lf = suffix
+
+let get_room (st : state) (name : string) : room =
+  match Hashtbl.find_opt st.world name with
+  | Some r -> r
+  | None ->
+      let r = { name; connections = Hashtbl.create 8 } in
+      Hashtbl.replace st.world name r;
+      r
+
+let opposite_dir =
+  let tbl = Hashtbl.create 8 in
+  Hashtbl.add tbl "north" "south";
+  Hashtbl.add tbl "south" "north";
+  Hashtbl.add tbl "west" "east";
+  Hashtbl.add tbl "east" "west";
+  fun d -> Hashtbl.find tbl d
+
+let blacklist =
+  let tbl = Hashtbl.create 16 in
+  List.iter (fun s -> Hashtbl.replace tbl s true)
+    [ "photons"; "escape pod"; "molten lava"; "infinite loop"; "giant electromagnet" ];
+  fun item -> Hashtbl.mem tbl item
+
+let send_command (st : state) (cmd : string) : unit =
+  Emulator.write_string st.emulator cmd
+
+let update_connections (st : state) : unit =
+  match st.last_room, st.current_room with
+  | Some last_name, Some cur_name when st.last_dir <> "" ->
+      let last = get_room st last_name in
+      let cur = get_room st cur_name in
+      (match Hashtbl.find_opt last.connections st.last_dir with
+       | Some (Some _) -> ()
+       | _ ->
+           Hashtbl.replace last.connections st.last_dir (Some cur_name);
+           let back = opposite_dir st.last_dir in
+           Hashtbl.replace cur.connections back (Some last_name))
+  | _ -> ()
+
+let handle_security_alert (st : state) : unit =
+  (match st.mode with
+   | Explore ->
+       (match st.path with
+        | [] -> ()
+        | _hd :: tl -> st.path <- tl);
+
+       st.checkpoint <- st.last_room;
+       st.floor <- st.current_room;
+       st.test_dir <- st.last_dir;
+
+       (match st.checkpoint, st.floor with
+        | Some cp, Some fl when st.test_dir <> "" ->
+            let checkpoint_room = get_room st cp in
+            Hashtbl.replace checkpoint_room.connections st.test_dir (Some fl)
+        | _ -> ())
+   | _ -> ());
+  st.last_room <- None;
+  st.last_items <- [];
+  st.last_dir <- ""
+
+let find_path (st : state) (from_name : string) (to_name : string) : string list option =
+  let q : (string * string list) Queue.t = Queue.create () in
+  Queue.add (from_name, [from_name]) q;
+  let visited : (string, bool) Hashtbl.t = Hashtbl.create 128 in
+  Hashtbl.replace visited from_name true;
+
+  let rec bfs () =
+    if Queue.is_empty q then None
+    else
+      let (cur, path) = Queue.take q in
+      if cur = to_name then Some path
+      else (
+        let room = get_room st cur in
+        Hashtbl.iter
+          (fun _dir dest ->
+             match dest with
+             | Some n when not (Hashtbl.mem visited n) ->
+                 Hashtbl.replace visited n true;
+                 Queue.add (n, path @ [n]) q
+             | _ -> ())
+          room.connections;
+        bfs ()
+      )
+  in
+  bfs ()
+
+let choose_unexplored_direction (st : state) (room_name : string) : string option =
+  let room = get_room st room_name in
+  let preferred = [ "north"; "south"; "west"; "east" ] in
+  let rec pick = function
+    | [] -> None
+    | d :: ds ->
+        (match Hashtbl.find_opt room.connections d with
+         | Some None -> Some d
+         | _ -> pick ds)
+  in
+  match pick preferred with
+  | Some _ as x -> x
+  | None ->
+      let found = ref None in
+      Hashtbl.iter (fun dir dest -> if !found = None && dest = None then found := Some dir) room.connections;
+      !found
+
+let find_direction_to (st : state) (from_name : string) (to_name : string) : string option =
+  let room = get_room st from_name in
+  let found = ref None in
+  Hashtbl.iter
+    (fun dir dest ->
+       match dest with
+       | Some n when n = to_name && !found = None -> found := Some dir
+       | _ -> ())
+    room.connections;
+  !found
+
+let explore_step (st : state) (items : string list) : unit =
+  let rec take_first = function
+    | [] -> false
+    | it :: rest ->
+        if blacklist it then take_first rest
+        else (send_command st (Printf.sprintf "take %s\n" it); true)
+  in
+  if take_first items then
+    ()
+  else
+    match st.current_room with
+    | None -> failwith "No current room"
+    | Some cur ->
+        (match choose_unexplored_direction st cur with
+         | Some dir ->
+             st.path <- cur :: st.path;
+             st.last_dir <- dir;
+             send_command st (dir ^ "\n")
+         | None ->
+             (match st.path with
+              | prev :: rest ->
+                  st.path <- rest;
+                  (match find_direction_to st cur prev with
+                   | Some back ->
+                       st.last_dir <- back;
+                       send_command st (back ^ "\n")
+                   | None ->
+                       failwith (Printf.sprintf "Cannot go from \"%s\" to \"%s\"" cur prev))
+              | [] ->
+                  (match st.checkpoint, st.floor with
+                   | Some cp, Some _ ->
+                       (match find_path st cur cp with
+                        | None -> failwith "No path to checkpoint"
+                        | Some p ->
+                            st.path <- (match p with _cur :: tl -> tl | [] -> []);
+                            st.mode <- Navigate)
+                   | _ -> failwith "No checkpoint found")))
+
+let navigate_step (st : state) : unit =
+  match st.current_room with
+  | None -> failwith "No current room"
+  | Some cur ->
+      (match st.path with
+       | [] ->
+           (* Deterministic item order: sort, so mask enumeration is stable *)
+           let acc = ref [] in
+           Hashtbl.iter (fun k v -> if v then acc := k :: !acc) st.inventory;
+           st.available_items <- List.sort String.compare !acc;
+           st.item_mask <- 0;
+           st.mode <- Test
+       | next :: rest ->
+           st.path <- rest;
+           (match find_direction_to st cur next with
+            | Some dir ->
+                st.last_dir <- dir;
+                send_command st (dir ^ "\n")
+            | None ->
+                failwith (Printf.sprintf "Cannot go from \"%s\" to \"%s\"" cur next)))
+
+let test_step (st : state) : unit =
+  let items = st.available_items in
+  let mask = st.item_mask in
+  let max_mask = 1 lsl (List.length items) in
+  if mask >= max_mask then
+    failwith (Printf.sprintf "No valid item combination found after %d attempts" max_mask);
+
+  let rec find_change idx = function
+    | [] -> None
+    | it :: rest ->
+        let target = (mask land (1 lsl idx)) <> 0 in
+        let cur_state = match Hashtbl.find_opt st.inventory it with Some b -> b | None -> false in
+        if cur_state <> target then Some (it, target) else find_change (idx + 1) rest
+  in
+  match find_change 0 items with
+  | Some (it, target) ->
+      let action = if target then "take" else "drop" in
+      send_command st (Printf.sprintf "%s %s\n" action it)
+  | None ->
+      st.item_mask <- mask + 1;
+      if st.test_dir = "" then failwith "Test direction (test_dir) is not set";
+      send_command st (st.test_dir ^ "\n")
+
+let process_output (st : state) (output : string) : string list =
+  let lines = Array.of_list (String.split_on_char '\n' output) in
+  let len = Array.length lines in
+  let items = ref [] in
+  let i = ref 0 in
+
+  while !i < len do
+    let line = String.trim lines.(!i) in
+    if line = "" || line = "Command?" then (
+      incr i
+    ) else if starts_with line "== " && ends_with line " ==" then (
+      let name = String.sub line 3 (String.length line - 6) in
+      ignore (get_room st name);
+      st.current_room <- Some name;
+      items := [];
+      incr i;
+      while !i < len && String.trim lines.(!i) <> "" do incr i done
+    ) else if line = "Doors here lead:" then (
+      incr i;
+      while !i < len && String.trim lines.(!i) <> "" do
+        let l = String.trim lines.(!i) in
+        if starts_with l "- " then (
+          let dir = String.sub l 2 (String.length l - 2) in
+          (match st.current_room with
+           | None -> ()
+           | Some rn ->
+               let r = get_room st rn in
+               if not (Hashtbl.mem r.connections dir) then Hashtbl.add r.connections dir None)
+        );
+        incr i
+      done
+    ) else if line = "Items here:" then (
+      let acc = ref [] in
+      incr i;
+      while !i < len && String.trim lines.(!i) <> "" do
+        let l = String.trim lines.(!i) in
+        if starts_with l "- " then acc := String.sub l 2 (String.length l - 2) :: !acc;
+        incr i
+      done;
+      items := List.rev !acc
+    ) else if starts_with line "You take the " && ends_with line "." then (
+      let prefix = "You take the " in
+      let taken = String.sub line (String.length prefix) (String.length line - String.length prefix - 1) in
+      Hashtbl.replace st.inventory taken true;
+      (match st.last_room with
+       | Some lr ->
+           st.current_room <- Some lr;
+           items := List.filter (fun x -> x <> taken) st.last_items
+       | None -> ());
+      incr i
+    ) else if starts_with line "You drop the " && ends_with line "." then (
+      let prefix = "You drop the " in
+      let dropped = String.sub line (String.length prefix) (String.length line - String.length prefix - 1) in
+      Hashtbl.replace st.inventory dropped false;
+      (match st.last_room with
+       | Some lr ->
+           st.current_room <- Some lr;
+           items := st.last_items @ [ dropped ]
+       | None -> ());
+      incr i
+    ) else if starts_with line "A loud, robotic voice says \"Alert!" then (
+      handle_security_alert st;
+      incr i
+    ) else (
+      incr i
+    )
+  done;
+  !items
+
+let extract_code_from_output (output : string) : string option =
+  let lines = String.split_on_char '\n' output in
+  let prefix = "\"Oh, hello! You should be able to get in by typing " in
+  let rec scan = function
+    | [] -> None
+    | line :: rest ->
+        let line = String.trim line in
+        if starts_with line prefix then (
+          let start = String.length prefix in
+          let j = ref start in
+          while !j < String.length line && line.[!j] >= '0' && line.[!j] <= '9' do incr j done;
+          if !j > start then Some (String.sub line start (!j - start)) else scan rest
+        ) else scan rest
+  in
+  scan lines
+
+let read_file (filename : string) : string =
+  let ic = open_in_bin filename in
+  let n = in_channel_length ic in
+  let s = really_input_string ic n in
+  close_in ic;
+  s
+
+let parse_program (text : string) : int list =
+  let text = String.trim text in
+  if text = "" then []
+  else
+    text
+    |> String.split_on_char ','
+    |> List.map (fun s -> int_of_string (String.trim s))
+
+let run (filename : string) : (string, string * string) result =
+  let program = parse_program (read_file filename) in
+  let emulator = Emulator.new_ program in
+
+  let st : state =
+    {
+      emulator;
+      world = Hashtbl.create 64;
+      inventory = Hashtbl.create 32;
+      mode = Explore;
+      current_room = None;
+      path = [];
+      checkpoint = None;
+      floor = None;
+      test_dir = "";
+      available_items = [];
+      item_mask = 0;
+      last_room = None;
+      last_items = [];
+      last_dir = "";
+      output = Buffer.create 4096;
+    }
+  in
+
+  let rec game_loop iteration =
+    if iteration > max_actions then
+      Error ("Loop detected (action cap reached)", "")
+    else
+      match Emulator.emulate st.emulator with
+      | Emulator.Halted ->
+          let out = Buffer.contents st.output in
+          (match extract_code_from_output out with
+           | Some code -> Ok code
+           | None -> Error ("No solution found", out))
+      | Emulator.Output ch ->
+          Buffer.add_char st.output (Char.chr ch);
+          game_loop iteration
+      | Emulator.Waiting_for_input ->
+          let out = Buffer.contents st.output in
+          Buffer.clear st.output;
+
+          let items = process_output st out in
+          update_connections st;
+
+          st.last_room <- st.current_room;
+          st.last_items <- items;
+          st.last_dir <- "";
+
+          (match st.mode with
+           | Explore -> explore_step st items
+           | Navigate -> navigate_step st
+           | Test -> test_step st);
+
+          game_loop (iteration + 1)
+  in
+
+  game_loop 0
+
+let () =
+  let filename = if Array.length Sys.argv >= 2 then Sys.argv.(1) else "input.txt" in
+  match run filename with
+  | Ok code -> print_endline code
+  | Error (msg, out) ->
+      prerr_endline ("Error: " ^ msg);
+      if out <> "" then prerr_endline out
+
