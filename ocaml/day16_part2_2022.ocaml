@@ -1,0 +1,79 @@
+
+open Printf
+
+let () =
+  let lines =
+    let ic = open_in "input.txt" in
+    let rec loop acc =
+      try loop (input_line ic :: acc)
+      with End_of_file -> close_in ic; List.rev acc
+    in loop []
+  in
+  let n = List.length lines in
+  let name_to_idx = Hashtbl.create n in
+  let flows = Array.make n 0 in
+  let adj = Array.make n [] in
+  List.iteri (fun i line ->
+    let parts = line |> String.split_on_char ';' |> String.concat " " 
+                     |> String.split_on_char ' ' |> List.filter ((<>) "") in
+    let name = List.nth parts 1 in
+    Hashtbl.add name_to_idx name i;
+    let flow = Scanf.sscanf (List.nth parts 4) "rate=%d" (fun x -> x) in
+    flows.(i) <- flow;
+    let rec find_valves = function
+      | "valve" :: t | "valves" :: t -> t
+      | _ :: t -> find_valves t
+      | [] -> []
+    in
+    adj.(i) <- find_valves parts |> List.map (fun s -> String.sub s 0 2)
+  ) lines;
+  let dist = Array.make_matrix n n 1000 in
+  for i = 0 to n - 1 do dist.(i).(i) <- 0 done;
+  Hashtbl.iter (fun name u ->
+    List.iter (fun v_name ->
+      let v = Hashtbl.find name_to_idx v_name in
+      dist.(u).(v) <- 1
+    ) adj.(u)
+  ) name_to_idx;
+  for k = 0 to n - 1 do
+    for i = 0 to n - 1 do
+      for j = 0 to n - 1 do
+        if dist.(i).(j) > dist.(i).(k) + dist.(k).(j) then
+          dist.(i).(j) <- dist.(i).(k) + dist.(k).(j)
+      done
+    done
+  done;
+  let open_indices = 
+    let res = ref [] in
+    for i = 0 to n - 1 do
+      if flows.(i) > 0 then res := i :: !res
+    done;
+    Array.of_list (List.rev !res)
+  in
+  let num_open = Array.length open_indices in
+  let best = Array.make (1 lsl num_open) 0 in
+  let aa_idx = Hashtbl.find name_to_idx "AA" in
+  let rec dfs u time mask pressure =
+    if pressure > best.(mask) then best.(mask) <- pressure;
+    for i = 0 to num_open - 1 do
+      let v = open_indices.(i) in
+      let d = dist.(u).(v) + 1 in
+      if time >= d && (mask land (1 lsl i)) = 0 then
+        dfs v (time - d) (mask lor (1 lsl i)) (pressure + (time - d) * flows.(v))
+    done
+  in
+  dfs aa_idx 26 0 0;
+  for i = 0 to num_open - 1 do
+    for mask = 0 to (1 lsl num_open) - 1 do
+      if (mask land (1 lsl i)) <> 0 then
+        let sub = best.(mask lxor (1 lsl i)) in
+        if sub > best.(mask) then best.(mask) <- sub
+    done
+  done;
+  let ans = ref 0 in
+  let total_mask = (1 lsl num_open) - 1 in
+  for m = 0 to total_mask do
+    let cur = best.(m) + best.(total_mask lxor m) in
+    if cur > !ans then ans := cur
+  done;
+  printf "%d\n" !ans

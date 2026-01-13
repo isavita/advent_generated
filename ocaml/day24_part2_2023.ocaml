@@ -1,0 +1,142 @@
+
+open Printf
+open Scanf
+
+(* Represents a hailstone with its 3D position and velocity *)
+type hailstone = {
+  px: int64; py: int64; pz: int64;
+  vx: int64; vy: int64; vz: int64;
+}
+
+(* Parses a single input line into a hailstone record *)
+let parse_line line =
+  sscanf line "%Ld, %Ld, %Ld @ %Ld, %Ld, %Ld" (fun px py pz vx vy vz ->
+    {px; py; pz; vx; vy; vz})
+
+(* Part 1: Checks if the 2D (XY) paths of two hailstones intersect within a given range in the future *)
+let intersect_2d h1 h2 min_b max_b =
+  let vx1, vy1 = Int64.to_float h1.vx, Int64.to_float h1.vy in
+  let vx2, vy2 = Int64.to_float h2.vx, Int64.to_float h2.vy in
+  let px1, py1 = Int64.to_float h1.px, Int64.to_float h1.py in
+  let px2, py2 = Int64.to_float h2.px, Int64.to_float h2.py in
+  
+  (* Standard intersection calculation using Cramer's rule on the linear system:
+     px1 + t1*vx1 = px2 + t2*vx2
+     py1 + t1*vy1 = py2 + t2*vy2 *)
+  let det = vx2 *. vy1 -. vx1 *. vy2 in
+  if abs_float det < 1e-9 then None (* Parallel paths *)
+  else
+    let t1 = (vx2 *. (py2 -. py1) -. vy2 *. (px2 -. px1)) /. det in
+    let t2 = (vx1 *. (py2 -. py1) -. vy1 *. (px2 -. px1)) /. det in
+    if t1 < 0.0 || t2 < 0.0 then None (* Intersected in the past *)
+    else
+      let x = px1 +. t1 *. vx1 in
+      let y = py1 +. t1 *. vy1 in
+      if x >= min_b && x <= max_b && y >= min_b && y <= max_b then Some (x, y)
+      else None
+
+(* Part 2: Constraint-based velocity solver. 
+   If two hailstones have the same velocity in one dimension, the distance between them 
+   must be a multiple of the relative velocity of the rock to hit both. *)
+let get_single_v pos vel =
+  let possible = ref None in
+  let n = Array.length pos in
+  for i = 0 to n - 1 do
+    for j = i + 1 to n - 1 do
+      if vel.(i) = vel.(j) then
+        let diff = Int64.sub pos.(j) pos.(i) in
+        let current = ref [] in
+        for v = -1000 to 1000 do
+          let v_rel = Int64.sub vel.(i) (Int64.of_int v) in
+          if (v_rel <> 0L && Int64.rem diff v_rel = 0L) || (v_rel = 0L && diff = 0L) then
+            current := (Int64.of_int v) :: !current
+        done;
+        match !possible with
+        | None -> possible := Some !current
+        | Some s -> possible := Some (List.filter (fun x -> List.mem x !current) s)
+    done
+  done;
+  match !possible with
+  | Some (v :: _) -> v (* Return first valid velocity candidate *)
+  | _ -> 0L (* Fallback *)
+
+let solve () =
+  (* Read and parse input file *)
+  let hailstones =
+    let ic = try open_in "input.txt" with _ -> failwith "Could not open input.txt" in
+    let rec read_all acc =
+      try
+        let line = input_line ic in
+        let trimmed = String.trim line in
+        if String.length trimmed > 0 then
+          read_all (parse_line trimmed :: acc)
+        else read_all acc
+      with End_of_file ->
+        close_in ic;
+        List.rev acc
+    in
+    Array.of_list (read_all [])
+  in
+  
+  (* Part 1 Solution *)
+  let count = ref 0 in
+  let min_b = 200000000000000.0 in
+  let max_b = 400000000000000.0 in
+  for i = 0 to Array.length hailstones - 1 do
+    for j = i + 1 to Array.length hailstones - 1 do
+      match intersect_2d hailstones.(i) hailstones.(j) min_b max_b with
+      | Some _ -> incr count
+      | None -> ()
+    done
+  done;
+  printf "%d\n" !count;
+
+  (* Part 2 Solution *)
+  let px = Array.map (fun h -> h.px) hailstones in
+  let py = Array.map (fun h -> h.py) hailstones in
+  let pz = Array.map (fun h -> h.pz) hailstones in
+  let vx = Array.map (fun h -> h.vx) hailstones in
+  let vy = Array.map (fun h -> h.vy) hailstones in
+  let vz = Array.map (fun h -> h.vz) hailstones in
+
+  (* Find the rock's velocity components using the same-velocity property *)
+  let dx = get_single_v px vx in
+  let dy = get_single_v py vy in
+  let dz = get_single_v pz vz in
+
+  (* Pick two hailstones that are not parallel after adjusting for rock velocity *)
+  let h0, h1, v0x', v0y', v1x', v1y', det = 
+    let res = ref None in
+    let i = ref 0 in
+    while !i < Array.length hailstones && !res = None do
+      let j = ref (!i + 1) in
+      while !j < Array.length hailstones && !res = None do
+        let hi, hj = hailstones.(!i), hailstones.(!j) in
+        let vi_x', vi_y' = Int64.sub hi.vx dx, Int64.sub hi.vy dy in
+        let vj_x', vj_y' = Int64.sub hj.vx dx, Int64.sub hj.vy dy in
+        let d = Int64.sub (Int64.mul vj_x' vi_y') (Int64.mul vi_x' vj_y') in
+        if d <> 0L then res := Some (hi, hj, vi_x', vi_y', vj_x', vj_y', d);
+        incr j
+      done;
+      incr i
+    done;
+    match !res with Some r -> r | None -> failwith "No valid hailstone pairs"
+  in
+  
+  (* Determine time t0 when rock hits first hailstone h0 in the relative XY frame *)
+  let t0 = (Int64.to_float v1x' *. Int64.to_float (Int64.sub h1.py h0.py) -. 
+            Int64.to_float v1y' *. Int64.to_float (Int64.sub h1.px h0.px)) /. (Int64.to_float det) in
+  
+  (* Calculate starting position of the rock at time 0 *)
+  let x = Int64.to_float h0.px +. t0 *. Int64.to_float v0x' in
+  let y = Int64.to_float h0.py +. t0 *. Int64.to_float v0y' in
+  let z = Int64.to_float h0.pz +. t0 *. Int64.to_float (Int64.sub h0.vz dz) in
+  
+  (* Return sum of initial rock coordinates *)
+  let res_x = Int64.of_float (floor (x +. 0.5)) in
+  let res_y = Int64.of_float (floor (y +. 0.5)) in
+  let res_z = Int64.of_float (floor (z +. 0.5)) in
+  let res = Int64.add (Int64.add res_x res_y) res_z in
+  printf "%Ld\n" res
+
+let () = solve ()

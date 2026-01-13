@@ -1,0 +1,88 @@
+
+(* Day 7: Handy Haversacks *)
+
+module StringMap = Map.Make(String)
+module StringSet = Set.Make(String)
+
+type rule = { qty: int; color: string }
+
+let parse_line line =
+  (* Split "color bags contain ..." *)
+  let parts = String.split_on_char ' ' line in
+  match parts with
+  | adj :: col :: "bags" :: "contain" :: rest ->
+      let parent = adj ^ " " ^ col in
+      let rec parse_contents = function
+        | "no" :: "other" :: _ -> []
+        | qty_str :: adj :: col :: _bag_part :: rest ->
+            let qty = int_of_string qty_str in
+            let child = adj ^ " " ^ col in
+            { qty; color = child } :: parse_contents rest
+        | _ -> []
+      in
+      (* Clean up commas and periods from the rest of the string list *)
+      let cleaned_rest = List.map (fun s -> 
+        String.trim (String.map (fun c -> if c = ',' || c = '.' then ' ' else c) s)
+      ) rest |> List.filter (fun s -> s <> "") in
+      (parent, parse_contents cleaned_rest)
+  | _ -> failwith "Invalid line format"
+
+let solve () =
+  let input_file = "input.txt" in
+  let ic = open_in input_file in
+  
+  (* reverse_map: child -> list of parents (for Part 1) *)
+  let reverse_map = Hashtbl.create 500 in
+  (* contents_map: parent -> list of (qty, child) (for Part 2) *)
+  let contents_map = Hashtbl.create 500 in
+
+  let rec read_lines () =
+    try
+      let line = input_line ic in
+      let parent, children = parse_line line in
+      Hashtbl.add contents_map parent children;
+      List.iter (fun {color; _} -> 
+        let existing = if Hashtbl.mem reverse_map color then Hashtbl.find reverse_map color else [] in
+        Hashtbl.replace reverse_map color (parent :: existing)
+      ) children;
+      read_lines ()
+    with End_of_file -> close_in ic
+  in
+  read_lines ();
+
+  (* Part 1: Count ancestors of "shiny gold" *)
+  let target = "shiny gold" in
+  let ancestors = ref StringSet.empty in
+  let rec find_ancestors color =
+    match Hashtbl.find_opt reverse_map color with
+    | None -> ()
+    | Some parents ->
+        List.iter (fun p ->
+          if not (StringSet.mem p !ancestors) then (
+            ancestors := StringSet.add p !ancestors;
+            find_ancestors p
+          )
+        ) parents
+  in
+  find_ancestors target;
+  let part1 = StringSet.cardinal !ancestors in
+
+  (* Part 2: Count total bags inside "shiny gold" *)
+  let memo_count = Hashtbl.create 500 in
+  let rec count_inner color =
+    match Hashtbl.find_opt memo_count color with
+    | Some count -> count
+    | None ->
+        let children = Hashtbl.find contents_map color in
+        let total = List.fold_left (fun acc {qty; color=child_color} ->
+          acc + qty + (qty * count_inner child_color)
+        ) 0 children in
+        Hashtbl.add memo_count color total;
+        total
+  in
+  let part2 = count_inner target in
+
+  Printf.printf "Part 1: %d\n" part1;
+  Printf.printf "Part 2: %d\n" part2
+
+let () = solve ()

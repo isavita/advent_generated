@@ -1,0 +1,145 @@
+
+open Printf
+
+(* Define the sides in the simulation *)
+type side = Immune | Infection
+
+(* Define the group structure to store all relevant attributes *)
+type group = {
+  id : int;
+  side : side;
+  mutable units : int;
+  hp : int;
+  damage : int;
+  attack_type : string;
+  initiative : int;
+  weak : string list;
+  immune : string list;
+}
+
+(* Effective Power is units * individual damage *)
+let effective_power g = g.units * g.damage
+
+(* Calculate the damage an attacker would deal to a defender *)
+let calc_damage attacker defender =
+  if List.mem attacker.attack_type defender.immune then 0
+  else if List.mem attacker.attack_type defender.weak then 2 * effective_power attacker
+  else effective_power attacker
+
+(* Safe association function for older OCaml compatibility *)
+let assoc_opt k l = try Some (List.assoc k l) with Not_found -> None
+
+(* Parse a single line from the input file into a group record *)
+let parse_line id side line =
+  try
+    let u, h, traits_part, attack_part =
+      if String.contains line '(' then
+        Scanf.sscanf line "%d units each with %d hit points (%[^)]) %s@\n"
+          (fun u h t a -> u, h, t, a)
+      else
+        Scanf.sscanf line "%d units each with %d hit points %s@\n"
+          (fun u h a -> u, h, "", a)
+    in
+    let damage, atk_type, initiative =
+      Scanf.sscanf attack_part "with an attack that does %d %s damage at initiative %d"
+        (fun d t i -> d, t, i)
+    in
+    let weak = ref [] in
+    let immune = ref [] in
+    if traits_part <> "" then (
+      let sections = String.split_on_char ';' traits_part in
+      List.iter (fun s ->
+        let s = String.trim s in
+        if String.length s > 8 && String.sub s 0 8 = "weak to " then
+          weak := String.split_on_char ',' (String.sub s 8 (String.length s - 8)) |> List.map String.trim
+        else if String.length s > 10 && String.sub s 0 10 = "immune to " then
+          immune := String.split_on_char ',' (String.sub s 10 (String.length s - 10)) |> List.map String.trim
+      ) sections
+    );
+    Some { id; side; units = u; hp = h; damage; attack_type = atk_type; initiative; weak = !weak; immune = !immune }
+  with _ -> None
+
+let solve () =
+  (* Read and parse the input from input.txt *)
+  let ic = try open_in "input.txt" with _ -> failwith "Could not open input.txt" in
+  let rec read_all side id acc =
+    match input_line ic with
+    | exception End_of_file -> acc
+    | "" -> read_all side id acc
+    | line when String.trim line = "Immune System:" -> read_all Immune id acc
+    | line when String.trim line = "Infection:" -> read_all Infection id acc
+    | line ->
+        match parse_line id side line with
+        | Some g -> read_all side (id + 1) (g :: acc)
+        | None -> read_all side id acc
+  in
+  let initial_groups = read_all Immune 1 [] in
+  close_in ic;
+
+  (* Core simulation loop *)
+  let rec combat groups =
+    let immune_alive = List.filter (fun g -> g.side = Immune && g.units > 0) groups in
+    let infect_alive = List.filter (fun g -> g.side = Infection && g.units > 0) groups in
+    if immune_alive = [] || infect_alive = [] then groups
+    else
+      (* Phase 1: Target Selection *)
+      let selection_order = List.sort (fun a b ->
+        let epa = effective_power a in
+        let epb = effective_power b in
+        if epa <> epb then compare epb epa
+        else compare b.initiative a.initiative
+      ) (List.filter (fun g -> g.units > 0) groups) in
+      
+      let targeted = ref [] in
+      let selections = List.fold_left (fun acc attacker ->
+        let enemies = List.filter (fun g -> g.side <> attacker.side && g.units > 0 && not (List.mem g.id !targeted)) groups in
+        let best = List.fold_left (fun best enemy ->
+          let dmg = calc_damage attacker enemy in
+          if dmg = 0 then best
+          else match best with
+            | None -> Some (enemy, dmg)
+            | Some (be, bd) ->
+                if dmg > bd then Some (enemy, dmg)
+                else if dmg < bd then best
+                else
+                  let ep_e = effective_power enemy in
+                  let ep_be = effective_power be in
+                  if ep_e > ep_be then Some (enemy, dmg)
+                  else if ep_e < ep_be then best
+                  else if enemy.initiative > be.initiative then Some (enemy, dmg)
+                  else best
+        ) None enemies in
+        match best with
+        | Some (e, _) ->
+            targeted := e.id :: !targeted;
+            (attacker.id, e.id) :: acc
+        | None -> acc
+      ) [] selection_order in
+
+      (* Phase 2: Attacking *)
+      let attack_order = List.sort (fun a b -> compare b.initiative a.initiative) (List.filter (fun g -> g.units > 0) groups) in
+      let total_killed = ref 0 in
+      List.iter (fun attacker ->
+        if attacker.units > 0 then
+          match assoc_opt attacker.id selections with
+          | Some target_id ->
+              let target = List.find (fun g -> g.id = target_id) groups in
+              let dmg = calc_damage attacker target in
+              let killed = min target.units (dmg / target.hp) in
+              target.units <- target.units - killed;
+              total_killed := !total_killed + killed
+          | None -> ()
+      ) attack_order;
+
+      (* Check for stalemate (no units killed in a round) to prevent infinite loops *)
+      if !total_killed = 0 then groups
+      else combat (List.filter (fun g -> g.units > 0) groups)
+  in
+  
+  (* Run combat and output the sum of units of the winning army *)
+  let final_state = combat (List.rev initial_groups) in
+  let remaining_units = List.fold_left (fun acc g -> acc + g.units) 0 final_state in
+  printf "%d\n" remaining_units
+
+let () = solve ()
+

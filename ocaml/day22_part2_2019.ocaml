@@ -1,0 +1,126 @@
+
+(* 
+   Advent of Code 2019 - Day 22: Slam Shuffle 
+   The program implements linear transformation arithmetic modulo L.
+   f(x) = ax + b (mod L)
+*)
+
+open Int64
+
+(* Normalizes x modulo m to ensure the result is in the range [0, m-1] *)
+let normalize x m =
+  let r = rem x m in
+  if r < 0L then add r m else r
+
+(* Performs (a * b) mod m without overflowing Int64, using the Russian Peasant algorithm *)
+let mul_mod a b m =
+  let a = normalize a m in
+  let b = normalize b m in
+  let rec loop a b res =
+    if b = 0L then res
+    else
+      let res' = if logand b 1L = 1L then
+                   normalize (add res a) m
+                 else res in
+      loop (normalize (add a a) m) (shift_right_logical b 1) res'
+  in loop a b 0L
+
+(* Performs (a ^ b) mod m using binary exponentiation *)
+let rec pow_mod a b m =
+  if b = 0L then 1L
+  else if b = 1L then normalize a m
+  else
+    let half = pow_mod a (shift_right_logical b 1) m in
+    let res = mul_mod half half m in
+    if logand b 1L = 0L then res
+    else mul_mod res a m
+
+(* Modular inverse using Fermat's Little Theorem (requires m to be prime) *)
+let inv_mod a m = pow_mod a (sub m 2L) m
+
+type instruction = NewStack | Cut of int64 | Increment of int64
+
+(* Parses a shuffle instruction from a line of text *)
+let parse_line line =
+  let line = String.trim line in
+  if line = "deal into new stack" then NewStack
+  else if String.length line >= 4 && String.sub line 0 4 = "cut " then
+    Cut (of_string (String.sub line 4 (String.length line - 4)))
+  else if String.length line >= 20 && String.sub line 0 20 = "deal with increment " then
+    Increment (of_string (String.sub line 20 (String.length line - 20)))
+  else failwith ("Unknown instruction: " ^ line)
+
+(* Reduces a sequence of shuffle operations to a single linear form: f(x) = ax + b mod L *)
+let get_ab l instructions =
+  List.fold_left (fun (a, b) instr ->
+    match instr with
+    | NewStack ->
+        (* f_new(x) = -f(x) - 1 = -ax - b - 1 *)
+        (normalize (neg a) l, normalize (sub (neg b) 1L) l)
+    | Cut n ->
+        (* f_new(x) = f(x) - n = ax + b - n *)
+        (a, normalize (sub b n) l)
+    | Increment n ->
+        (* f_new(x) = n * f(x) = (na)x + nb *)
+        (mul_mod a n l, mul_mod b n l)
+  ) (1L, 0L) instructions
+
+(* Part 1: Finding the position of a specific card x after 1 shuffle *)
+let solve_part1 l target_card instructions =
+  let a, b = get_ab l instructions in
+  normalize (add (mul_mod a target_card l) b) l
+
+(* Part 2: Finding the value of the card at a specific position after k shuffles.
+   The iterative shuffle is f^k(x) = (a^k)x + b * (a^k - 1) / (a - 1).
+   We solve for x given f^k(x) = target_pos. *)
+let solve_part2 l k target_pos instructions =
+  let a, b = get_ab l instructions in
+  let ak = pow_mod a k l in
+  let b_total =
+    if normalize (sub a 1L) l = 0L then
+      mul_mod b (rem k l) l
+    else
+      let inv_a_minus_1 = inv_mod (sub a 1L) l in
+      let ak_minus_1 = normalize (sub ak 1L) l in
+      mul_mod b (mul_mod ak_minus_1 inv_a_minus_1 l) l
+  in
+  let target_minus_b = normalize (sub target_pos b_total) l in
+  mul_mod target_minus_b (inv_mod ak l) l
+
+let () =
+  let input_file = "input.txt" in
+  let lines =
+    try
+      let ic = open_in input_file in
+      let rec read_all acc =
+        try
+          let line = input_line ic in
+          read_all (line :: acc)
+        with End_of_file ->
+          close_in ic;
+          List.rev acc
+      in
+      read_all []
+    with Sys_error _ -> []
+  in
+  if lines <> [] then begin
+    let instructions = 
+      lines 
+      |> List.map String.trim 
+      |> List.filter (fun s -> s <> "") 
+      |> List.map parse_line in
+    
+    (* Parameters for Part 1 *)
+    let p1_deck_size = 10007L in
+    let p1_card = 2019L in
+    let part1_res = solve_part1 p1_deck_size p1_card instructions in
+    Printf.printf "%Ld\n" part1_res;
+
+    (* Parameters for Part 2 *)
+    let p2_deck_size = 119315717514047L in
+    let p2_iterations = 101741582076661L in
+    let p2_position = 2020L in
+    let part2_res = solve_part2 p2_deck_size p2_iterations p2_position instructions in
+    Printf.printf "%Ld\n" part2_res
+  end
+

@@ -1,0 +1,51 @@
+
+type op = Add of int64 | Mul of int64 | AddOld | MulOld
+type monkey = { items : int64 Queue.t; op : op; div : int64; t_next : int; f_next : int; mutable count : int64 }
+
+let () =
+  let content =
+    let ch = open_in "input.txt" in
+    let s = really_input_string ch (in_channel_length ch) in
+    close_in ch; s
+  in
+  let rec group lines cur acc =
+    match lines with
+    | [] -> List.rev (if cur = [] then acc else (List.rev cur) :: acc)
+    | h :: tl ->
+        if h = "" then group tl [] (if cur = [] then acc else (List.rev cur) :: acc)
+        else group tl (h :: cur) acc
+  in
+  let blocks = group (List.map String.trim (String.split_on_char '\n' content)) [] [] in
+  let monkeys = Array.of_list (List.map (fun b ->
+    let last s = List.hd (List.rev (String.split_on_char ' ' s)) in
+    let items = List.nth (String.split_on_char ':' (List.nth b 1)) 1
+      |> String.split_on_char ',' |> List.map String.trim |> List.filter ((<>) "") |> List.map Int64.of_string in
+    let q = Queue.create () in
+    List.iter (fun i -> Queue.add i q) items;
+    let p = String.split_on_char ' ' (List.nth b 2) |> List.filter ((<>) "") in
+    let op = match List.nth p 4, List.nth p 5 with
+      | "*", "old" -> MulOld | "+", "old" -> AddOld
+      | "*", v -> Mul (Int64.of_string v) | "+", v -> Add (Int64.of_string v)
+      | _ -> failwith "" in
+    { items = q; op; div = Int64.of_string (last (List.nth b 3));
+      t_next = int_of_string (last (List.nth b 4));
+      f_next = int_of_string (last (List.nth b 5)); count = 0L }
+  ) blocks) in
+  let total_div = Array.fold_left (fun a m -> Int64.mul a m.div) 1L monkeys in
+  for _ = 1 to 10000 do
+    Array.iter (fun m ->
+      while not (Queue.is_empty m.items) do
+        m.count <- Int64.add m.count 1L;
+        let item = Queue.take m.items in
+        let item = match m.op with
+          | Add v -> Int64.add item v | Mul v -> Int64.mul item v
+          | AddOld -> Int64.add item item | MulOld -> Int64.mul item item in
+        let item = Int64.rem item total_div in
+        let target = if Int64.rem item m.div = 0L then m.t_next else m.f_next in
+        Queue.add item monkeys.(target).items
+      done
+    ) monkeys
+  done;
+  let counts = Array.map (fun m -> m.count) monkeys in
+  Array.sort (fun a b -> Int64.compare b a) counts;
+  Printf.printf "%Ld\n" (Int64.mul counts.(0) counts.(1))
