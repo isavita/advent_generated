@@ -1,0 +1,243 @@
+(* AoC 2018 Day 24 style battle simulator with boost + binary search.
+   Build:
+     ocamlfind ocamlopt -O3 -package str -linkpkg solution.ml -o solution
+   Run:
+     ./solution
+*)
+
+open Printf
+
+module StringSet = Set.Make (String)
+module StringMap = Map.Make (String)
+
+type army = Immune_system | Infection
+
+type group = {
+  id : string;
+  army : army;
+  units : int;
+  hp : int;
+  damage : int;
+  attack_type : string;
+  initiative : int;
+  weak : StringSet.t;
+  imm : StringSet.t;
+}
+
+type outcome =
+  | Win of army * int
+  | Stalemate
+
+let army_prefix = function
+  | Immune_system -> "immune_system"
+  | Infection -> "infection"
+
+let starts_with ~prefix s =
+  let lp = String.length prefix in
+  String.length s >= lp && String.sub s 0 lp = prefix
+
+let effective_power g = g.units * g.damage
+
+let set_of_list xs =
+  List.fold_left (fun acc x -> StringSet.add x acc) StringSet.empty xs
+
+let split_re re s =
+  if s = "" then [] else Str.split (Str.regexp re) s
+
+let parse_special (s : string) : StringSet.t * StringSet.t =
+  if s = "" then (StringSet.empty, StringSet.empty)
+  else
+    let parts = split_re "; +" s in
+    let weak =
+      match List.find_opt (starts_with ~prefix:"weak to ") parts with
+      | None -> []
+      | Some p ->
+          let rest = String.sub p (String.length "weak to ") (String.length p - String.length "weak to ") in
+          split_re ", +" rest
+    in
+    let imm =
+      match List.find_opt (starts_with ~prefix:"immune to ") parts with
+      | None -> []
+      | Some p ->
+          let rest =
+            String.sub p (String.length "immune to ") (String.length p - String.length "immune to ")
+          in
+          split_re ", +" rest
+    in
+    (set_of_list weak, set_of_list imm)
+
+let re_with_special =
+  Str.regexp
+    "^\\([0-9]+\\) units each with \\([0-9]+\\) hit points (\\([^)]*\\)) with an attack that does \\([0-9]+\\) \\([a-z]+\\) damage at initiative \\([0-9]+\\)$"
+
+let re_without_special =
+  Str.regexp
+    "^\\([0-9]+\\) units each with \\([0-9]+\\) hit points with an attack that does \\([0-9]+\\) \\([a-z]+\\) damage at initiative \\([0-9]+\\)$"
+
+let parse_group (line : string) (army : army) (id : string) : group =
+  let line = String.trim line in
+  if Str.string_match re_with_special line 0 then
+    let units = int_of_string (Str.matched_group 1 line) in
+    let hp = int_of_string (Str.matched_group 2 line) in
+    let special = Str.matched_group 3 line in
+    let damage = int_of_string (Str.matched_group 4 line) in
+    let attack_type = Str.matched_group 5 line in
+    let initiative = int_of_string (Str.matched_group 6 line) in
+    let weak, imm = parse_special special in
+    { id; army; units; hp; damage; attack_type; initiative; weak; imm }
+  else if Str.string_match re_without_special line 0 then
+    let units = int_of_string (Str.matched_group 1 line) in
+    let hp = int_of_string (Str.matched_group 2 line) in
+    let damage = int_of_string (Str.matched_group 3 line) in
+    let attack_type = Str.matched_group 4 line in
+    let initiative = int_of_string (Str.matched_group 5 line) in
+    { id; army; units; hp; damage; attack_type; initiative; weak = StringSet.empty; imm = StringSet.empty }
+  else
+    failwith ("Failed to parse group line: " ^ line)
+
+let parse_input (input : string) : group list =
+  let blocks = Str.split (Str.regexp "\n\n+") (String.trim input) in
+  blocks
+  |> List.concat_map (fun block ->
+         let lines = Str.split (Str.regexp "\n+") (String.trim block) in
+         match lines with
+         | [] -> []
+         | header :: rest ->
+             let army =
+               if starts_with ~prefix:"Immune System" header then Immune_system else Infection
+             in
+             rest
+             |> List.mapi (fun i line ->
+                    let id = sprintf "%s_%d" (army_prefix army) i in
+                    parse_group line army id))
+
+let damage_to (att : group) (def : group) : int =
+  if StringSet.mem att.attack_type def.imm then 0
+  else
+    let base = att.units * att.damage in
+    if StringSet.mem att.attack_type def.weak then 2 * base else base
+
+let sum_units groups = List.fold_left (fun acc g -> acc + g.units) 0 groups
+
+let target_selection (groups : group list) : string StringMap.t =
+  let compare_att a b =
+    let ea = effective_power a in
+    let eb = effective_power b in
+    if ea <> eb then compare eb ea else compare b.initiative a.initiative
+  in
+  let attackers = List.sort compare_att groups in
+
+  let compare_cand (dmg1, ep1, init1, _id1) (dmg2, ep2, init2, _id2) =
+    if dmg1 <> dmg2 then compare dmg2 dmg1
+    else if ep1 <> ep2 then compare ep2 ep1
+    else compare init2 init1
+  in
+
+  let rec fold attackers (targets, taken) =
+    match attackers with
+    | [] -> targets
+    | att :: tl ->
+        let candidates =
+          groups
+          |> List.filter (fun d ->
+                 d.army <> att.army && not (StringSet.mem d.id taken) && d.units > 0)
+          |> List.filter_map (fun d ->
+                 let dmg = damage_to att d in
+                 if dmg <= 0 then None
+                 else Some (dmg, effective_power d, d.initiative, d.id))
+        in
+        (match List.sort compare_cand candidates with
+        | [] -> fold tl (targets, taken)
+        | (_dmg, _ep, _init, did) :: _ ->
+            let targets' = StringMap.add att.id did targets in
+            let taken' = StringSet.add did taken in
+            fold tl (targets', taken'))
+  in
+  fold attackers (StringMap.empty, StringSet.empty)
+
+let attack (groups : group list) (targets : string StringMap.t) : group list * int =
+  let order = List.sort (fun a b -> compare b.initiative a.initiative) groups in
+  let gmap =
+    List.fold_left (fun m g -> StringMap.add g.id g m) StringMap.empty groups
+  in
+  let killed = ref 0 in
+
+  let gmap' =
+    List.fold_left
+      (fun m att_ref ->
+        match StringMap.find_opt att_ref.id m with
+        | None -> m
+        | Some att ->
+            if att.units <= 0 then m
+            else
+              match StringMap.find_opt att_ref.id targets with
+              | None -> m
+              | Some tid -> (
+                  match StringMap.find_opt tid m with
+                  | None -> m
+                  | Some def ->
+                      let dmg = damage_to att def in
+                      if dmg <= 0 then m
+                      else
+                        let nk = min (dmg / def.hp) def.units in
+                        if nk <= 0 then m
+                        else (
+                          killed := !killed + nk;
+                          let remaining = def.units - nk in
+                          if remaining > 0 then
+                            StringMap.add tid { def with units = remaining } m
+                          else
+                            StringMap.remove tid m )))
+      gmap order
+  in
+
+  let next_groups = StringMap.bindings gmap' |> List.map snd in
+  (next_groups, !killed)
+
+let rec do_fight (groups : group list) : outcome =
+  let targets = target_selection groups in
+  let next_groups, killed = attack groups targets in
+  let immune_left = List.exists (fun g -> g.army = Immune_system) next_groups in
+  let infection_left = List.exists (fun g -> g.army = Infection) next_groups in
+  if killed = 0 then Stalemate
+  else if not infection_left then Win (Immune_system, sum_units next_groups)
+  else if not immune_left then Win (Infection, sum_units next_groups)
+  else do_fight next_groups
+
+let battle (armies : group list) (boost : int) : outcome =
+  let boosted =
+    armies
+    |> List.map (fun g ->
+           match g.army with
+           | Immune_system -> { g with damage = g.damage + boost }
+           | Infection -> g)
+  in
+  do_fight boosted
+
+let rec binary_search (armies : group list) (low : int) (high : int) : int =
+  if low > high then low
+  else
+    let mid = (low + high) / 2 in
+    match battle armies mid with
+    | Win (Immune_system, _) -> binary_search armies low (mid - 1)
+    | _ -> binary_search armies (mid + 1) high
+
+let read_file filename =
+  let ic = open_in filename in
+  Fun.protect
+    ~finally:(fun () -> close_in ic)
+    (fun () ->
+      let len = in_channel_length ic in
+      really_input_string ic len)
+
+let main () =
+  let input = read_file "input.txt" in
+  let armies = parse_input input in
+  let min_boost = binary_search armies 0 100_000 in
+  match battle armies min_boost with
+  | Win (Immune_system, units) ->
+      printf "The smallest boost needed for the Immune System to win is: %d\n" min_boost;
+      printf "The Immune System is left with %d units after winning.\n" units
+  | _ -> ()
+
+let () = main ()
