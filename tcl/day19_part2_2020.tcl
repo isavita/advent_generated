@@ -11,7 +11,7 @@ proc parseInput {filename} {
             dict set rules $num [dict create type char char $ch]
         } elseif {[regexp {^(\d+): (.+)$} $line -> num rhs]} {
             set options {}
-            set sep ""
+            set sep "\u0001"
             foreach opt [split [string map [list " | " $sep] $rhs] $sep] {
                 lappend options [split $opt " "]
             }
@@ -60,24 +60,48 @@ proc expandRule {rulesVar memoVar ruleNum} {
     return $result
 }
 
+proc chunkMessage {msg chunkLen} {
+    set out {}
+    for {set i 0} {$i < [string length $msg]} {incr i $chunkLen} {
+        lappend out [string range $msg $i [expr {$i + $chunkLen - 1}]]
+    }
+    return $out
+}
+
 lassign [parseInput "input.txt"] rules messages
 set memo [dict create]
 set rule42 [expandRule rules memo 42]
 set rule31 [expandRule rules memo 31]
 
-set re42 "(?:[join $rule42 |])"
-set re31 "(?:[join $rule31 |])"
+set chunkLen [string length [lindex $rule42 0]]
+set valid31ByChunk [dict create]
+set valid42ByChunk [dict create]
+foreach s $rule42 { dict set valid42ByChunk $s 1 }
+foreach s $rule31 { dict set valid31ByChunk $s 1 }
 
 set count 0
 foreach msg $messages {
-    set ok 0
-    for {set n 1} {$n < 10 && !$ok} {incr n} {
-        set pattern "^(?:${re42})+(?:${re42}){${n}}(?:${re31}){${n}}$"
-        if {[regexp $pattern $msg]} {
-            set ok 1
-        }
+    if {[string length $msg] == 0 || [expr {[string length $msg] % $chunkLen}] != 0} {
+        continue
     }
-    if {$ok} {
+
+    set chunks [chunkMessage $msg $chunkLen]
+    set n [llength $chunks]
+
+    set prefix42 0
+    while {$prefix42 < $n && [dict exists $valid42ByChunk [lindex $chunks $prefix42]]} {
+        incr prefix42
+    }
+
+    set suffix31 0
+    set idx [expr {$n - 1}]
+    while {$idx >= 0 && [dict exists $valid31ByChunk [lindex $chunks $idx]]} {
+        incr suffix31
+        incr idx -1
+    }
+
+    # Valid for rule 0 in part 2: 42^(m+n) 31^n with n>=1 and m>=1.
+    if {$suffix31 >= 1 && $prefix42 > $suffix31 && ($prefix42 + $suffix31) == $n} {
         incr count
     }
 }
