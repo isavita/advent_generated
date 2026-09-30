@@ -1,0 +1,2 @@
+name = "aoc"
+defaultTargets = ["aoc"]
