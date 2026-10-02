@@ -1,0 +1,67 @@
+#!/usr/bin/env scheme
+
+(define (read-lines filename)
+  (call-with-input-file filename
+    (lambda (port)
+      (let loop ((lines '()))
+        (let ((line (read-line port)))
+          (if (eof-object? line)
+              (reverse lines)
+              (loop (cons line lines))))))))
+
+(define (string-index-from str start ch)
+  (let loop ((i start))
+    (cond ((>= i (string-length str)) #f)
+          ((char=? (string-ref str i) ch) i)
+          (else (loop (+ i 1))))))
+
+(define (string-split str ch)
+  (let loop ((start 0) (res '()))
+    (let ((pos (string-index-from str start ch)))
+      (if pos
+          (loop (+ pos 1) (cons (substring str start pos) res))
+          (reverse (cons (substring str start (string-length str)) res))))))
+
+(define (trim str)
+  (let ((len (string-length str)))
+    (let loop-start ((i 0))
+      (if (or (= i len) (not (char-whitespace? (string-ref str i))))
+          (let loop-end ((j (- len 1)))
+            (if (or (< j i) (not (char-whitespace? (string-ref str j))))
+                (substring str i (+ j 1))
+                (loop-end (- j 1))))
+          (loop-start (+ i 1))))))
+
+(define (game-power line)
+  (let* ((parts (string-split line #\:))
+         (after (cadr parts))
+         (rounds (string-split after #\;)))
+    (let loop-rounds ((r rounds) (mr 0) (mg 0) (mb 0))
+      (if (null? r)
+          (* mr mg mb)
+          (let* ((tokens (string-split (car r) #\,)))
+            (let loop-tokens ((t tokens) (mr mr) (mg mg) (mb mb))
+              (if (null? t)
+                  (loop-rounds (cdr r) mr mg mb)
+                  (let* ((tok (trim (car t)))
+                         (parts (string-split tok #\space))
+                         (count (string->number (car parts)))
+                         (color (cadr parts)))
+                    (cond
+                      ((string=? color "red")
+                       (loop-tokens (cdr t) (max mr count) mg mb))
+                      ((string=? color "green")
+                       (loop-tokens (cdr t) mr (max mg count) mb))
+                      ((string=? color "blue")
+                       (loop-tokens (cdr t) mr mg (max mb count)))
+                      (else
+                       (loop-tokens (cdr t) mr mg mb))))))))))
+
+(define (main)
+  (let* ((lines (read-lines "input.txt"))
+         (powers (map game-power lines))
+         (total (apply + powers)))
+    (display total)
+    (newline)))
+
+(main)
