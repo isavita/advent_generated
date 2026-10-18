@@ -1,0 +1,8 @@
+inductive Action where
+        | on
+        | off
+        | toggle
+
+def main : IO Unit := do
+        let input <- IO.FS.readFile "input.txt"
+        IO.println input
